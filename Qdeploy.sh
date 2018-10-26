@@ -14,6 +14,7 @@ IP=quantum@10.0.0.240
 
 sshpass -p "$DEPLOYMENT_PASS" ssh -o StrictHostKeyChecking=no -T "$IP" << EOF
 cd /home/quantum
+git init
 git pull -u origin master
 exit
 EOF
