@@ -1,6 +1,7 @@
 types:
   - build
   - test
+  - deploy
 
 build_app:
   type: build
