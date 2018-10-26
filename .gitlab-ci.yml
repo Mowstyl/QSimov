@@ -1,6 +1,21 @@
-types:
+image: python:latest
+  
+stages:
+  - build
   - deploy
+  - notify-sites
 
-deploy_app:
-  type: deploy
+build:
+  stage: build
+  script:
+    - apt-get -q update && apt-get -q -y install locales
+    - echo "es_ES.UTF-8 UTF-8"  > /etc/locale.gen && echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen && locale-gen
+    - mkdir /home/quantum/
+    - cp -r * /home/quantum/
+
+deploy:
+  stage: deploy
+  
   script: Qdeploy.sh $QDEPLOYMENT_PASS
+  only:
+    - master
