@@ -10,6 +10,6 @@ test_app:
   type: test
   script: python Qtest.py test
   
-deploy.app
+deploy_app:
   type: deploy
   script: Qdeploy.sh
