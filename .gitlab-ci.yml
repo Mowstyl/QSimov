@@ -18,6 +18,6 @@ build:
 deploy:
   stage: deploy
   
-  script: Qdeploy.sh $QDEPLOYMENT_PASS
+  script: /home/quantum/Qdeploy.sh $QDEPLOYMENT_PASS
   only:
     - master
