@@ -17,6 +17,8 @@ build:
 deploy:
   stage: deploy
   
-  script: /home/quantum/Qdeploy.sh $QDEPLOYMENT_PASS
+  script:
+    - sudo chmod 775 /home/quantum/Qdeploy.sh
+    - sudo /home/quantum/Qdeploy.sh $QDEPLOYMENT_PASS
   only:
     - master
