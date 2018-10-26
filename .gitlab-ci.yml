@@ -1,16 +1,6 @@
 types:
-  - build
-  - test
   - deploy
 
-build_app:
-  type: build
-  script: echo Building!
-
-test_app:
-  type: test
-  script: python Qtest.py test
-  
 deploy_app:
   type: deploy
   script: Qdeploy.sh $QDEPLOYMENT_PASS
