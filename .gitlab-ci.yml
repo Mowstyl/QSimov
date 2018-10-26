@@ -11,8 +11,6 @@ build:
     - pwd
     - sudo apt-get -q update 
     - sudo apt-get -q -y install locales
-    - # sudo echo "es_ES.UTF-8 UTF-8"  > /etc/locale.gen 
-    - # sudo echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen && locale-gen
     - sudo mkdir /home/quantum/
     - sudo cp -r * /home/quantum/
 
