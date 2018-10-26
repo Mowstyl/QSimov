@@ -8,4 +8,8 @@ build_app:
 
 test_app:
   type: test
-  script: python manage.py test
+  script: python Qtest.py test
+  
+deploy.app
+  type: deploy
+  script: Qdeploy.sh
