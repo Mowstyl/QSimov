@@ -13,4 +13,4 @@ test_app:
   
 deploy_app:
   type: deploy
-  script: Qdeploy.sh
+  script: Qdeploy.sh $DEPLOYMENT_PASS
