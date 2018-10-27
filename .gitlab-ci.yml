@@ -8,8 +8,7 @@ build:
   stage: build
   script:
     - tar -zcvf latest.tar.gz *
-    - pwd
-    - ls -lah
+    - mv latest.tar.gz /home/gitlab-runner
   only:
     - master
 
@@ -20,9 +19,9 @@ deploy:
     - sudo apt-get -q update 
     - sudo apt-get -q -y install locales
     - sudo apt-get -q -y install sshpass
-    - sudo chmod 775 Qdeploy.sh
-    - pwd
+    - mv /home/gitlab-runner/latest.tar.gz ./
     - ls -lah
+    - sudo chmod 775 Qdeploy.sh
     - ./Qdeploy.sh $QDEPLOYMENT_PASS
   only:
     - master
