@@ -47,6 +47,24 @@ def PauliZ():
 	pz.addLine(m)
 	return pz
 
+def Rx(theta):
+	rx = QGate("Rx(" + str(theta) + ")")
+	m = np.around(np.cos(theta/2) * I(1) - 1j * np.sin(theta/2) * PauliX().m, decimals=15)
+	rx.addLine(m)
+	return rx
+
+def Ry(theta):
+	rx = QGate("Ry(" + str(theta) + ")")
+	m = np.around(np.cos(theta/2) * I(1) - 1j * np.sin(theta/2) * PauliY().m, decimals=15)
+	rx.addLine(m)
+	return rx
+
+def Rz(theta):
+	rx = QGate("Rz(" + str(theta) + ")")
+	m = np.around(np.cos(theta/2) * I(1) - 1j * np.sin(theta/2) * PauliZ().m, decimals=15)
+	rx.addLine(m)
+	return rx
+
 def SqrtNOT(): # Square root of NOT gate, usually seen in its controlled form C-√NOT. Sometimes called C-√X gate.
 	v = QGate("√NOT")
 	m = np.array([1, -1j, -1j, 1], dtype=complex)
