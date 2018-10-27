@@ -16,6 +16,11 @@ build:
 test:
   stage: test
   script:
+    - sudo apt-get -q update
+    - sudo apt-get -q -y install python3
+    - sudo python3 -m pip install --upgrade pip
+    - sudo python3 -m pip install numpy
+    - sudo python3 -m pip install --upgrade numpy
     - python3 Qtest.py
 
 deploy:
