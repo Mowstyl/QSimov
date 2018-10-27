@@ -16,6 +16,6 @@ sshpass -p "$DEPLOYMENT_PASS" scp latest.tar.gz $IP:/home/quantum
 sshpass -p "$DEPLOYMENT_PASS" ssh -o StrictHostKeyChecking=no -T "$IP" << EOF
 rm -rf QSimulator/*
 tar -zxvf latest.tar.gz -C QSimulator
-rm latest.tar.cz
+rm latest.tar.gz
 exit
 EOF
