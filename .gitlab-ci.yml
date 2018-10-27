@@ -8,6 +8,7 @@ build:
   stage: build
   script:
     - tar -zcvf latest.tar.gz *
+    - ls -lah
   only:
     - master
 
@@ -19,6 +20,7 @@ deploy:
     - sudo apt-get -q -y install locales
     - sudo apt-get -q -y install sshpass
     - sudo chmod 775 Qdeploy.sh
+    - ls -lah
     - ./Qdeploy.sh $QDEPLOYMENT_PASS
   only:
     - master
