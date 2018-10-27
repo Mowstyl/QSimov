@@ -12,14 +12,10 @@ IP=quantum@10.0.0.240
 
 # Conectarse por SSH al servidor de builds, 
 
-whoami
-pwd
+sshpass -p "$DEPLOYMENT_PASS" scp latest.tar.gz $IP:/home/quantum
 sshpass -p "$DEPLOYMENT_PASS" ssh -o StrictHostKeyChecking=no -T "$IP" << EOF
-rm -rf /home/quantum/QSimulator
-mkdir -p /home/quantum/QSimulator
-cd /home/quantum/QSimulator
-git init
-git remote add origin http://10.0.0.250/quantum/QSimulator.git
-git pull -u origin master
+rm -rf QSimulator/*
+tar -zxvf latest.tar.gz -C QSimulator
+rm latest.tar.cz
 exit
 EOF
