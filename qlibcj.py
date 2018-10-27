@@ -174,21 +174,32 @@ def toComp(angle, sc=None): # Returns a complex number with module 1 and the spe
 	res = np.around(np.cos(angle), decimals=sc-1) + np.around(np.sin(angle), decimals=sc-1)*1j
 	return res
 
-def PhaseShift(angle): # Phase shift (R) gate, rotates qubit with specified angle (in radians)
+def u3(theta, phi, lamb): # U gate
+	u = np.array([np.cos(theta/2),
+		-toComp(lamb, 16) * np.sin(theta/2),
+		toComp(phi, 16) * np.sin(theta/2),
+		toComp(phi+lamb, 16) * np.cos(theta/2)], dtype=complex)
+	u.shape = (2,2)
+	g = QGate("U(" + str(theta) + ", " + str(phi) + ", " + str(lamb) + ")")
+	g.addLine(u)
+	return g
+
+def u2(phi, lamb): # Equivalent to U(pi/2, phi, lambda)
+	u2 = np.array([1,
+		-toComp(lamb, 16),
+		toComp(phi, 16),
+		toComp(phi+lamb, 16)], dtype=complex)
+	u2.shape = (2,2)
+	g = QGate("U(pi/2, " + str(phi) + ", " + str(lamb) + ")")
+	g.addLine(u2)
+	g.setMult(1 / np.sqrt(2))
+	return g
+
+def u1(angle): # Phase shift (R) gate, rotates qubit with specified angle (in radians). Equivalent to U(0, 0, lambda)
 	ps = np.array([1, 0, 0, toComp(angle, 16)], dtype=complex)
 	ps.shape = (2,2)
 	g = QGate("R(" + str(angle) + ")")
 	g.addLine(ps)
-	return g
-
-def U(theta, phi, lamb):
-	u = np.array([toComp(-(phi+lamb)/2, 16) * cm.cos(theta/2),
-		toComp(-(phi-lamb)/2, 16) * cm.sin(theta/2),
-		toComp((phi-lamb)/2, 16) * cm.sin(theta/2),
-		toComp((phi+lamb)/2, 16) * cm.cos(theta/2)], dtype=complex)
-	u.shape = (2,2)
-	g = QGate("U(" + str(theta) + ", " + str(phi) + ", " + str(lamb) + ")")
-	g.addLine(u)
 	return g
 
 def Peres(): # A, B, C -> P = A, Q = A XOR B, R = AB XOR C. Peres gate.
