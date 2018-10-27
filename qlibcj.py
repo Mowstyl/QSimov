@@ -178,7 +178,18 @@ def PhaseShift(angle): # Phase shift (R) gate, rotates qubit with specified angl
 	ps = np.array([1, 0, 0, toComp(angle, 16)], dtype=complex)
 	ps.shape = (2,2)
 	g = QGate("R(" + str(angle) + ")")
-	return ps
+	g.addLine(ps)
+	return g
+
+def U(theta, phi, lamb):
+	u = np.array([toComp(-(phi+lamb)/2, 16) * cm.cos(theta/2),
+		toComp(-(phi-lamb)/2, 16) * cm.sin(theta/2),
+		toComp((phi-lamb)/2, 16) * cm.sin(theta/2),
+		toComp((phi+lamb)/2, 16) * cm.cos(theta/2)], dtype=complex)
+	u.shape = (2,2)
+	g = QGate("U(" + str(theta) + ", " + str(phi) + ", " + str(lamb) + ")")
+	g.addLine(u)
+	return g
 
 def Peres(): # A, B, C -> P = A, Q = A XOR B, R = AB XOR C. Peres gate.
 	''' # Implementation of Peres gate with smaller gates.
