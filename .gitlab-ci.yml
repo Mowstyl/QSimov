@@ -7,10 +7,7 @@ stages:
 build:
   stage: build
   script:
-    - whoami
-    - pwd
-    - ls -lah
-    - sudo rm -rf /home/quantum
+    - tar -zcvf latest.tar.gz *
   only:
     - master
 
