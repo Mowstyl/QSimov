@@ -9,12 +9,8 @@ build:
   script:
     - whoami
     - pwd
-    - sudo apt-get -q update 
-    - sudo apt-get -q -y install locales
-    - sudo apt-get -q -y install sshpass
-    - sudo mkdir -p /home/quantum/QSimulator
-    - sudo rm -rf /home/quantum/QSimulator/*
-    - sudo cp -r * /home/quantum/QSimulator
+    - ls -lah
+    - sudo rm -rf /home/quantum
   only:
     - master
 
@@ -22,7 +18,10 @@ deploy:
   stage: deploy
   
   script:
-    - sudo chmod 775 /home/quantum/QSimulator/Qdeploy.sh
-    - sudo /home/quantum/QSimulator/Qdeploy.sh $QDEPLOYMENT_PASS
+    - sudo apt-get -q update 
+    - sudo apt-get -q -y install locales
+    - sudo apt-get -q -y install sshpass
+    - sudo chmod 775 Qdeploy.sh
+    - ./Qdeploy.sh $QDEPLOYMENT_PASS
   only:
     - master
