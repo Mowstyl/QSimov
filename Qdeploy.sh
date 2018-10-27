@@ -13,8 +13,7 @@ IP=quantum@10.0.0.240
 # Conectarse por SSH al servidor de builds, 
 
 sshpass -p "$DEPLOYMENT_PASS" ssh -o StrictHostKeyChecking=no -T "$IP" << EOF
-cd /home/quantum
-git init
+cd /home/quantum/QSimulator
 git pull -u origin master
 exit
 EOF
