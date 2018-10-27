@@ -198,7 +198,7 @@ def u2(phi, lamb): # Equivalent to U(pi/2, phi, lambda)
 def u1(angle): # Phase shift (R) gate, rotates qubit with specified angle (in radians). Equivalent to U(0, 0, lambda)
 	ps = np.array([1, 0, 0, toComp(angle, 16)], dtype=complex)
 	ps.shape = (2,2)
-	g = QGate("R(" + str(angle) + ")")
+	g = QGate("U(0, 0, " + str(angle) + ")")
 	g.addLine(ps)
 	return g
 
@@ -298,6 +298,8 @@ def getTruthTable(gate, ancilla=None, garbage=0, iterations=1): # Prints the tru
 	# The garbage=n removes the last n bits from the truth table, considering them garbage.
 	# For example, if you have 6 outputs and the last 4 outputs are garbage, only the value of the first two would be printed.
 	# Always removes the last n bits!
+	if (type(gate) == QGate):
+		gate = gate.m
 	num = int(np.log2(gate.shape[0]))
 	mesd = {}
 	for iteration in range(iterations):
@@ -306,9 +308,10 @@ def getTruthTable(gate, ancilla=None, garbage=0, iterations=1): # Prints the tru
 			qinit = [0 for j in range(num - len(nbin))]
 			qinit += nbin
 			if ancilla == None or qinit[-len(ancilla):] == ancilla:
-				qr = QRegistry(qinit)
-				qr.ApplyGate(gate)
-				mes = qr.Measure([1 for j in range(num-garbage)])
+				qr = QRegistry(len(qinit))
+				qr.applyGate(*[I(1) if j == 0 else PauliX() for j in qinit])
+				qr.applyGate(gate)
+				mes = qr.measure([1 for j in range(num-garbage)])
 				if ancilla != None:
 					ini = qinit[:-len(ancilla)]
 				else:
@@ -317,7 +320,12 @@ def getTruthTable(gate, ancilla=None, garbage=0, iterations=1): # Prints the tru
 					mesd[str(ini)] = np.zeros(num)
 				mesd[str(ini)] = [x + y for x, y in zip(mesd[str(ini)], mes)]
 	for k in mesd:
-		print(k + " -> " + str(["P(1)=" + str(v/iterations) if v/iterations != 1.0 and v/iterations != 0.0 else int(v/iterations) for v in mesd[k]]))
+		for i in range(len(mesd[k])):
+			mesd[k][i] /= iterations
+			if (mesd[k][i] == 1.0 or mesd[k][i] == 0.0):
+				mesd[k][i] = int(mesd[k][i])
+		print(k + " -> " + str(["P(1)=" + str(v) if type(v) != int and type(v) != int else v for v in mesd[k]]))
+	return mesd
 
 def QEq(q1, q2):
 	return np.array_equal(q1,q2) and str(q1) == str(q2)
