@@ -14,6 +14,8 @@ IP=quantum@10.0.0.240
 
 sshpass -p "$DEPLOYMENT_PASS" ssh -o StrictHostKeyChecking=no -T "$IP" << EOF
 cd /home/quantum/QSimulator
+git init
+git remote add origin http://10.0.0.250/quantum/QSimulator.git
 git pull -u origin master
 exit
 EOF
