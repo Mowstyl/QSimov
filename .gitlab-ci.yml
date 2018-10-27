@@ -2,6 +2,7 @@ image: debian:latest
   
 stages:
   - build
+  - test
   - deploy
 
 build:
@@ -11,6 +12,11 @@ build:
     - mv latest.tar.gz /home/gitlab-runner
   only:
     - master
+
+test:
+  stage: test
+  script:
+    - python3 Qtest.py
 
 deploy:
   stage: deploy
