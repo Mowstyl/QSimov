@@ -12,6 +12,8 @@ IP=quantum@10.0.0.240
 
 # Conectarse por SSH al servidor de builds, 
 
+whoami
+pwd
 sshpass -p "$DEPLOYMENT_PASS" ssh -o StrictHostKeyChecking=no -T "$IP" << EOF
 rm -rf /home/quantum/QSimulator
 mkdir -p /home/quantum/QSimulator
