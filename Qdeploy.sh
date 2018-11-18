@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 # Credenciales para conectarse al servidor en el que se despliega el contenedor;
+# Para ejecutar hace falta Python>3.4 (la 3.4 no funciona)
 
 
 # Debe estar definido en Gitlab, como una variable del proyecto
