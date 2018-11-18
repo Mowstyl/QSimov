@@ -18,9 +18,9 @@ test:
   script:
     - sudo apt-get -q update
     - sudo apt-get -q -y install python3.7
-    - sudo python3 -m pip install --upgrade pip
-    - sudo python3 -m pip install numpy
-    - sudo python3 -m pip install --upgrade numpy
+    - sudo python3.7 -m pip install --upgrade pip
+    - sudo python3.7 -m pip install numpy
+    - sudo python3.7 -m pip install --upgrade numpy
     - python3.7 qtest.py
 
 deploy:
