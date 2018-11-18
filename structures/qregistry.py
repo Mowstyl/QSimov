@@ -1,6 +1,7 @@
 import cmath as cm
 import numpy as np
 import random as rnd
+import structures.funmatrix as fm
 from structures.qgate import _getMatrix
 
 class QRegistry:
@@ -47,8 +48,8 @@ class QRegistry:
 	def applyGate(self, *gates): # Applies a quantum gate to the registry.
 		gate = _getMatrix(gates[0])
 		for g in list(gates)[1:]:
-			gate = np.kron(gate, _getMatrix(g))
-		self.state = np.transpose(np.dot(gate, ket(self.state)))
+			gate = fm.kron(gate, _getMatrix(g))
+		self.state = np.transpose((gate @ ket(self.state))[:])
 
 	def collapse(self, qbit, mes, remove): # Collapses a qubit from the registry. qbit is the id of the qubit, numerated as q0..qn in the registry. mes is the value obtained when measuring it. remove indicates whether it should be removed from the registry.
 		max = 2**qbit

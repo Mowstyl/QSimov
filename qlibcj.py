@@ -5,6 +5,7 @@ import numpy as np
 from structures.qregistry import *
 from structures.qgate import *
 from structures.qcircuit import *
+import structures.funmatrix as fm
 
 # np.zeros((h,w), dtype=complex) Inicializa una matriz de numeros complejos con alto h y ancho w
 # La suma de matrices se realiza con +. A + B
@@ -14,36 +15,31 @@ from structures.qcircuit import *
 
 
 def _hMat(n): # Devuelve una matriz que al ser multiplicada por 1/sqrt(2^n) resulta en la puerta Hadamard para n bits
-	H = np.ones((2,2), dtype=complex)
-	H[1,1] = -1
+	H = fm.FunctionalMatrix(lambda i, j: 1 if not (i == j and i == 1) else -1, (2, 2))
 	if n > 1:
-		H = np.kron(H, _hMat(n - 1))
+		H = fm.kron(H, _hMat(n - 1))
 	return H
 
 def H(n): # Devuelve una puerta Hadamard para n QuBits
 	H = QGate("H")
-	H.addLine(_hMat(n))
-	H.setMult(1 / np.sqrt(2**n))
+	H.addLine(_hMat(n) * (1 / np.sqrt(2**n)))
 	return H
 
 def PauliX(): # Also known as NOT
 	px = QGate("NOT")
-	m = np.array([0,1,1,0], dtype=complex)
-	m.shape = (2,2)
+	m = fm.FunctionalMatrix(lambda i, j: abs(i - j), 2) # [0 1; 1 0]
 	px.addLine(m)
 	return px
 
 def PauliY():
 	py = QGate("Y")
-	m = np.array([0,-1j,1j,0], dtype=complex)
-	m.shape = (2,2)
+	m = fm.FunctionalMatrix(lambda i, j: (i - j)*1j, 2) # [0 -i; i 0]
 	py.addLine(m)
 	return py
 
 def PauliZ():
 	pz = QGate("Z")
-	m = np.array([1,0,0,-1], dtype=complex)
-	m.shape = (2,2)
+	m = fm.FunctionalMatrix(lambda i, j: 1 - (i + j), 2) # [1 0; 0 -1]
 	pz.addLine(m)
 	return pz
 
@@ -67,27 +63,28 @@ def Rz(theta):
 
 def SqrtNOT(): # Square root of NOT gate, usually seen in its controlled form C-√NOT. Sometimes called C-√X gate.
 	v = QGate("√NOT")
-	m = np.array([1, -1j, -1j, 1], dtype=complex)
-	m.shape = (2,2)
-	v.addLine(m)
-	v.setMult((1 + 1j)/2)
+	m = fm.FunctionalMatrix(lambda i, j: 0**abs(i - j) + abs(i - j) * -1j, 2) # [1, -i, -i, 1]
+	v.addLine(m * ((1 + 1j)/2))
 	return v
 
-def ControlledU(gate): # Returns a controlled version of the given gate
+def ControlledU(gate): # Returns a controlled version of the given gate [I 0; 0 U]
 	g = gate
 	name = "U"
-	if type(gate) == QGate:
+	if (type(gate) == QGate):
 		g = gate.m
 		name = gate.name
 	gdim = g.shape[0]
-	m = np.eye(gdim*2, dtype=complex)
-	m[gdim:,gdim:] = g
+	if (type(g) == fm.FunctionalMatrix):
+		m = fm.FunctionalMatrix(lambda i, j: g.f(i, j) if i > gdim/2 and j > gdim/2 else 0**abs(i - j), gdim * 2)
+	else:
+		m = fm.FunctionalMatrix(lambda i, j: g[i, j] if i > gdim/2 and j > gdim/2 else 0**abs(i - j), gdim * 2)
 	cu = QGate("C-" + name)
 	cu.addLine(m)
 	return cu
 
 def CNOT(): # Returns a CNOT gate for two QuBits, also called Feynman gate
-	#return ControlledU(PauliX())
+	return ControlledU(PauliX())
+	'''
 	cn = QGate("C-NOT")
 	m = np.zeros((4,4), dtype=complex)
 	m[0,0] = 1
@@ -96,6 +93,7 @@ def CNOT(): # Returns a CNOT gate for two QuBits, also called Feynman gate
 	m[3,2] = 1
 	cn.addLine(m)
 	return cn
+	'''
 
 def NOTC(): # Returns a CNOT gate for two QuBits, first QuBit objective and second one control
 	#return SWAP() @ CNOT() @ SWAP()
@@ -400,5 +398,18 @@ def QFT(size, rc = 14):
 
 	return uft
 	'''
+	'''
 	from tests.shor import DFT
 	return DFT(pow(2, size))
+	'''
+	n = 2**size
+	def qftFunc(i, j):
+		div = 1 / np.sqrt(n)
+		if (i <= 0 or j <= 0):
+			return div * 1+0j
+		else:
+			c = i * j * 2 * pi / n
+			return div * round(np.cos(c), rc) + div * round(np.sin(c), rc) * 1j
+	qft = QGate("QFT" + str(size))
+	qft.addLine(FunctionalMatrix(qftFunc, n))
+	return qft

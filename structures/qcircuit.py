@@ -61,12 +61,12 @@ class Condition(object):
 		if _specialCompare(self.cond, mresults):
 			case = self.ifcase
 			t = self.typeif
-		if t == Condition: # Condition
+		if t == 0: # Condition
 			r = case.evaluate(qregistry, mresults)
-		elif t == QGate: # QGate
+		elif t == 1: # QGate
 			r = qregistry
 			r.applyGate(case)
-		elif t == QCircuit: # QCircuit
+		elif t == 2: # QCircuit
 			r = case._executeOnce(qregistry)
 		else: # Do nothing
 			r = qregistry
@@ -154,6 +154,8 @@ class QCircuit(object):
 						gid += 1
 					else:
 						r = self.measure[mid].check(r)
+						mres += r[1]
+						r = r[0]
 						mid += 1
 					gc.collect()
 		finally:

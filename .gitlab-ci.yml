@@ -21,11 +21,10 @@ test:
     - sudo python3 -m pip install --upgrade pip
     - sudo python3 -m pip install numpy
     - sudo python3 -m pip install --upgrade numpy
-    - python3 Qtest.py
+    - python3 qtest.py
 
 deploy:
   stage: deploy
-  
   script:
     - sudo apt-get -q update 
     - sudo apt-get -q -y install locales

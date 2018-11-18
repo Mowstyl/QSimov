@@ -1,4 +1,5 @@
 import numpy as np
+import structures.funmatrix as fm
 import gc
 
 class QGate(object):
@@ -133,27 +134,14 @@ class QGate(object):
 			g = gate
 			if type(gate) == QGate:
 				g = gate.m
-			aux = np.kron(aux, g)
-			gc.collect()
-		self.m = np.dot(aux, self.m)
-		gc.collect()
-
-	def setMult(self, mult):
-		self.m *= mult/self.mult
-		self.mult = mult
-
-	def addMult(self, mult):
-		self.m *= mult
-		self.mult *= mult
+			aux = fm.kron(aux, g)
+		self.m = aux * self.m
 
 	def setName(self, name):
 		self.name = name
 
 def I(n): # Returns Identity Matrix for the specified number of QuBits
-	#IM = np.array([[1,0],[0,1]], dtype=complex)
-	#if n > 1:
-	#	IM = np.kron(IM, I(n - 1))
-	return np.eye(2**n, dtype=complex)
+	return fm.FunctionalMatrix(lambda i, j: 0**abs(i - j), 2**n)
 
 def _getMatrix(gate):
 	m = gate

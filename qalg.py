@@ -2,7 +2,8 @@ from qlibcj import *
 
 def DJAlg(size, U_f, **kwargs): # U_f es el oraculo, que debe tener x1..xn e y como qubits. Tras aplicarlo el qubit y debe valer f(x1..xn) XOR y. El argumento size es n + 1, donde n es el numero de bits de entrada de f.
 	rnd.seed(kwargs.get('seed', None)) # Para asegurar la repetibilidad fijamos la semilla antes del experimento.
-	r = QRegistry(([0 for i in range(size - 1)] + [1])) # Los qubits se inicializan a cero (x1..xn) excepto el ultimo (y), inicializado a uno
+	r = QRegistry(size) # Los qubits se inicializan a cero (x1..xn) excepto el ultimo (y), inicializado a uno
+	r.applyGate(I(size-1), PauliX())
 	r.applyGate(H(size)) # Se aplica una compuerta hadamard a todos los qubits
 	r.applyGate(U_f) # Se aplica el oraculo
 	r.applyGate(H(size - 1), I(1)) # Se aplica una puerta Hadamard a todos los qubits excepto al ultimo
@@ -34,7 +35,7 @@ Crea un oraculo U_f tal y como viene definido en el algoritmo de Deutsch-Josza p
 El argumento n no es el numero de bits de la entrada de f, sino dicho numero mas 1 (para el qubit de "salida").
 '''
 def Bal(n):
-	b = I(n)
+	b = np.eye(2**n)
 	'''
 	Se invierte el valor del qubit y en los casos en los que el bit mas significativo sea 1.
 	Una puerta C-NOT serviria de U_f con la definicion de f dada con n = 2. Bal(2) = CNOT().
@@ -98,14 +99,14 @@ def TeleportationCircuit(gate, save=True): # Recibe como argumento lo que se va 
 	qc = QCircuit("Teleportation", save=save, ancilla=[0, 0])
 	qc.addLine(I(1), H(1), I(1))
 	qc.addLine(I(1), CNOT())
-	# Aqui es donde trabajamos con el qubit Q que queremos enviar posteriormente. Se le aplica la puerta pasada como parámetro
+	# Aqui es donde trabajamos con el qubit Q que queremos enviar posteriormente. Se le aplica la puerta pasada como parámetro.
 	qc.addLine(gate, I(2))
 	# Una vez terminado todo lo que queremos hacerle al QuBit, procedemos a preparar el envio
 	qc.addLine(CNOT(), I(1)) # Se aplica una puerta C-NOT sobre Q (control) y B (objetivo).
 	qc.addLine(H(1), I(2)) # Se aplica una puerta Hadamard sobre Q.
 
-	c1 = Condition([None, 1, None], PauliX())
-	c2 = Condition([1, None, None], PauliZ())
+	c1 = Condition([None, 1, None], PauliX(), None, 1, -1)
+	c2 = Condition([1, None, None], PauliZ(), None, 1, -1)
 
 	m = Measure([1, 1, 0], conds=[c1, c2], remove=True)
 
@@ -116,15 +117,13 @@ def TeleportationCircuit(gate, save=True): # Recibe como argumento lo que se va 
 def ExampleTC(value, gate, **kwargs): # El valor debe ser 0 o 1, valor inicial del QuBit a teleportar. Gate es la puerta que se va a aplicar sobre el QuBit a teleportar.
 	rnd.seed(kwargs.get('seed', None)) # Para asegurar la repetibilidad fijamos la semilla antes del experimento.
 
-	# Diseñamos la puerta que se va a aplicar sobre el QuBit
-	#g = QGate()
-	#g.addLine(H(1))
-	#g.addLine(PhaseShift(np.pi/2))
-
 	c = TeleportationCircuit(gate, save=kwargs.get('save', True))
 
-	r = c.execute([value]) # Se ejecuta el circuito
-	exr = QRegistry([value])
+	(r, mess) = c.execute([val]) # Se ejecuta el circuito
+	print (mess)
+	exr = QRegistry(1)
+	if (value == 1):
+		exr.applyGate(PauliX())
 	exr.applyGate(gate)
 	print ("Expected result:\n", exr.state, "\nResult:\n", r.state)
 	print ("Assert: " + str(all((r.state == exr.state)[0])))
