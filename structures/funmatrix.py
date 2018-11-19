@@ -126,9 +126,6 @@ class FunctionalMatrix(object):
 	def dagger(self):
 		return FunctionalMatrix(lambda i, j: np.conjugate(self.f(j, i)), (self.shape[1], self.shape[0]))
 
-	def cat(self):
-		return self[0,0]
-
 def isNumber(n):
 	types = [int, float, complex, np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint16, np.uint32, np.uint64, np.float16, np.float32, np.float64, np.complex64, np.complex128]
 	return (type(n) in types)
