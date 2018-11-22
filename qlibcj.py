@@ -15,7 +15,7 @@ import structures.funmatrix as fm
 
 
 def _hMat(n): # Devuelve una matriz que al ser multiplicada por 1/sqrt(2^n) resulta en la puerta Hadamard para n bits
-	H = fm.FunctionalMatrix(lambda i, j: 1 if not (i == j and i == 1) else -1, (2, 2))
+	H = fm.FunctionalMatrix(lambda i, j: 1 if not (i == 1 and j == 1) else -1, (2, 2))
 	if n > 1:
 		H = fm.kron(H, _hMat(n - 1))
 	return H
@@ -191,29 +191,39 @@ def toComp(angle, sc=None): # Returns a complex number with module 1 and the spe
 	return res
 
 def u3(theta, phi, lamb): # U gate
-	u = np.array([np.cos(theta/2),
-		-toComp(lamb, 16) * np.sin(theta/2),
-		toComp(phi, 16) * np.sin(theta/2),
-		toComp(phi+lamb, 16) * np.cos(theta/2)], dtype=complex)
-	u.shape = (2,2)
+	def u3fun(i, j):
+		if (i == 0 and j == 1):
+			return (-np.cos(lamb) - np.sin(lamb) * 1j) * np.sin(theta/2)
+		elif (i == 1 and j == 0):
+			return (np.cos(phi) + np.sin(phi) * 1j) * np.sin(theta/2)
+		elif (i == 1 and j == 1):
+			return (np.cos(phi+lamb) + np.sin(phi+lamb) * 1j) * np.cos(theta/2)
+		else:
+			return np.cos(theta/2)
+
+	u = fm.FunctionalMatrix(u3fun, 2)
 	g = QGate("U(" + str(theta) + ", " + str(phi) + ", " + str(lamb) + ")")
 	g.addLine(u)
 	return g
 
 def u2(phi, lamb): # Equivalent to U(pi/2, phi, lambda)
-	u2 = np.array([1,
-		-toComp(lamb, 16),
-		toComp(phi, 16),
-		toComp(phi+lamb, 16)], dtype=complex)
-	u2.shape = (2,2)
+	def u2fun(i, j):
+		if (i == 0 and j == 1):
+			return (-np.cos(lamb) - np.sin(lamb) * 1j) / np.sqrt(2)
+		elif (i == 1 and j == 0):
+			return (np.cos(phi) + np.sin(phi) * 1j) / np.sqrt(2)
+		elif (i == 1 and j == 1):
+			return (np.cos(phi+lamb) + np.sin(phi+lamb) * 1j) / np.sqrt(2)
+		else:
+			return 1 / np.sqrt(2)
+
+	u2 = fm.FunctionalMatrix(u2fun, 2)
 	g = QGate("U(pi/2, " + str(phi) + ", " + str(lamb) + ")")
 	g.addLine(u2)
-	g.setMult(1 / np.sqrt(2))
 	return g
 
 def u1(angle): # Phase shift (R) gate, rotates qubit with specified angle (in radians). Equivalent to U(0, 0, lambda)
-	ps = np.array([1, 0, 0, toComp(angle, 16)], dtype=complex)
-	ps.shape = (2,2)
+	ps = fm.FunctionalMatrix(lambda i, j: np.cos(angle) + np.sin(angle) * 1j if i == 1 and j == 1 else 0**abs(i-j), 2)
 	g = QGate("U(0, 0, " + str(angle) + ")")
 	g.addLine(ps)
 	return g
@@ -408,8 +418,8 @@ def QFT(size, rc = 14):
 		if (i <= 0 or j <= 0):
 			return div * 1+0j
 		else:
-			c = i * j * 2 * pi / n
+			c = i * j * 2 * np.pi / n
 			return div * round(np.cos(c), rc) + div * round(np.sin(c), rc) * 1j
 	qft = QGate("QFT" + str(size))
-	qft.addLine(FunctionalMatrix(qftFunc, n))
+	qft.addLine(fm.FunctionalMatrix(qftFunc, n))
 	return qft

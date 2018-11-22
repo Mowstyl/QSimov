@@ -2,6 +2,8 @@ import cmath as cm
 import numpy as np
 import random as rnd
 import structures.funmatrix as fm
+import os
+from pathos.multiprocessing import ProcessPool
 from structures.qgate import _getMatrix
 
 class QRegistry:
@@ -11,6 +13,7 @@ class QRegistry:
 		self.state = np.zeros(2**nqbits, dtype=complex)
 		self.state[0] = 1
 		self.state.shape = (1, 2**nqbits)
+		self.untouched = True
 
 	def measure(self, msk, remove = False): # List of numbers with the QuBits that should be measured. 0 means not measuring that qubit, 1 otherwise. remove = True if you want to remove a QuBit from the registry after measuring
 		if (type(msk) != list or len(msk) != int(np.log2(self.state.size)) or \
@@ -49,7 +52,27 @@ class QRegistry:
 		gate = _getMatrix(gates[0])
 		for g in list(gates)[1:]:
 			gate = fm.kron(gate, _getMatrix(g))
-		self.state = np.transpose((gate @ ket(self.state))[:])
+
+		newstate = gate @ ket(self.state)
+		n_nodes = min(os.cpu_count(), newstate.shape[0])
+		if (type(newstate) == fm.FunctionalMatrix and newstate.shape[0] > 1024):
+			results = []
+
+			pool = ProcessPool(nodes=n_nodes)
+			for i in range(n_nodes):
+				results.append(pool.apipe(_calculateState, n_nodes, i, newstate.shape[0], newstate.f))
+			pool.close()
+			pool.join()
+			for r in results:
+				rlist = r.get()
+				for (inx, val) in rlist:
+					self.state[0, inx] = val
+			pool.terminate()
+			pool.restart()
+		else:
+			self.state = np.transpose(newstate[:])
+			self.state.shape = (1, self.state.size)
+		del newstate
 
 	def collapse(self, qbit, mes, remove): # Collapses a qubit from the registry. qbit is the id of the qubit, numerated as q0..qn in the registry. mes is the value obtained when measuring it. remove indicates whether it should be removed from the registry.
 		max = 2**qbit
@@ -68,8 +91,10 @@ class QRegistry:
 			for qbit in mfd[::-1]:
 				self.state = np.delete(self.state, qbit, 1)
 		normalize(self.state)
+
 	def densityMatrix(self):
 		return np.dot(ket(self.state), bra(self.state))
+
 	def vnEntropy(self, **kwargs):
 		base = kwargs.get('base', "e")
 		#dm = self.densityMatrix()
@@ -86,6 +111,10 @@ class QRegistry:
 				elif type(base) == int or type(base) == float:
 					entropy += p * np.log(p)/np.log(base)
 		return -entropy
+
+def _calculateState(tnum, cnum, size, fun):
+	indexes = [i for i in range(cnum, size, tnum)]
+	return [(index, fun(index, 0)) for index in indexes]
 
 def prob(q, x): # Devuelve la probabilidad de obtener x al medir el qbit q
 	p = 0

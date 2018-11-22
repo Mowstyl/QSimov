@@ -98,7 +98,7 @@ class QGate(object):
 		if type(other) == QGate:
 			m = other.m
 		sol = QGate()
-		sol.addLine(self.m.__rmul__(m))
+		sol.addLine(self.m.__mul__(m))
 		return sol
 
 	def __imul__(self, other):
@@ -106,7 +106,7 @@ class QGate(object):
 		if type(other) == QGate:
 			m = other.m
 		sol = QGate()
-		sol.addLine(self.m.__rmul__(m))
+		sol.addLine(m.__mul__(self.m))
 		return sol
 
 	def __matmul__(self, other):
@@ -114,7 +114,7 @@ class QGate(object):
 		if type(other) == QGate:
 			m = other.m
 		sol = QGate()
-		sol.addLine(np.dot(self.m, m))
+		sol.addLine(self.m @ m)
 		return sol
 
 	def __pow__(self, other):
@@ -122,7 +122,7 @@ class QGate(object):
 		if type(other) == QGate:
 			m = other.m
 		sol = QGate()
-		sol.addLine(np.kron(self.m, m))
+		sol.addLine(fm.kron(self.m, m))
 		return sol
 
 	def addLine(self, *args):
@@ -163,7 +163,13 @@ def normalizeGate(mat):
 def transpose(gate): # Returns the Transpose of the given matrix
 	if type(gate) == QGate:
 		t = QGate(gate.name + "T")
-		t.addLine(np.matrix.transpose(gate.m))
+		if type(gate.m) == fm.FunctionalMatrix:
+			t.addLine(gate.m.transpose())
+		else:
+			t.addLine(np.matrix.transpose(gate.m))
+	elif type(gate) == fm.FunctionalMatrix:
+		t = QGate("UT")
+		t.addLine(gate.transpose())
 	else:
 		t = QGate("UT")
 		t.addLine(np.matrix.transpose(gate))
@@ -181,7 +187,10 @@ def dagger(gate): # Returns the Hermitian Conjugate or Conjugate Transpose of th
 			t.setMult(gate.mult)
 	else:
 		t = QGate("U†")
-		t.addLine(np.matrix.getH(gate))
+		if type(gate) == fm.FunctionalMatrix:
+			t.addLine(gate.dagger())
+		else:
+			t.addLine(np.matrix.getH(gate))
 	return t
 
 def invert(gate): # Returns the inverse of the given matrix

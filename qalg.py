@@ -1,4 +1,5 @@
 from qlibcj import *
+import structures.funmatrix as fm
 
 def DJAlg(size, U_f, **kwargs): # U_f es el oraculo, que debe tener x1..xn e y como qubits. Tras aplicarlo el qubit y debe valer f(x1..xn) XOR y. El argumento size es n + 1, donde n es el numero de bits de entrada de f.
 	rnd.seed(kwargs.get('seed', None)) # Para asegurar la repetibilidad fijamos la semilla antes del experimento.
@@ -35,15 +36,20 @@ Crea un oraculo U_f tal y como viene definido en el algoritmo de Deutsch-Josza p
 El argumento n no es el numero de bits de la entrada de f, sino dicho numero mas 1 (para el qubit de "salida").
 '''
 def Bal(n):
-	b = np.eye(2**n)
+	size = 2**n
 	'''
 	Se invierte el valor del qubit y en los casos en los que el bit mas significativo sea 1.
 	Una puerta C-NOT serviria de U_f con la definicion de f dada con n = 2. Bal(2) = CNOT().
 	'''
-	for i in range(int((2**n)/2), (2**n) - 1, 2):
-		t = np.copy(b[i,:])
-		b[i], b[i+1] = b[i+1, :], t
-	return b
+	def fun(i, j):
+		if (i >= size/2 and j >= size/2):
+			if (((i < j and i % 2 == 0) or (j < i and j % 2 == 0)) and abs(i - j) == 1):
+				return 1
+			else:
+				return 0
+		else:
+			return 0**abs(i-j)
+	return fm.FunctionalMatrix(fun, size)
 '''
 U_f generada con n = 3:
 1 0 0 0 0 0 0 0

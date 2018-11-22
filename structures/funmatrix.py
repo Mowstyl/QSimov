@@ -5,12 +5,14 @@ class FunctionalMatrix(object):
 	def __init__(self, function, shape, decimals=20):
 		self.f = function
 		if (type(shape) != tuple):
-			shape = (shape, shape)
+			shape = (int(shape), int(shape))
 		self.shape = shape
 		self.size = shape[0] * shape[1]
 		self.dec = decimals
+
 	def __len__(self):
 		return self.shape[0]
+
 	def __getitem__(self, key):
 		if (type(key) == int):
 			if (key >= self.shape[0]):
@@ -177,7 +179,7 @@ def ewmul(a, b):
 	else:
 		raise ValueError("operands could not be broadcast together with shapes " + str(asi) + " " + str(bsi))
 
-def matmul(a, b):
+def matmul(a, b, spec=False):
 	if (type(a) == FunctionalMatrix):
 		asi = a.shape
 		af = a.f
@@ -212,7 +214,46 @@ def matmul(a, b):
 
 	if (asi[1] != bsi[0]):
 		raise ValueError("shapes " + str(asi) + " and " + str(bsi) + " not aligned: " + str(asi[1]) + " (dim 1) != " + str(bsi[0]) + " (dim 0)")
-	return FunctionalMatrix(lambda i, j: sum(af(i, k) * bf(k, j) for k in range(asi[1])), (asi[0], bsi[1]))
+
+	if (spec and asi[0] == asi[1] and bsi[0] == bsi[1] and asi[0] > 4 and 2**int(np.log(asi[0])/np.log(2)) == asi[0]):
+		halv = asi[0]/2
+		
+		a11 = FunctionalMatrix(af, halv)
+		a12 = FunctionalMatrix(lambda i, j: af(i, j+halv), halv)
+		a21 = FunctionalMatrix(lambda i, j: af(i+halv, j), halv)
+		a22 = FunctionalMatrix(lambda i, j: af(i+halv, j+halv), halv)
+
+		b11 = FunctionalMatrix(bf, halv)
+		b12 = FunctionalMatrix(lambda i, j: bf(i, j+halv), halv)
+		b21 = FunctionalMatrix(lambda i, j: bf(i+halv, j), halv)
+		b22 = FunctionalMatrix(lambda i, j: bf(i+halv, j+halv), halv)
+
+		a1122 = FunctionalMatrix(lambda i, j: af(i, j) + af(i+halv, j+halv), halv)
+		b1122 = FunctionalMatrix(lambda i, j: bf(i, j) + bf(i+halv, j+halv), halv)
+		a2111 = FunctionalMatrix(lambda i, j: af(i+halv, j) - af(i, j), halv)
+		b1112 = FunctionalMatrix(lambda i, j: bf(i, j) + bf(i, j+halv), halv)
+		a1222 = FunctionalMatrix(lambda i, j: af(i, j+halv) - af(i+halv, j+halv), halv)
+		b2122 = FunctionalMatrix(lambda i, j: bf(i+halv, j) + bf(i+halv, j+halv), halv)
+
+		M1 = matmul(a1122, b1122, spec=True)
+		M2 = matmul(FunctionalMatrix(lambda i, j: af(i+halv, j) + af(i+halv, j+halv), halv), b11, spec=True)
+		M3 = matmul(a11, FunctionalMatrix(lambda i, j: bf(i, j+halv) - bf(i+halv, j+halv), halv), spec=True)
+		M4 = matmul(a22, FunctionalMatrix(lambda i, j: bf(i+halv, j) - bf(i, j), halv), spec=True)
+		M5 = matmul(FunctionalMatrix(lambda i, j: af(i, j) + af(i, j+halv), halv), b22, spec=True)
+		M6 = matmul(a2111, b1112, spec=True)
+		M7 = matmul(a1222, b2122, spec=True)
+		def muuu(i, j):
+			if i < halv and j < halv:
+				return M1.f(i, j) + M4.f(i, j) - M5.f(i, j) + M7.f(i, j)
+			elif i < halv:
+				return M3.f(i, j) + M5.f(i, j)
+			elif j < halv:
+				return M2.f(i, j) + M4.f(i, j)
+			else:
+				return M1.f(i, j) - M2.f(i, j) + M3.f(i, j) + M6.f(i, j)
+		return FunctionalMatrix(muuu, asi)
+	else:
+		return FunctionalMatrix(lambda i, j: sum(af(i, k) * bf(k, j) for k in range(asi[1])), (asi[0], bsi[1]))
 
 def kron(a, b): # Kronecker Product
 	if (type(a) == FunctionalMatrix):

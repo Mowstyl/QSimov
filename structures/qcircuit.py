@@ -1,5 +1,6 @@
 from structures.qgate import QGate, _getMatrix, I
 from structures.qregistry import *
+import structures.funmatrix as fm
 import gc
 
 class Measure(object):
@@ -91,9 +92,9 @@ class QCircuit(object):
 					mlen = len(self.measure)
 					aux = _getMatrix(args[0])
 					for gate in list(args)[1:]:
-						aux = np.kron(aux, _getMatrix(gate))
+						aux = fm.kron(aux, _getMatrix(gate))
 					del args
-					self.matrix[mlen] = np.dot(aux, self.matrix[mlen])
+					self.matrix[mlen] = aux @ self.matrix[mlen]
 					del aux
 					if self.plan[-1] != 0:
 						self.plan.append(0)
@@ -104,8 +105,7 @@ class QCircuit(object):
 			gc.collect()
 
 	def _executeOnce(self, qregistry, iterations = 1): # You can pass a QRegistry or an array to build a new QRegistry. When the second option is used, the ancilliary qubits will be added to the specified list.
-		px = np.array([0,1,1,0], dtype=complex)
-		px.shape = (2,2)
+		px = fm.FunctionalMatrix(lambda i, j: abs(i - j), 2)
 
 		if type(qregistry) == int:
 			qregistry = QRegistry(qregistry)
@@ -114,9 +114,15 @@ class QCircuit(object):
 			del qregistry
 			qregistry = QRegistry(len(aux))
 
-			g = [I(1) if i == 0 else px for i in aux]
+			g = [I(1) if i == 0 else px for i in aux] + [I(len(self.ancilla))]
 			del aux
-			qregistry.applyGate(*g)
+			if self.save:
+				self.lines.insert(0, g)
+			else:
+				aux = g[0]
+				for gate in g[1:]:
+					aux = fm.kron(aux, gate)
+				self.matrix[0] = self.matrix[0] @ aux
 			del g
 
 		r = QRegistry(1)
@@ -137,7 +143,7 @@ class QCircuit(object):
 					if type(g) != Measure:
 						g = _getMatrix(g)
 						for gate in line[1:]:
-							g = np.kron(g, _getMatrix(gate))
+							g = fm.kron(g, _getMatrix(gate))
 						r.applyGate(g)
 						del g
 					else:
