@@ -21,6 +21,8 @@ test:
     - sudo python3.7 -m pip install --upgrade pip
     - sudo python3.7 -m pip install numpy
     - sudo python3.7 -m pip install --upgrade numpy
+    - sudo python3.7 -m pip install pathos
+    - sudo python3.7 -m pip install --upgrade pathos
     - python3.7 qtest.py
 
 deploy:
