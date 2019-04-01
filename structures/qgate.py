@@ -1,17 +1,21 @@
 import numpy as np
 import structures.funmatrix as fm
-import gc
+import ctypes as ct
+
+__qsimov__ = ct.CDLL("libqsimov.dll")
+__cIdentity__ = __qsimov__.Identity
+__cIdentity__.argtypes = [ct.c_int]
+__cIdentity__.restype = ct.c_void_p
 
 class QGate(object):
 	def __init__(self, name="UNNAMED"):
 		self.m = 1
-		self.mult = 1
 		self.simple = True
 		self.lines = []
 		self.name = name
 
 	def __getitem__(self, key):
-		return self.m[key]
+		return fm.getItem(self.m, key)
 
 	def __setitem__(self, key, value):
 		self.m[key] = value
@@ -66,7 +70,7 @@ class QGate(object):
 		if type(other) == QGate:
 			m = other.m
 		sol = QGate()
-		sol.addLine(self.m.__add__(m))
+		sol.addLine(fm.madd(self.m, m))
 		return sol
 
 	def __sub__(self, other):
@@ -74,7 +78,7 @@ class QGate(object):
 		if type(other) == QGate:
 			m = other.m
 		sol = QGate()
-		sol.addLine(self.m.__sub__(m))
+		sol.addLine(fm.msub(self.m, m))
 		return sol
 
 	def __mod__(self, other):
@@ -90,7 +94,7 @@ class QGate(object):
 		if type(other) == QGate:
 			m = other.m
 		sol = QGate()
-		sol.addLine(self.m.__mul__(m))
+		sol.addLine(fm.ewmul(self.m, m))
 		return sol
 
 	def __rmul__(self, other):
@@ -98,7 +102,7 @@ class QGate(object):
 		if type(other) == QGate:
 			m = other.m
 		sol = QGate()
-		sol.addLine(self.m.__mul__(m))
+		sol.addLine(fm.ewmul(self.m, m))
 		return sol
 
 	def __imul__(self, other):
@@ -106,7 +110,7 @@ class QGate(object):
 		if type(other) == QGate:
 			m = other.m
 		sol = QGate()
-		sol.addLine(m.__mul__(self.m))
+		sol.addLine(fm.ewmul(m, self.m))
 		return sol
 
 	def __matmul__(self, other):
@@ -114,7 +118,7 @@ class QGate(object):
 		if type(other) == QGate:
 			m = other.m
 		sol = QGate()
-		sol.addLine(self.m @ m)
+		sol.addLine(fm.matmul(self.m, m))
 		return sol
 
 	def __pow__(self, other):
@@ -129,19 +133,22 @@ class QGate(object):
 		self.lines.append(list(args))
 		if self.simple and (len(list(args)) > 1 or len(self.lines) > 1):
 			self.simple = False
-		aux = 1
-		for gate in args:
+		aux = args[0]
+		for gate in args[1:]:
 			g = gate
 			if type(gate) == QGate:
 				g = gate.m
 			aux = fm.kron(aux, g)
-		self.m = aux * self.m
+		if (self.m != 1):
+			self.m = fm.matmul(aux, self.m)
+		else:
+			self.m = aux
 
 	def setName(self, name):
 		self.name = name
 
 def I(n): # Returns Identity Matrix for the specified number of QuBits
-	return fm.FunctionalMatrix(lambda i, j: 0**abs(i - j), 2**n)
+	return ct.c_void_p(__cIdentity__(ct.c_int(n)))
 
 def _getMatrix(gate):
 	m = gate
@@ -167,9 +174,9 @@ def transpose(gate): # Returns the Transpose of the given matrix
 			t.addLine(gate.m.transpose())
 		else:
 			t.addLine(np.matrix.transpose(gate.m))
-	elif type(gate) == fm.FunctionalMatrix:
+	elif type(gate) == ct.c_void_p:
 		t = QGate("UT")
-		t.addLine(gate.transpose())
+		t.addLine(fm.transpose(gate))
 	else:
 		t = QGate("UT")
 		t.addLine(np.matrix.transpose(gate))
@@ -187,8 +194,8 @@ def dagger(gate): # Returns the Hermitian Conjugate or Conjugate Transpose of th
 			t.setMult(gate.mult)
 	else:
 		t = QGate("U†")
-		if type(gate) == fm.FunctionalMatrix:
-			t.addLine(gate.dagger())
+		if type(gate) == ct.c_void_p:
+			t.addLine(fm.dagger(gate))
 		else:
 			t.addLine(np.matrix.getH(gate))
 	return t

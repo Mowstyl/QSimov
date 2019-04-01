@@ -1,96 +1,117 @@
-import cmath as cm
 import numpy as np
-import random as rnd
 import structures.funmatrix as fm
-import os
-from pathos.multiprocessing import ProcessPool
 from structures.qgate import _getMatrix
+import ctypes as ct
+
+c_double_p = ct.POINTER(ct.c_double)
+
+# Lib C functions
+_libc = ct.cdll.msvcrt
+free = _libc.free
+free.argtypes = [ct.c_void_p]
+free.restype = ct.c_void_p
+
+__qsimov__ = ct.CDLL("libqsimov.dll")
+__new_QRegistry__ = __qsimov__.new_QRegistry
+__new_QRegistry__.argtypes = [ct.c_uint]
+__new_QRegistry__.restype = ct.c_void_p
+
+__cToString__ = __qsimov__.QR_toString
+__cToString__.argtypes = [ct.c_void_p]
+__cToString__.restype = ct.c_char_p
+
+__cApplyGate__ = __qsimov__.applyGate
+__cApplyGate__.argtypes = [ct.c_void_p, ct.c_void_p]
+__cApplyGate__.restype = ct.c_int
+
+__cBlochCoords__ = __qsimov__.blochCoords
+__cBlochCoords__.argtypes = [ct.c_void_p]
+__cBlochCoords__.restype = c_double_p
+
+__cHopfCoords__ = __qsimov__.hopfCoords
+__cHopfCoords__.argtypes = [ct.c_void_p]
+__cHopfCoords__.restype = c_double_p
+
+__cMeasure__ = __qsimov__.measure
+__cMeasure__.argtypes = [ct.c_void_p, ct.POINTER(ct.c_int), ct.c_int, ct.POINTER(ct.c_int), ct.c_int]
+__cMeasure__.restype = ct.c_int
+
+__cGetState__ = __qsimov__.getState
+__cGetState__.argtypes = [ct.c_void_p]
+__cGetState__.restype = c_double_p
+
+__cSetState__ = __qsimov__.setState
+__cSetState__.argtypes = [ct.c_void_p, c_double_p, ct.c_int]
+__cSetState__.restype = ct.c_int
+
+__cGetNQubits__ = __qsimov__.getNQubits
+__cGetNQubits__.argtypes = [ct.c_void_p]
+__cGetNQubits__.restype = ct.c_int
+
+__cGetSize__ = __qsimov__.getSize
+__cGetSize__.argtypes = [ct.c_void_p]
+__cGetSize__.restype = ct.c_int
 
 class QRegistry:
 	def __init__(self, nqbits, **kwargs):
 		# nqbits -> number of QuBits in the registry.
 		# Seed for the Pseudo Random Number Generation can be specified with seed = <seed> as an argument.
-		self.state = np.zeros(2**nqbits, dtype=complex)
-		self.state[0] = 1
-		self.state.shape = (1, 2**nqbits)
-		self.untouched = True
+		self.reg = __new_QRegistry__(nqbits)
+
+	def getSize(self):
+		return int(__cGetSize__(self.reg))
+
+	def getNQubits(self):
+		return int(__cGetNQubits__(self.reg))
+
+	def toString(self):
+		return __cToString__(self.reg)
 
 	def measure(self, msk, remove = False): # List of numbers with the QuBits that should be measured. 0 means not measuring that qubit, 1 otherwise. remove = True if you want to remove a QuBit from the registry after measuring
-		if (type(msk) != list or len(msk) != int(np.log2(self.state.size)) or \
+		nqubits = self.getNQubits()
+		if (type(msk) != list or len(msk) != nqubits or \
 			not all(type(num) == int and (num == 0 or num == 1) for num in msk)):
 			raise ValueError('Not valid mask')
 		mask = []
-		for i in range(len(msk)):
+		for i in range(nqubits):
 			if msk[i] == 1:
 				mask.append(i)
-		tq = int(np.log2(self.state.size))
-		if (not all(num < tq and num > -1 for num in mask)):
+		if (not all(num < nqubits and num > -1 for num in mask)):
 			raise ValueError('Out of range')
-		mes = []
-		for qbit in mask:
-			r = rnd.random()
-			p = 0
-			max = 2**(tq - (qbit + 1))
-			cnt = 0
-			rdy = True
-			for i in range(0, self.state.size):
-				if (cnt == max):
-					rdy = not rdy
-					cnt = 0
-				if (rdy):
-					p += cm.polar(self.state[0,i])[0]**2
-				cnt += 1
-			if (r < p):
-				me = 0
-			else:
-				me = 1
-			mes.append(me)
-			self.collapse((tq - (qbit + 1)), me, remove)
-		return mes
+
+		nq = len(mask)
+		int_array = ct.c_int * nq
+		result = int_array(*[0 for i in mask])
+		rem = 0
+		if (remove):
+			rem = 1
+		if int(__cMeasure__(self.reg, int_array(*mask), ct.c_int(nq), result, ct.c_int(rem))) == 0:
+			print("Error measuring!")
+		else:
+			return list(result)
 
 	def applyGate(self, *gates): # Applies a quantum gate to the registry.
 		gate = _getMatrix(gates[0])
 		for g in list(gates)[1:]:
 			gate = fm.kron(gate, _getMatrix(g))
 
-		newstate = gate @ ket(self.state)
-		n_nodes = min(os.cpu_count(), newstate.shape[0])
-		if (type(newstate) == fm.FunctionalMatrix and newstate.shape[0] > 1024):
-			results = []
+		if int(__cApplyGate__(self.reg, gate)) == 0:
+			print("Error applying gate!")
 
-			pool = ProcessPool(nodes=n_nodes)
-			for i in range(n_nodes):
-				results.append(pool.apipe(_calculateState, n_nodes, i, newstate.shape[0], newstate.f))
-			pool.close()
-			pool.join()
-			for r in results:
-				rlist = r.get()
-				for (inx, val) in rlist:
-					self.state[0, inx] = val
-			pool.terminate()
-			pool.restart()
-		else:
-			self.state = np.transpose(newstate[:])
-			self.state.shape = (1, self.state.size)
-		del newstate
+	def getState(self):
+		rawState = __cGetState__(self.reg)
+		size = self.getSize()
+		state = np.array([complex(rawState[i], rawState[i + size]) for i in range(size)])
+		free(rawState)
+		return state
 
-	def collapse(self, qbit, mes, remove): # Collapses a qubit from the registry. qbit is the id of the qubit, numerated as q0..qn in the registry. mes is the value obtained when measuring it. remove indicates whether it should be removed from the registry.
-		max = 2**qbit
-		cnt = 0
-		rdy = mes == 1
-		mfd = []
-		for i in range(0, self.state.size):
-			if (cnt == max):
-				rdy = not rdy
-				cnt = 0
-			if (rdy):
-				self.state[0, i] = 0
-				mfd.append(i)
-			cnt += 1
-		if (remove):
-			for qbit in mfd[::-1]:
-				self.state = np.delete(self.state, qbit, 1)
-		normalize(self.state)
+	def setState(self, newState, nqubits):
+		size = 2 << (nqubits - 1) # 2^n_qubits
+		statetype = ct.c_double * (size * 2)
+		cstate = statetype(*[newState[i].real if i < size else newState[i - size].imag for i in range(size * 2)])
+		result = __cSetState__(self.reg, cstate, ct.c_int(nqubits)) == 1
+
+		return result
 
 	def densityMatrix(self):
 		return np.dot(ket(self.state), bra(self.state))

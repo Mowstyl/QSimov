@@ -2,6 +2,12 @@ from structures.qgate import QGate, _getMatrix, I
 from structures.qregistry import *
 import structures.funmatrix as fm
 import gc
+import ctypes as ct
+
+__qsimov__ = ct.CDLL("libqsimov.dll")
+__cX__ = __qsimov__.X
+__cX__.restype = ct.c_void_p
+__pX__ = __cX__()
 
 class Measure(object):
 	def __init__(self, mask, conds=[], remove=False):
@@ -74,96 +80,53 @@ class Condition(object):
 		return r
 
 class QCircuit(object):
-	def __init__(self, name="UNNAMED", ancilla=[], save=True): # You can choose whether to save the circuit and apply gates separately on each computation (faster circuit creation) or to precompute the matrixes (faster execution)
+	def __init__(self, name="UNNAMED", ancilla=[]): # You can choose whether to save the circuit and apply gates separately on each computation (faster circuit creation) or to precompute the matrixes (faster execution)
 		self.name = name
 		self.matrix = [1]
 		self.measure = []
 		self.lines = []
 		self.plan = [0]
 		self.ancilla = ancilla
-		self.save = save
 
 	def addLine(self, *args):
 		try:
-			if self.save:
-				self.lines.append(list(args))
-			else:
-				if type(args[0]) != Measure:
-					mlen = len(self.measure)
-					aux = _getMatrix(args[0])
-					for gate in list(args)[1:]:
-						aux = fm.kron(aux, _getMatrix(gate))
-					del args
-					self.matrix[mlen] = aux @ self.matrix[mlen]
-					del aux
-					if self.plan[-1] != 0:
-						self.plan.append(0)
-				else:
-					self.measure.append(args[0])
-					self.plan.append(1)
+			self.lines.append(list(args))
 		finally:
 			gc.collect()
 
 	def _executeOnce(self, qregistry, iterations = 1): # You can pass a QRegistry or an array to build a new QRegistry. When the second option is used, the ancilliary qubits will be added to the specified list.
-		px = fm.FunctionalMatrix(lambda i, j: abs(i - j), 2)
-
+		g = []
+		r = None
+		firstGate = False
 		if type(qregistry) == int:
-			qregistry = QRegistry(qregistry)
+			r = QRegistry(qregistry + len(self.ancilla))
 		elif type(qregistry) == list:
-			aux = qregistry[:]
-			del qregistry
-			qregistry = QRegistry(len(aux))
+			r = QRegistry(len(qregistry) + len(self.ancilla))
+			g = [I(1) if i == 0 else __pX__ for i in qregistry]
+			firstGate = any(qregistry)
 
-			g = [I(1) if i == 0 else px for i in aux] + [I(len(self.ancilla))]
-			del aux
-			if self.save:
-				self.lines.insert(0, g)
-			else:
-				aux = g[0]
-				for gate in g[1:]:
-					aux = fm.kron(aux, gate)
-				self.matrix[0] = self.matrix[0] @ aux
-			del g
-
-		r = QRegistry(1)
-		ini = qregistry.state[:]
-		r.state = ini[:]
 		if self.ancilla is not None and len(self.ancilla) > 0:
-			aux = QRegistry(len(self.ancilla))
-			g = [I(1) if i == 0 else px for i in self.ancilla]
-			aux.applyGate(*g)
-			del g
-			r.state = np.kron(r.state, aux.state)
-			del aux
+			g += [I(1) if i == 0 else __pX__ for i in self.ancilla]
+			firstGate = firstGate or any(self.ancilla)
+
+		if firstGate:
+			self.lines.insert(0, g)
+
 		try:
 			mres = []
-			if self.save:
-				for line in self.lines:
-					g = line[0]
-					if type(g) != Measure:
-						g = _getMatrix(g)
-						for gate in line[1:]:
-							g = fm.kron(g, _getMatrix(gate))
-						r.applyGate(g)
-						del g
-					else:
-						r = g.check(r)
-						mres += r[1]
-						r = r[0]
-					gc.collect()
-			else:
-				gid = 0
-				mid = 0
-				for task in self.plan:
-					if task == 0:
-						r.applyGate(self.matrix[gid])
-						gid += 1
-					else:
-						r = self.measure[mid].check(r)
-						mres += r[1]
-						r = r[0]
-						mid += 1
-					gc.collect()
+			for line in self.lines:
+				g = line[0]
+				if type(g) != Measure:
+					g = _getMatrix(g)
+					for gate in line[1:]:
+						g = fm.kron(g, _getMatrix(gate))
+					r.applyGate(g)
+					del g
+				else:
+					r = g.check(r)
+					mres += r[1]
+					r = r[0]
+				gc.collect()
 		finally:
 			gc.collect()
 		return (r, mres)

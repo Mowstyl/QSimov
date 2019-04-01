@@ -31,7 +31,7 @@ def hadamardTest(dec):
 	start = t.time()
 	for n in rand:
 		print("\t\tTest completion: " + str(iteration*100//testsize) + "%")
-		auxr = np.around(H(n).m[:], decimals=dec) == np.around(testH(n), decimals=dec)
+		auxr = np.around(H(n)[:], decimals=dec) == np.around(testH(n), decimals=dec)
 		auxr.shape = 2**(2*n)
 		results.append(all(auxr))
 		iteration += 1
@@ -179,7 +179,7 @@ def teleTest(dec, save=True):
 	for gate in gateList:
 		for val in [0, 1]:
 			print("\t\tTest completion: " + str(iteration * 100//gl) + "%") # ¿Trombombolicos o tromboembolicos?
-			c = qa.TeleportationCircuit(gate, save=save)
+			c = qa.TeleportationCircuit(gate)
 
 			(r, mess) = c.execute([val]) # Se ejecuta el circuito
 			exr = QRegistry(1)
@@ -187,7 +187,7 @@ def teleTest(dec, save=True):
 				exr.applyGate(PauliX())
 			exr.applyGate(gate)
 
-			if (not all((np.around(r.state, decimals=dec) == np.around(exr.state, decimals=dec))[0])):
+			if (not all(np.around(r.getState(), decimals=dec) == np.around(exr.getState(), decimals=dec))):
 				print ("\tError!")
 				print ("\tExpected result:\n\t", exr.state, "\n\tResult:\n\t", r.state)
 				print ("\tMeasured values:\n\t", str(mess))
@@ -216,7 +216,7 @@ def djTest(dec, save=True):
 	start = t.time()
 	for triplet in oracleList:
 		print("\t\tTest completion: " + str(truncate(iteration * 100 / ol, 2)) + "%")
-		c = qa.DJAlgCircuit(triplet[1], triplet[0], save=save)
+		c = qa.DJAlgCircuit(triplet[1], triplet[0])
 		(r, mess) = c.execute([0 for i in range(triplet[1] - 1)]) # Los qubits se inicializan a cero (x1..xn) excepto el ultimo (y), inicializado a uno por el circuito tal y como se indicó en su construccion
 		if (all(i == 0 for i in mess[0][:-1]) != triplet[2]):
 			print ("\tError with U_f " + str(iteration))
@@ -247,7 +247,7 @@ def main(argv):
 			elif opt in ("-d"):
 				d = int(arg)
 
-	tests = [hadamardTest, fmatrixTest, teleTest, djTest]
+	tests = [hadamardTest, teleTest, djTest]
 	ntests = len(tests)
 
 	maxint = np.iinfo(np.int_).max + 1

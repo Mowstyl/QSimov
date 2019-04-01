@@ -1,291 +1,223 @@
-import numpy as np
-from cmath import exp, pi
+import ctypes as ct
 
-class FunctionalMatrix(object):
-	def __init__(self, function, shape, decimals=20):
-		self.f = function
-		if (type(shape) != tuple):
-			shape = (int(shape), int(shape))
-		self.shape = shape
-		self.size = shape[0] * shape[1]
-		self.dec = decimals
+c_double_p = ct.POINTER(ct.c_double)
 
-	def __len__(self):
-		return self.shape[0]
+__funmat__ = ct.CDLL("libfunmat.dll")
+__cGetItem__ = __funmat__.getitemaux
+__cGetItem__.argtypes = [ct.c_void_p, ct.c_uint, ct.c_uint, c_double_p, c_double_p]
+__cGetItem__.restype = ct.c_int
 
-	def __getitem__(self, key):
-		if (type(key) == int):
-			if (key >= self.shape[0]):
-				raise IndexError("index " + str(key) + " is out of bounds for axis 0 with shape " + str(self.shape[0]))
-			if (key < 0):
-				key = self.shape[0] + key
-			return [np.around(self.f(key, i), decimals=self.dec) for i in range(self.shape[1])]
-		elif (type(key) == slice):
-			start = key.start if key.start != None else 0
-			if (start < 0):
-				start = self.shape[0] + start
-			stop = key.stop if key.stop != None else self.shape[0]
-			if (stop < 0):
-				stop = self.shape[0] + stop
-			step = key.step if key.step != None else 1
-			return [self.__getitem__(i) for i in range(start, stop, step)]
-		elif (type(key) == tuple):
-			if (type(key[1]) == None):
-				return self.__getitem__(key[0])
-			elif (type(key[0]) == None):
-				if (type(key[1]) == int):
-					if (key[1] >= self.shape[1]):
-						raise IndexError("index " + str(key[1]) + " is out of bounds for axis 1 with shape " + str(self.shape[1]))
-					if (key[1] < 0):
-						key = (key[0], self.shape[1] + key[1])
-					return [np.around(self.f(i, key[1]), decimals=self.dec) for i in range(self.shape[0])]
-				elif (type(key[1]) == slice):
-					start = key[1].start if key[1].start != None else 0
-					if (start < 0):
-						start = self.shape[1] + start
-					stop = key[1].stop if key[1].stop != None else self.shape[1]
-					if (stop < 0):
-						stop = self.shape[1] + stop
-					step = key[1].step if key[1].step != None else 1
-					return [self.__getitem__(None, i) for i in range(start, stop, step)]
-			elif (type(key[0]) == int and type(key[1]) == int):
-				if (key[0] >= self.shape[0]):
-					raise IndexError("index " + str(key[0]) + " is out of bounds for axis 0 with shape " + str(self.shape[0]))
-				if (key[1] >= self.shape[1]):
-					raise IndexError("index " + str(key[1]) + " is out of bounds for axis 1 with shape " + str(self.shape[1]))
-				if (key[0] < 0):
-					key = (self.shape[0] + key[0], key[1])
+def __getItem__(mat, i, j):
+	res = None
+	re = ct.c_double(0.0)
+	im = ct.c_double(0.0)
+	try:
+		aux = __cGetItem__(mat, ct.c_uint(i), ct.c_uint(j), c_double_p(re), c_double_p(im))
+		if (aux == 0):
+			print ("Error getting the specified item!")
+		else:
+			res = complex(re.value, im.value)
+	except Exception as e:
+		print (e)
+	return res
+
+__cGetRows__ = __funmat__.rows
+__cGetRows__.argtypes = [ct.c_void_p]
+__cGetRows__.restype = ct.c_int
+
+__cGetCols__ = __funmat__.columns
+__cGetCols__.argtypes = [ct.c_void_p]
+__cGetCols__.restype = ct.c_int
+
+def getItem(mat, key):
+	rows = int(__cGetRows__(mat))
+	cols = int(__cGetCols__(mat))
+
+	if (type(key) == int):
+		if (key >= rows):
+			raise IndexError("index " + str(key) + " is out of bounds for axis 0 with shape " + str(rows))
+		if (key < 0):
+			key = rows + key
+		return [__getItem__(mat, key, j) for j in range(cols)]
+	elif (type(key) == slice):
+		start = key.start if key.start != None else 0
+		if (start < 0):
+			start = rows + start
+		stop = key.stop if key.stop != None else rows
+		if (stop < 0):
+			stop = rows + stop
+		step = key.step if key.step != None else 1
+		return [getItem(mat, i) for i in range(start, stop, step)]
+	elif (type(key) == tuple):
+		if (type(key[1]) == None):
+			return getItem(mat, key[0])
+		elif (type(key[0]) == None):
+			if (type(key[1]) == int):
+				if (key[1] >= cols):
+					raise IndexError("index " + str(key[1]) + " is out of bounds for axis 1 with shape " + str(cols))
 				if (key[1] < 0):
-					key = (key[0], self.shape[1] + key[1])
-				return self.f(key[0], key[1])
-			elif (type(key[0]) == slice and type(key[1]) == int):
-				if (key[1] >= self.shape[1]):
-					raise IndexError("index " + str(key[1]) + " is out of bounds for axis 1 with shape " + str(self.shape[1]))
-				start = key[0].start if key[0].start != None else 0
-				if (start < 0):
-					start = self.shape[0] + start
-				stop = key[0].stop if key[0].stop != None else self.shape[0]
-				if (stop < 0):
-					stop = self.shape[0] + stop
-				step = key[0].step if key[0].step != None else 1
-				if (key[1] < 0):
-					key = (key[0], self.shape[1] + key[1])
-				return [self.f(i, key[1]) for i in range(start, stop, step)]
-			elif (type(key[0]) == int and type(key[1]) == slice):
-				if (key[0] >= self.shape[0]):
-					raise IndexError("index " + str(key[0]) + " is out of bounds for axis 0 with shape " + str(self.shape[0]))
+					key = (key[0], cols + key[1])
+				return [np.around(__getItem__(mat, i, key[1]), decimals=self.dec) for i in range(rows)]
+			elif (type(key[1]) == slice):
 				start = key[1].start if key[1].start != None else 0
 				if (start < 0):
-					start = self.shape[1] + start
-				stop = key[1].stop if key[1].stop != None else self.shape[1]
+					start = cols + start
+				stop = key[1].stop if key[1].stop != None else cols
 				if (stop < 0):
-					stop = self.shape[1] + stop
+					stop = cols + stop
 				step = key[1].step if key[1].step != None else 1
-				if (key[0] < 0):
-					key = (self.shape[0] + key[0], key[1])
-				return [self.f(key[0], i) for i in range(start, stop, step)]
-			elif (type(key[0]) == slice and type(key[1]) == slice):
-				start0 = key[0].start if key[0].start != None else 0
-				if (start0 < 0):
-					start0 = self.shape[0] + start0
-				stop0 = key[0].stop if key[0].stop != None else self.shape[0]
-				if (stop0 < 0):
-					stop0 = self.shape[0] + stop0
-				step0 = key[0].step if key[0].step != None else 1
-				start1 = key[1].start if key[1].start != None else 0
-				if (start1 < 0):
-					start1 = self.shape[1] + start1
-				stop1 = key[1].stop if key[1].stop != None else self.shape[1]
-				if (stop1 < 0):
-					stop1 = self.shape[1] + stop1
-				step1 = key[1].step if key[1].step != None else 1
-				return [[self.f(i, j) for i in range(start0, stop0, step0)] for j in range(start1, stop1, step1)]
+				return [getItem(mat, None, i) for i in range(start, stop, step)]
+		elif (type(key[0]) == int and type(key[1]) == int):
+			if (key[0] >= rows):
+				raise IndexError("index " + str(key[0]) + " is out of bounds for axis 0 with shape " + str(rows))
+			if (key[1] >= cols):
+				raise IndexError("index " + str(key[1]) + " is out of bounds for axis 1 with shape " + str(cols))
+			if (key[0] < 0):
+				key = (rows + key[0], key[1])
+			if (key[1] < 0):
+				key = (key[0], cols + key[1])
+			return __getItem__(mat, key[0], key[1])
+		elif (type(key[0]) == slice and type(key[1]) == int):
+			if (key[1] >= cols):
+				raise IndexError("index " + str(key[1]) + " is out of bounds for axis 1 with shape " + str(cols))
+			start = key[0].start if key[0].start != None else 0
+			if (start < 0):
+				start = rows + start
+			stop = key[0].stop if key[0].stop != None else rows
+			if (stop < 0):
+				stop = rows + stop
+			step = key[0].step if key[0].step != None else 1
+			if (key[1] < 0):
+				key = (key[0], cols + key[1])
+			return [__getItem__(mat, i, key[1]) for i in range(start, stop, step)]
+		elif (type(key[0]) == int and type(key[1]) == slice):
+			if (key[0] >= rows):
+				raise IndexError("index " + str(key[0]) + " is out of bounds for axis 0 with shape " + str(rows))
+			start = key[1].start if key[1].start != None else 0
+			if (start < 0):
+				start = cols + start
+			stop = key[1].stop if key[1].stop != None else cols
+			if (stop < 0):
+				stop = cols + stop
+			step = key[1].step if key[1].step != None else 1
+			if (key[0] < 0):
+				key = (rows + key[0], key[1])
+			return [__getItem__(mat, key[0], i) for i in range(start, stop, step)]
+		elif (type(key[0]) == slice and type(key[1]) == slice):
+			start0 = key[0].start if key[0].start != None else 0
+			if (start0 < 0):
+				start0 = rows + start0
+			stop0 = key[0].stop if key[0].stop != None else rows
+			if (stop0 < 0):
+				stop0 = rows + stop0
+			step0 = key[0].step if key[0].step != None else 1
+			start1 = key[1].start if key[1].start != None else 0
+			if (start1 < 0):
+				start1 = cols + start1
+			stop1 = key[1].stop if key[1].stop != None else cols
+			if (stop1 < 0):
+				stop1 = cols + stop1
+			step1 = key[1].step if key[1].step != None else 1
+			return [[__getItem__(mat, i, j) for i in range(start0, stop0, step0)] for j in range(start1, stop1, step1)]
 
-	def __mul__(self, other): # Element-wise multiplication
-		return ewmul(self, other)
+__cMadd__ = __funmat__.madd
+__cMadd__.argtypes = [ct.c_void_p, ct.c_void_p]
+__cMadd__.restype = ct.c_void_p
 
-	def __imul__(self, other): # Element-wise multiplication
-		return ewmul(self, other)
+def madd(a, b):
+	res = None
+	try:
+		res = __cMadd__(a, b)
+	except Exception as e:
+		print (e)
+	return res
 
-	def __rmul__(self, other): # Element-wise multiplication
-		return ewmul(other, self)
+__cMsub__ = __funmat__.msub
+__cMsub__.argtypes = [ct.c_void_p, ct.c_void_p]
+__cMsub__.restype = ct.c_void_p
 
-	def __matmul__(self, other): # Matrix multiplication
-		return matmul(self, other)
+def msub(a, b):
+	res = None
+	try:
+		res = __cMsub__(a, b)
+	except Exception as e:
+		print (e)
+	return res
 
-	def __imatmul__(self, other): # Matrix multiplication
-		return matmul(self, other)
+__cMprod__ = __funmat__.mprodaux
+__cMprod__.argtypes = [ct.c_double, ct.c_double, ct.c_void_p]
+__cMprod__.restype = ct.c_void_p
 
-	def __rmatmul__(self, other): # Matrix multiplication
-		return matmul(other, self)
+def mprod(r, a):
+	res = None
+	try:
+		res = __cMprod__(ct.c_double(r.real), ct.c_double(r.imag), a)
+	except Exception as e:
+		print (e)
+	return res
 
-	def transpose(self):
-		return FunctionalMatrix(lambda i, j: self.f(j, i), (self.shape[1], self.shape[0]))
+__cMdiv__ = __funmat__.mdivaux
+__cMdiv__.argtypes = [ct.c_double, ct.c_double, ct.c_void_p]
+__cMdiv__.restype = ct.c_void_p
 
-	def conjugate(self):
-		return FunctionalMatrix(lambda i, j: np.conjugate(self.f(i, j)), self.shape)
+def mdiv(r, a):
+	res = None
+	try:
+		res = __cMdiv__(ct.c_double(r.real), ct.c_double(r.imag), a)
+	except Exception as e:
+		print (e)
+	return res
 
-	def dagger(self):
-		return FunctionalMatrix(lambda i, j: np.conjugate(self.f(j, i)), (self.shape[1], self.shape[0]))
+__cMatmul__ = __funmat__.matmul
+__cMatmul__.argtypes = [ct.c_void_p, ct.c_void_p]
+__cMatmul__.restype = ct.c_void_p
 
-def isNumber(n):
-	types = [int, float, complex, np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint16, np.uint32, np.uint64, np.float16, np.float32, np.float64, np.complex64, np.complex128]
-	return (type(n) in types)
+def matmul(a, b):
+	res = None
+	try:
+		res = __cMatmul__(a, b)
+	except Exception as e:
+		print (e)
+	return res
+
+__cEwmul__ = __funmat__.ewmul
+__cEwmul__.argtypes = [ct.c_void_p, ct.c_void_p]
+__cEwmul__.restype = ct.c_void_p
 
 def ewmul(a, b):
-	anum = isNumber(a)
-	bnum = isNumber(b)
-	if (type(a) == FunctionalMatrix):
-		asi = a.shape
-		af = a.f
-	elif (type(a) == np.ndarray):
-		if (len(a.shape) == 1):
-			a.shape = (1, a.shape[0])
-		asi = a.shape
-		af = lambda i, j: a[i][j]
-	elif (type(a) == list):
-		asi = (len(a), len(a[0]))
-		af = lambda i, j: a[i][j]
-	elif (not anum):
-		return NotImplemented
+	res = None
+	try:
+		res = __cEwmul__(a, b)
+	except Exception as e:
+		print (e)
+	return res
 
-	if (type(b) == FunctionalMatrix):
-		bsi = b.shape
-		bf = b.f
-	elif (type(b) == np.ndarray):
-		if (len(b.shape) == 1):
-			b.shape = (1, b.shape[0])
-		bsi = b.shape
-		bf = lambda i, j: b[i][j]
-	elif (type(b) == list):
-		bsi = (len(b), len(b[0]))
-		bf = lambda i, j: b[i][j]
-	elif (not bnum):
-		return NotImplemented
+__cKron__ = __funmat__.kron
+__cKron__.argtypes = [ct.c_void_p, ct.c_void_p]
+__cKron__.restype = ct.c_void_p
 
-	if (anum and bnum):
-		return a*b
-	elif (anum and not bnum):
-		return FunctionalMatrix(lambda i, j: a * bf(i, j), bsi)
-	elif (not anum and bnum):
-		return FunctionalMatrix(lambda i, j: af(i, j) * b, asi)
+def kron(a, b):
+	res = None
+	try:
+		res = __cKron__(a, b)
+	except Exception as e:
+		print (e)
+	return res
 
-	if (asi == bsi):
-		return FunctionalMatrix(lambda i, j: af(i, j) * bf(i, j), asi)
-	elif (asi[0] == 1 and bsi[1] == 1):
-		return matmul(b, a)
-	elif (asi[1] == 1 and bsi[0] == 1):
-		return matmul(a, b)
-	else:
-		raise ValueError("operands could not be broadcast together with shapes " + str(asi) + " " + str(bsi))
+__cTranspose__ = __funmat__.transpose
+__cTranspose__.argtypes = [ct.c_void_p]
 
-def matmul(a, b, spec=False):
-	if (type(a) == FunctionalMatrix):
-		asi = a.shape
-		af = a.f
-	elif (type(a) == np.ndarray):
-		if (len(a.shape) == 1):
-			a.shape = (1, a.shape[0])
-		asi = a.shape
-		af = lambda i, j: a[i][j]
-	elif (type(a) == list):
-		asi = (len(a), len(a[0]))
-		af = lambda i, j: a[i][j]
-	elif (isNumber(a)):
-		return a*b
-	else:
-		return NotImplemented
+def transpose(m):
+	try:
+		__cTranspose__(m)
+	except Exception as e:
+		print (e)
 
-	if (type(b) == FunctionalMatrix):
-		bsi = b.shape
-		bf = b.f
-	elif (type(b) == np.ndarray):
-		if (len(b.shape) == 1):
-			b.shape = (1, b.shape[0])
-		bsi = b.shape
-		bf = lambda i, j: b[i][j]
-	elif (type(b) == list):
-		bsi = (len(b), len(b[0]))
-		bf = lambda i, j: b[i][j]
-	elif (isNumber(b)):
-		return a*b
-	else:
-		return NotImplemented
+__cDagger__ = __funmat__.dagger
+__cDagger__.argtypes = [ct.c_void_p]
 
-	if (asi[1] != bsi[0]):
-		raise ValueError("shapes " + str(asi) + " and " + str(bsi) + " not aligned: " + str(asi[1]) + " (dim 1) != " + str(bsi[0]) + " (dim 0)")
-
-	if (spec and asi[0] == asi[1] and bsi[0] == bsi[1] and asi[0] > 4 and 2**int(np.log(asi[0])/np.log(2)) == asi[0]):
-		halv = asi[0]/2
-		
-		a11 = FunctionalMatrix(af, halv)
-		a12 = FunctionalMatrix(lambda i, j: af(i, j+halv), halv)
-		a21 = FunctionalMatrix(lambda i, j: af(i+halv, j), halv)
-		a22 = FunctionalMatrix(lambda i, j: af(i+halv, j+halv), halv)
-
-		b11 = FunctionalMatrix(bf, halv)
-		b12 = FunctionalMatrix(lambda i, j: bf(i, j+halv), halv)
-		b21 = FunctionalMatrix(lambda i, j: bf(i+halv, j), halv)
-		b22 = FunctionalMatrix(lambda i, j: bf(i+halv, j+halv), halv)
-
-		a1122 = FunctionalMatrix(lambda i, j: af(i, j) + af(i+halv, j+halv), halv)
-		b1122 = FunctionalMatrix(lambda i, j: bf(i, j) + bf(i+halv, j+halv), halv)
-		a2111 = FunctionalMatrix(lambda i, j: af(i+halv, j) - af(i, j), halv)
-		b1112 = FunctionalMatrix(lambda i, j: bf(i, j) + bf(i, j+halv), halv)
-		a1222 = FunctionalMatrix(lambda i, j: af(i, j+halv) - af(i+halv, j+halv), halv)
-		b2122 = FunctionalMatrix(lambda i, j: bf(i+halv, j) + bf(i+halv, j+halv), halv)
-
-		M1 = matmul(a1122, b1122, spec=True)
-		M2 = matmul(FunctionalMatrix(lambda i, j: af(i+halv, j) + af(i+halv, j+halv), halv), b11, spec=True)
-		M3 = matmul(a11, FunctionalMatrix(lambda i, j: bf(i, j+halv) - bf(i+halv, j+halv), halv), spec=True)
-		M4 = matmul(a22, FunctionalMatrix(lambda i, j: bf(i+halv, j) - bf(i, j), halv), spec=True)
-		M5 = matmul(FunctionalMatrix(lambda i, j: af(i, j) + af(i, j+halv), halv), b22, spec=True)
-		M6 = matmul(a2111, b1112, spec=True)
-		M7 = matmul(a1222, b2122, spec=True)
-		def muuu(i, j):
-			if i < halv and j < halv:
-				return M1.f(i, j) + M4.f(i, j) - M5.f(i, j) + M7.f(i, j)
-			elif i < halv:
-				return M3.f(i, j) + M5.f(i, j)
-			elif j < halv:
-				return M2.f(i, j) + M4.f(i, j)
-			else:
-				return M1.f(i, j) - M2.f(i, j) + M3.f(i, j) + M6.f(i, j)
-		return FunctionalMatrix(muuu, asi)
-	else:
-		return FunctionalMatrix(lambda i, j: sum(af(i, k) * bf(k, j) for k in range(asi[1])), (asi[0], bsi[1]))
-
-def kron(a, b): # Kronecker Product
-	if (type(a) == FunctionalMatrix):
-		asi = a.shape
-		af = a.f
-	elif (type(a) == np.ndarray):
-		if (len(a.shape) == 1):
-			a.shape = (1, a.shape[0])
-		asi = a.shape
-		af = lambda i, j: a[i][j]
-	elif (type(a) == list):
-		asi = (len(a), len(a[0]))
-		af = lambda i, j: a[i][j]
-	elif (isNumber(a)):
-		return a*b
-	else:
-		return NotImplemented
-
-	if (type(b) == FunctionalMatrix):
-		bsi = b.shape
-		bf = b.f
-	elif (type(b) == np.ndarray):
-		if (len(b.shape) == 1):
-			b.shape = (1, b.shape[0])
-		bsi = b.shape
-		bf = lambda i, j: b[i][j]
-	elif (type(b) == list):
-		bsi = (len(b), len(b[0]))
-		bf = lambda i, j: b[i][j]
-	elif (isNumber(b)):
-		return a*b
-	else:
-		return NotImplemented
-
-	return FunctionalMatrix(lambda i, j: af(i//bsi[0], j//bsi[1]) * bf(i%bsi[0], j%bsi[1]), (asi[0] * bsi[0], asi[1] * bsi[1]))
+def dagger(m):
+	try:
+		__cDagger__(m)
+	except Exception as e:
+		print (e)

@@ -6,6 +6,10 @@ from structures.qregistry import *
 from structures.qgate import *
 from structures.qcircuit import *
 import structures.funmatrix as fm
+import ctypes as ct
+
+__qsimov__ = ct.CDLL("libqsimov.dll")
+c_double_p = ct.POINTER(ct.c_double)
 
 # np.zeros((h,w), dtype=complex) Inicializa una matriz de numeros complejos con alto h y ancho w
 # La suma de matrices se realiza con +. A + B
@@ -13,53 +17,58 @@ import structures.funmatrix as fm
 # Para multiplicar las matrices A y B se usa np.dot(A,B)
 # El producto Kronecker de A y B esta definido con np.kron(A,B)
 
-
-def _hMat(n): # Devuelve una matriz que al ser multiplicada por 1/sqrt(2^n) resulta en la puerta Hadamard para n bits
-	H = fm.FunctionalMatrix(lambda i, j: 1 if not (i == 1 and j == 1) else -1, (2, 2))
-	if n > 1:
-		H = fm.kron(H, _hMat(n - 1))
-	return H
-
+__cH__ = __qsimov__.H
+__cH__.argtypes = [ct.c_int]
+__cH__.restype = ct.c_void_p
 def H(n): # Devuelve una puerta Hadamard para n QuBits
 	H = QGate("H")
-	H.addLine(_hMat(n) * (1 / np.sqrt(2**n)))
+	H.addLine(ct.c_void_p(__cH__(ct.c_int(n))))
 	return H
 
+__cX__ = __qsimov__.X
+__cX__.restype = ct.c_void_p
 def PauliX(): # Also known as NOT
 	px = QGate("NOT")
-	m = fm.FunctionalMatrix(lambda i, j: abs(i - j), 2) # [0 1; 1 0]
-	px.addLine(m)
+	px.addLine(ct.c_void_p(__cX__()))
 	return px
 
+__cY__ = __qsimov__.Y
+__cY__.restype = ct.c_void_p
 def PauliY():
 	py = QGate("Y")
-	m = fm.FunctionalMatrix(lambda i, j: (i - j)*1j, 2) # [0 -i; i 0]
-	py.addLine(m)
+	py.addLine(ct.c_void_p(__cY__()))
 	return py
 
+__cZ__ = __qsimov__.Z
+__cZ__.restype = ct.c_void_p
 def PauliZ():
 	pz = QGate("Z")
-	m = fm.FunctionalMatrix(lambda i, j: 1 - (i + j), 2) # [1 0; 0 -1]
-	pz.addLine(m)
+	pz.addLine(ct.c_void_p(__cZ__()))
 	return pz
 
+__cRX__ = __qsimov__.RX
+__cRX__.argtypes = [ct.c_double]
+__cRX__.restype = ct.c_void_p
 def Rx(theta):
 	rx = QGate("Rx(" + str(theta) + ")")
-	m = np.around(np.cos(theta/2) * I(1) - 1j * np.sin(theta/2) * PauliX().m, decimals=15)
-	rx.addLine(m)
+	rx.addLine(ct.c_void_p(__cRX__(ct.c_double(theta))))
 	return rx
 
+__cRY__ = __qsimov__.RY
+__cRY__.argtypes = [ct.c_double]
+__cRY__.restype = ct.c_void_p
 def Ry(theta):
-	rx = QGate("Ry(" + str(theta) + ")")
-	m = np.around(np.cos(theta/2) * I(1) - 1j * np.sin(theta/2) * PauliY().m, decimals=15)
-	rx.addLine(m)
-	return rx
+	ry = QGate("Ry(" + str(theta) + ")")
+	ry.addLine(ct.c_void_p(__cRY__(ct.c_double(theta))))
+	return ry
 
+__cRZ__ = __qsimov__.RZ
+__cRZ__.argtypes = [ct.c_double]
+__cRZ__.restype = ct.c_void_p
 def Rz(theta):
-	rx = QGate("Rz(" + str(theta) + ")")
-	m = np.around(np.cos(theta/2) * I(1) - 1j * np.sin(theta/2) * PauliZ().m, decimals=15)
-	rx.addLine(m)
-	return rx
+	rz = QGate("Rz(" + str(theta) + ")")
+	rz.addLine(ct.c_void_p(__cRZ__(ct.c_double(theta))))
+	return rz
 
 def SqrtNOT(): # Square root of NOT gate, usually seen in its controlled form C-√NOT. Sometimes called C-√X gate.
 	v = QGate("√NOT")
@@ -82,18 +91,12 @@ def ControlledU(gate): # Returns a controlled version of the given gate [I 0; 0 
 	cu.addLine(m)
 	return cu
 
+__cCNOT__ = __qsimov__.CNOT
+__cCNOT__.restype = ct.c_void_p
 def CNOT(): # Returns a CNOT gate for two QuBits, also called Feynman gate
-	return ControlledU(PauliX())
-	'''
 	cn = QGate("C-NOT")
-	m = np.zeros((4,4), dtype=complex)
-	m[0,0] = 1
-	m[1,1] = 1
-	m[2,3] = 1
-	m[3,2] = 1
-	cn.addLine(m)
+	cn.addLine(ct.c_void_p(__cCNOT__()))
 	return cn
-	'''
 
 def NOTC(): # Returns a CNOT gate for two QuBits, first QuBit objective and second one control
 	#return SWAP() @ CNOT() @ SWAP()
@@ -190,42 +193,42 @@ def toComp(angle, sc=None): # Returns a complex number with module 1 and the spe
 	res = np.around(np.cos(angle), decimals=sc-1) + np.around(np.sin(angle), decimals=sc-1)*1j
 	return res
 
+__cU__ = __qsimov__.U
+__cU__.argtypes = [ct.c_double, ct.c_double, ct.c_double]
+__cU__.restype = ct.c_void_p
 def u3(theta, phi, lamb): # U gate
-	def u3fun(i, j):
-		if (i == 0 and j == 1):
-			return (-np.cos(lamb) - np.sin(lamb) * 1j) * np.sin(theta/2)
-		elif (i == 1 and j == 0):
-			return (np.cos(phi) + np.sin(phi) * 1j) * np.sin(theta/2)
-		elif (i == 1 and j == 1):
-			return (np.cos(phi+lamb) + np.sin(phi+lamb) * 1j) * np.cos(theta/2)
-		else:
-			return np.cos(theta/2)
-
-	u = fm.FunctionalMatrix(u3fun, 2)
 	g = QGate("U(" + str(theta) + ", " + str(phi) + ", " + str(lamb) + ")")
-	g.addLine(u)
+	g.addLine(ct.c_void_p(__cU__(ct.c_double(theta), ct.c_double(phi), ct.c_double(lamb))))
 	return g
 
+__cU2__ = __qsimov__.U2
+__cU2__.argtypes = [ct.c_double, ct.c_double]
+__cU2__.restype = ct.c_void_p
 def u2(phi, lamb): # Equivalent to U(pi/2, phi, lambda)
-	def u2fun(i, j):
-		if (i == 0 and j == 1):
-			return (-np.cos(lamb) - np.sin(lamb) * 1j) / np.sqrt(2)
-		elif (i == 1 and j == 0):
-			return (np.cos(phi) + np.sin(phi) * 1j) / np.sqrt(2)
-		elif (i == 1 and j == 1):
-			return (np.cos(phi+lamb) + np.sin(phi+lamb) * 1j) / np.sqrt(2)
-		else:
-			return 1 / np.sqrt(2)
-
-	u2 = fm.FunctionalMatrix(u2fun, 2)
 	g = QGate("U(pi/2, " + str(phi) + ", " + str(lamb) + ")")
-	g.addLine(u2)
+	g.addLine(ct.c_void_p(__cU2__(ct.c_double(phi), ct.c_double(lamb))))
 	return g
 
+__cU1__ = __qsimov__.U1
+__cU1__.argtypes = [ct.c_double]
+__cU1__.restype = ct.c_void_p
 def u1(angle): # Phase shift (R) gate, rotates qubit with specified angle (in radians). Equivalent to U(0, 0, lambda)
-	ps = fm.FunctionalMatrix(lambda i, j: np.cos(angle) + np.sin(angle) * 1j if i == 1 and j == 1 else 0**abs(i-j), 2)
 	g = QGate("U(0, 0, " + str(angle) + ")")
-	g.addLine(ps)
+	g.addLine(ct.c_void_p(__cU1__(ct.c_double(angle))))
+	return g
+
+__cPyCustomGate__ = __qsimov__.PyCustomGate
+__cPyCustomGate__.argtypes = [c_double_p, c_double_p, ct.c_uint, ct.c_uint]
+__cPyCustomGate__.restype = ct.c_void_p
+def customGate(name, mat):
+	g = QGate(name)
+	size = mat.size
+	nrows = mat.shape[0]
+	mat = mat.reshape(size)
+	array_type = ct.c_double * size
+	remat = array_type(*[e.real for e in mat])
+	immat = array_type(*[e.imag for e in mat])
+	g.addLine(ct.c_void_p(__cPyCustomGate__(remat, immat, ct.c_uint(nrows), ct.c_uint(size))))
 	return g
 
 def Peres(): # A, B, C -> P = A, Q = A XOR B, R = AB XOR C. Peres gate.
@@ -326,10 +329,10 @@ def getTruthTable(gate, ancilla=None, garbage=0, iterations=1): # Prints the tru
 	# Always removes the last n bits!
 	if (type(gate) == QGate):
 		gate = gate.m
-	num = int(np.log2(gate.shape[0]))
+	num = int(np.log2(gate.getRows()))
 	mesd = {}
 	for iteration in range(iterations):
-		for i in range(0, gate.shape[0]):
+		for i in range(0, gate.getRows()):
 			nbin = [int(x) for x in bin(i)[2:]]
 			qinit = [0 for j in range(num - len(nbin))]
 			qinit += nbin
@@ -390,6 +393,9 @@ def RUnity(m, rc = 14):
 	g.addLine(ru)
 	return g
 
+__cQFT__ = __qsimov__.QFT
+__cQFT__.argtypes = [ct.c_int]
+__cQFT__.restype = ct.c_void_p
 def QFT(size, rc = 14):
 	'''
 	size = 4
@@ -408,18 +414,6 @@ def QFT(size, rc = 14):
 
 	return uft
 	'''
-	'''
-	from tests.shor import DFT
-	return DFT(pow(2, size))
-	'''
-	n = 2**size
-	def qftFunc(i, j):
-		div = 1 / np.sqrt(n)
-		if (i <= 0 or j <= 0):
-			return div * 1+0j
-		else:
-			c = i * j * 2 * np.pi / n
-			return div * round(np.cos(c), rc) + div * round(np.sin(c), rc) * 1j
 	qft = QGate("QFT" + str(size))
-	qft.addLine(fm.FunctionalMatrix(qftFunc, n))
+	qft.addLine(ct.c_void_p(__cQFT__(size)))
 	return qft
