@@ -1,4 +1,4 @@
-from qlibcj import *
+from qsimov import *
 import qalg as qa
 import structures.funmatrix as fm
 import sys, getopt

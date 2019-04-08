@@ -7,7 +7,7 @@ import ctypes as ct
 __qsimov__ = ct.CDLL("libqsimov.dll")
 __cX__ = __qsimov__.X
 __cX__.restype = ct.c_void_p
-__pX__ = __cX__()
+__pX__ = ct.c_void_p(__cX__())
 
 class Measure(object):
 	def __init__(self, mask, conds=[], remove=False):

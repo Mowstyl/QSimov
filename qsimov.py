@@ -7,6 +7,7 @@ from structures.qgate import *
 from structures.qcircuit import *
 import structures.funmatrix as fm
 import ctypes as ct
+import time as t
 
 __qsimov__ = ct.CDLL("libqsimov.dll")
 c_double_p = ct.POINTER(ct.c_double)
@@ -16,6 +17,18 @@ c_double_p = ct.POINTER(ct.c_double)
 # La multiplicacion por un escalar se hace con *. n * A
 # Para multiplicar las matrices A y B se usa np.dot(A,B)
 # El producto Kronecker de A y B esta definido con np.kron(A,B)
+
+# Lib C functions
+__libc__ = ct.cdll.msvcrt
+__cSrand__ = __libc__.srand
+__cSrand__.argtypes = [ct.c_uint]
+def setRandomSeed(seed):
+	if (seed == None):
+		seed = ct.c_uint(int(t.time()))
+	else:
+		seed = ct.c_uint(int(seed))
+	print ("Seed: " + str(seed.value))
+	__cSrand__(seed)
 
 __cH__ = __qsimov__.H
 __cH__.argtypes = [ct.c_int]
@@ -76,19 +89,17 @@ def SqrtNOT(): # Square root of NOT gate, usually seen in its controlled form C-
 	v.addLine(m * ((1 + 1j)/2))
 	return v
 
-def ControlledU(gate): # Returns a controlled version of the given gate [I 0; 0 U]
+__cCU__ = __qsimov__.CU
+__cCU__.argtypes = [ct.c_void_p]
+__cCU__.restype = ct.c_void_p
+def CU(gate): # Returns a controlled version of the given gate [I 0; 0 U]
 	g = gate
 	name = "U"
 	if (type(gate) == QGate):
 		g = gate.m
 		name = gate.name
-	gdim = g.shape[0]
-	if (type(g) == fm.FunctionalMatrix):
-		m = fm.FunctionalMatrix(lambda i, j: g.f(i, j) if i > gdim/2 and j > gdim/2 else 0**abs(i - j), gdim * 2)
-	else:
-		m = fm.FunctionalMatrix(lambda i, j: g[i, j] if i > gdim/2 and j > gdim/2 else 0**abs(i - j), gdim * 2)
 	cu = QGate("C-" + name)
-	cu.addLine(m)
+	cu.addLine(ct.c_void_p(__cCU__(g)))
 	return cu
 
 __cCNOT__ = __qsimov__.CNOT
@@ -229,6 +240,16 @@ def customGate(name, mat):
 	remat = array_type(*[e.real for e in mat])
 	immat = array_type(*[e.imag for e in mat])
 	g.addLine(ct.c_void_p(__cPyCustomGate__(remat, immat, ct.c_uint(nrows), ct.c_uint(size))))
+	return g
+
+
+
+__cIAA__ = __qsimov__.IAA
+__cIAA__.argtypes = [ct.c_int]
+__cIAA__.restype = ct.c_void_p
+def IAA(n): # Inversion about the average
+	g = QGate("Inversion about the average")
+	g.addLine(ct.c_void_p(__cIAA__(ct.c_int(n))))
 	return g
 
 def Peres(): # A, B, C -> P = A, Q = A XOR B, R = AB XOR C. Peres gate.

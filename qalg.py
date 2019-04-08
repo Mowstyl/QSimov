@@ -1,4 +1,4 @@
-from qlibcj import *
+from qsimov import *
 import random as rnd
 import structures.funmatrix as fm
 
