@@ -103,35 +103,27 @@ def CU(gate): # Returns a controlled version of the given gate [I 0; 0 U]
 	return cu
 
 __cCNOT__ = __qsimov__.CNOT
+__cCNOT__.argtypes = [ct.c_int, ct.c_int]
 __cCNOT__.restype = ct.c_void_p
-def CNOT(): # Returns a CNOT gate for two QuBits, also called Feynman gate
+# control is the id of the control qubit, objective is the id of the objective qubit
+def CNOT(control=0, objective=1): # Returns a CNOT gate for two QuBits, also called Feynman gate
 	cn = QGate("C-NOT")
-	cn.addLine(ct.c_void_p(__cCNOT__()))
+	cn.addLine(ct.c_void_p(__cCNOT__(ct.c_int(abs(objective - control)), ct.c_int(control > objective))))
 	return cn
 
-def NOTC(): # Returns a CNOT gate for two QuBits, first QuBit objective and second one control
-	#return SWAP() @ CNOT() @ SWAP()
-	nc = QGate("NOT-C")
-	m = np.zeros((4,4), dtype=complex)
-	m[0,0] = 1
-	m[3,1] = 1
-	m[2,2] = 1
-	m[1,3] = 1
-	nc.addLine(m)
-	return nc
-
+__cSWAP__ = __qsimov__.SWAP
+__cSWAP__.restype = ct.c_void_p
 def SWAP(): # SWAP gate for 2 qubits
 	sw = QGate("SWAP")
-	#m = np.zeros((4,4), dtype=complex)
-	#m[0,0] = 1
-	#m[1,2] = 1
-	#m[2,1] = 1
-	#m[3,3] = 1
-	#sw.addLine(m)
-	sw.addLine(CNOT())
-	sw.addLine(NOTC())
-	sw.addLine(CNOT())
+	sw.addLine(ct.c_void_p(__cSWAP__()))
 	return sw
+
+__cISWAP__ = __qsimov__.ISWAP
+__cISWAP__.restype = ct.c_void_p
+def ISWAP(): # ISWAP gate for 2 qubits
+	isw = QGate("ISWAP")
+	isw.addLine(ct.c_void_p(__cISWAP__()))
+	return isw
 
 def SqrtSWAP(): # Square root of SWAP gate for 2 qubits
 	sw = QGate("√SWAP")
