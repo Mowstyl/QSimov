@@ -134,6 +134,8 @@ class QGate(object):
 		if self.simple and (len(list(args)) > 1 or len(self.lines) > 1):
 			self.simple = False
 		aux = args[0]
+		if type(aux) == QGate:
+				aux = aux.m
 		for gate in args[1:]:
 			g = gate
 			if type(gate) == QGate:
