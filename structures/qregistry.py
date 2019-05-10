@@ -2,6 +2,7 @@ import numpy as np
 import structures.funmatrix as fm
 from structures.qgate import _getMatrix
 import ctypes as ct
+import cmath as cm
 
 c_double_p = ct.POINTER(ct.c_double)
 
@@ -65,7 +66,7 @@ class QRegistry:
         return int(__cGetNQubits__(self.reg))
 
     def toString(self):
-        return __cToString__(self.reg)
+        return __cToString__(self.reg).decode("ascii")
 
     def measure(self, msk, remove = False): # List of numbers with the QuBits that should be measured. 0 means not measuring that qubit, 1 otherwise. remove = True if you want to remove a QuBit from the registry after measuring
         nqubits = self.getNQubits()
@@ -103,6 +104,7 @@ class QRegistry:
         size = self.getSize()
         state = np.array([complex(rawState[i], rawState[i + size]) for i in range(size)])
         free(rawState)
+
         return state
 
     def setState(self, newState, nqubits):
@@ -114,7 +116,7 @@ class QRegistry:
         return result
 
     def densityMatrix(self):
-        return np.dot(ket(self.state), bra(self.state))
+        return np.dot(self.ket(), self.bra())
 
     def vnEntropy(self, **kwargs):
         base = kwargs.get('base', "e")
@@ -124,7 +126,8 @@ class QRegistry:
         #for e in evalues:
         #    if e != 0:
         #        entropy += e * np.log(e)
-        for amp in self.state[0]:
+        sta = self.getState()
+        for amp in sta:
             p = cm.polar(amp)[0]**2
             if p > 0:
                 if base == "e":
@@ -132,6 +135,30 @@ class QRegistry:
                 elif type(base) == int or type(base) == float:
                     entropy += p * np.log(p)/np.log(base)
         return -entropy
+
+    def hopfCoords(self):
+        if self.getNQubits() == 1:
+            return __cHopfCoords__(self.reg)[:3]
+        else:
+            print("You can only use 1 qubit registries!")
+            return None
+
+    def blochCoords(self):
+        if self.getNQubits() == 1:
+            return __cBlochCoords__(self.reg)[:2]
+        else:
+            print("You can only use 1 qubit registries!")
+            return None
+
+    def bra(self): # Devuelve el vector de estado en forma de fila conjugado. <v|
+        k = np.array(self.getState())
+        k.shape = (1, k.shape[0])
+        return np.conjugate(k)
+
+    def ket(self): # Devuelve el vector de estado en forma de columna. |v>
+        k = np.array(self.getState())
+        k.shape = (k.shape[0], 1)
+        return k
 
 def _calculateState(tnum, cnum, size, fun):
     indexes = [i for i in range(cnum, size, tnum)]
@@ -143,50 +170,7 @@ def prob(q, x): # Devuelve la probabilidad de obtener x al medir el qbit q
         p = cm.polar(q[0,x])[0]**2
     return p
 
-def bra(v): # Devuelve el vector pasado como parametro en forma de fila conjugado. <v|
-    b = v[:]
-    s = v.shape
-    if s[0] != 1:
-        b = np.matrix.getH(b)
-    else:
-        b = np.conjugate(b)
-    return b
-
-def ket(v): # Devuelve el vector pasado como parametro en forma de columna. |v>
-    k = v[:]
-    s = v.shape
-    if s[1] != 1:
-        k = np.transpose(k)
-    return k
-
 def superposition(x, y): # Devuelve el estado compuesto por los dos QuBits.
     z = np.kron(x, y)
     normalize(z)
     return z
-
-def normalize(state): # Funcion que asegura que se cumpla la propiedad que dice que |a|^2 + |b|^2 = 1 para cualquier QuBit. Si no se cumple, modifica el QuBit para que la cumpla si se puede.
-    sqs = 0
-    for i in range(0, state.size):
-        sqs += cm.polar(state[0, i])[0]**2
-    sqs = np.sqrt(sqs)
-    if (sqs == 0):
-        raise ValueError('Impossible QuBit')
-    if (sqs != 1):
-        for bs in state:
-            bs /= sqs
-
-def QBit(a,b): # Devuelve un QuBit con a y b. q = a|0> + b|1>, con a y b complejos
-    q = np.array([a,b], dtype=complex)
-    q.shape = (1,2)
-    normalize(q)
-    return q
-
-def QZero(): # Devuelve un QuBit en el estado 0
-    q = np.array([complex(1,0),complex(0,0)])
-    q.shape = (1,2)
-    return q
-
-def QOne(): # Devuelve un QuBit en el estado 1
-    q = np.array([complex(0,0),complex(1,0)])
-    q.shape = (1,2)
-    return q

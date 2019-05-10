@@ -149,6 +149,19 @@ class QGate(object):
     def setName(self, name):
         self.name = name
 
+    def transpose(self): # Returns the Transpose of the given matrix
+        self.name = self.name + "T"
+        fm.transpose(self.m)
+        return self
+
+    def dagger(self): # Returns the Hermitian Conjugate or Conjugate Transpose of the given matrix
+        self.name = self.name + "†"
+        fm.dagger(self.m)
+        return self
+
+    def invert(self):
+        return self.dagger()
+
 def I(n): # Returns Identity Matrix for the specified number of QuBits
     return ct.c_void_p(__cIdentity__(ct.c_int(n)))
 
@@ -157,56 +170,3 @@ def _getMatrix(gate):
     if type(gate) == QGate:
         m = gate.m
     return m
-
-def unitaryMatrix(mat, decimals=10):
-    mustbei = np.around(np.dot(_getMatrix(mat), _getMatrix(dagger(mat))), decimals=decimals)
-    return (mustbei == I(int(np.log2(mustbei.shape[0])))).all()
-
-def normalizeGate(mat):
-    det = np.linalg.det(mat)
-    if det != 0:
-        return mat/det
-    else:
-        return None
-
-def transpose(gate): # Returns the Transpose of the given matrix
-    if type(gate) == QGate:
-        t = QGate(gate.name + "T")
-        if type(gate.m) == fm.FunctionalMatrix:
-            t.addLine(gate.m.transpose())
-        else:
-            t.addLine(np.matrix.transpose(gate.m))
-    elif type(gate) == ct.c_void_p:
-        t = QGate("UT")
-        t.addLine(fm.transpose(gate))
-    else:
-        t = QGate("UT")
-        t.addLine(np.matrix.transpose(gate))
-    return t
-
-def dagger(gate): # Returns the Hermitian Conjugate or Conjugate Transpose of the given matrix
-    if type(gate) == QGate:
-        t = QGate(gate.name + "†")
-        if gate.simple:
-            t.addLine(dagger(gate.m))
-        else:
-            lines = gate.lines[::-1]
-            for line in lines:
-                t.addLine(*[dagger(g).m for g in line])
-            t.setMult(gate.mult)
-    else:
-        t = QGate("U†")
-        if type(gate) == ct.c_void_p:
-            t.addLine(fm.dagger(gate))
-        else:
-            t.addLine(np.matrix.getH(gate))
-    return t
-
-def invert(gate): # Returns the inverse of the given matrix
-    if type(gate) == QGate:
-        t = QGate(gate.name + "-¹")
-        t.addLine(np.linalg.inv(gate.m))
-    else:
-        t = QGate("U-¹")
-        t.addLine(np.linalg.inv(gate))
-    return t

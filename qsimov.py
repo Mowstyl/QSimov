@@ -83,10 +83,11 @@ def Rz(theta):
     rz.addLine(ct.c_void_p(__cRZ__(ct.c_double(theta))))
     return rz
 
+__cSqrtX__ = __qsimov__.SqrtX
+__cSqrtX__.restype = ct.c_void_p
 def SqrtNOT(): # Square root of NOT gate, usually seen in its controlled form C-√NOT. Sometimes called C-√X gate.
     v = QGate("√NOT")
-    m = fm.FunctionalMatrix(lambda i, j: 0**abs(i - j) + abs(i - j) * -1j, 2) # [1, -i, -i, 1]
-    v.addLine(m * ((1 + 1j)/2))
+    v.addLine(ct.c_void_p(__cSqrtX__()))
     return v
 
 __cCU__ = __qsimov__.CU
@@ -134,8 +135,7 @@ def SqrtSWAP(): # Square root of SWAP gate for 2 qubits
     m[2,1] = 0.5 * (1-1j)
     m[2,2] = 0.5 * (1+1j)
     m[3,3] = 1
-    sw.addLine(m)
-    return sw
+    return customGate("√SWAP", m)
 
 def Toffoli(): # Returns a CCNOT gate for three QuBits. A, B, C -> P = A, Q = B, R = AB XOR C.
     ''' # This does the same as the line below. Circuit with the implementation of Toffoli gate using SWAP, CNOT, Controlled-SNot and Controlled-SNot+
@@ -149,10 +149,10 @@ def Toffoli(): # Returns a CCNOT gate for three QuBits. A, B, C -> P = A, Q = B,
     gate = np.dot(gate, np.kron(SWAP(), I(1)))
     return gate
     '''
-    return ControlledU(CNOT())
+    return CU(CNOT())
 
 def Fredkin(): # Returns a CSWAP gate for three QuBits
-    return ControlledU(SWAP())
+    return CU(SWAP())
 
 def Deutsch(angle): # Returns Deutsh gate with specified angle. D(pi/2) = Toffoli
     d = np.eye(8, dtype=complex)
@@ -162,39 +162,7 @@ def Deutsch(angle): # Returns Deutsh gate with specified angle. D(pi/2) = Toffol
     d[6,7] = san
     d[7,6] = san
     d[7,7] = can * 1j
-    g = QGate("D-" + str(angle))
-    g.addLine(d)
-    return g
-
-def getSC(number): # Gets the number of significative ciphers of a given number
-    return len(str(number).replace('.', ''))
-
-def setSC(number, sc): # Returns the specified number with the specified significative ciphers
-    res = 0
-    num = str(number).split('.')
-    i = len(num[0])
-    d = 0
-    if i >= sc:
-        diff = i - sc
-        res = int(num[0][0:sc]+"0"*diff)
-    elif len(num) == 2:
-        d = len(num[1])
-        tsc = min(sc - i, d)
-        diff = 0
-        if sc - i > d:
-            diff = sc - i - d
-        res = float(num[0] + '.' + num[1][0:tsc]+"0"*diff)
-        if d > tsc and num[1][tsc] >= '5':
-            res += 10**-tsc
-    return res
-
-def toComp(angle, sc=None): # Returns a complex number with module 1 and the specified phase.
-    while angle >= 2*np.pi:
-        angle -= 2*np.pi
-    if sc == None:
-        sc = getSC(angle)
-    res = np.around(np.cos(angle), decimals=sc-1) + np.around(np.sin(angle), decimals=sc-1)*1j
-    return res
+    return customGate("D-" + str(angle), d)
 
 __cU__ = __qsimov__.U
 __cU__.argtypes = [ct.c_double, ct.c_double, ct.c_double]
@@ -318,21 +286,6 @@ def BJN(): # A, B, C -> P = A, Q = B, R = (A+B) XOR C. BJN gate.
     bjn.addLine(I(1), ControlledU(SqrtNOT()))
     bjn.addLine(CNOT(), I(1))
     return bjn
-
-def BlochCoords(qbit):
-    alpha = qbit[0][0]
-    pcorr = cm.rect(1, -cm.phase(alpha))
-    alpha *= pcorr
-    alpha = alpha.real
-    beta = qbit[0][1] * pcorr
-    theta = np.arccos(alpha) * 2
-    s = np.sin(theta/2)
-    if (s != 0):
-        phi = np.log(beta/s)/1j
-        phi = phi.real
-    else:
-        phi = 0.
-    return (theta, phi)
 
 def getTruthTable(gate, ancilla=None, garbage=0, iterations=1): # Prints the truth table of the given gate.
     # You can set the ancilla bits to not include them in the table, with the list of values they must have.
