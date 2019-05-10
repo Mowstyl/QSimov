@@ -1,4 +1,6 @@
-from qlibcj import *
+from qsimov import *
+import random as rnd
+import structures.funmatrix as fm
 
 def DJAlg(size, U_f, **kwargs): # U_f es el oraculo, que debe tener x1..xn e y como qubits. Tras aplicarlo el qubit y debe valer f(x1..xn) XOR y. El argumento size es n + 1, donde n es el numero de bits de entrada de f.
 	rnd.seed(kwargs.get('seed', None)) # Para asegurar la repetibilidad fijamos la semilla antes del experimento.
@@ -11,14 +13,14 @@ def DJAlg(size, U_f, **kwargs): # U_f es el oraculo, que debe tener x1..xn e y c
 
 def ExampleDJCircuit(size, U_f, **kwargs):
 	rnd.seed(kwargs.get('seed', None)) # Para asegurar la repetibilidad fijamos la semilla antes del experimento.
-	c = DJAlgCircuit(size, U_f, save=kwargs.get('save', True))
+	c = DJAlgCircuit(size, U_f)
 	res = c.execute([0 for i in range(size - 1)]) # Los qubits se inicializan a cero (x1..xn) excepto el ultimo (y), inicializado a uno por el circuito tal y como se indicó en su construccion
 	print(all(i == 0 for i in res[1][0][:-1]))
 
 	return res # Los qubits se inicializan a cero (x1..xn) excepto el ultimo (y), inicializado a uno por el circuito tal y como se indicó en su construccion
 
-def DJAlgCircuit(size, U_f, save=True): # U_f es el oraculo, que debe tener x1..xn e y como qubits. Tras aplicarlo el qubit y debe valer f(x1..xn) XOR y. El argumento size es n + 1, donde n es el numero de bits de entrada de f.
-	c = QCircuit("Deutsch-Josza Algorithm", save=save, ancilla=[1]) # El ultimo QuBit al ejecutar el algoritmo es de ancilla, con su valor a 1
+def DJAlgCircuit(size, U_f): # U_f es el oraculo, que debe tener x1..xn e y como qubits. Tras aplicarlo el qubit y debe valer f(x1..xn) XOR y. El argumento size es n + 1, donde n es el numero de bits de entrada de f.
+	c = QCircuit("Deutsch-Josza Algorithm", ancilla=[1]) # El ultimo QuBit al ejecutar el algoritmo es de ancilla, con su valor a 1
 	c.addLine(H(size)) # Se aplica una compuerta hadamard a todos los qubits
 	c.addLine(U_f) # Se aplica el oraculo
 	c.addLine(H(size - 1), I(1)) # Se aplica una puerta Hadamard a todos los qubits excepto al ultimo
@@ -35,15 +37,23 @@ Crea un oraculo U_f tal y como viene definido en el algoritmo de Deutsch-Josza p
 El argumento n no es el numero de bits de la entrada de f, sino dicho numero mas 1 (para el qubit de "salida").
 '''
 def Bal(n):
-	b = np.eye(2**n)
+	size = 2**n
 	'''
 	Se invierte el valor del qubit y en los casos en los que el bit mas significativo sea 1.
 	Una puerta C-NOT serviria de U_f con la definicion de f dada con n = 2. Bal(2) = CNOT().
 	'''
-	for i in range(int((2**n)/2), (2**n) - 1, 2):
-		t = np.copy(b[i,:])
-		b[i], b[i+1] = b[i+1, :], t
-	return b
+	def fun(i, j):
+		if (i >= size/2 and j >= size/2):
+			if (((i < j and i % 2 == 0) or (j < i and j % 2 == 0)) and abs(i - j) == 1):
+				return 1
+			else:
+				return 0
+		else:
+			return 0**abs(i-j)
+
+	mat = np.array([[fun(i, j) for i in range(size)] for j in range(size)])
+
+	return customGate("Bal(" + str(n) + ")", mat)
 '''
 U_f generada con n = 3:
 1 0 0 0 0 0 0 0
@@ -95,8 +105,8 @@ def Teleportation(qbit, **kwargs): # El qubit que va a ser teleportado. Aunque e
 	print ("Assert: " + str(r.state == er.state))
 	return r # Se devuelve el registro obtenido tras aplicar el algoritmo.
 
-def TeleportationCircuit(gate, save=True): # Recibe como argumento lo que se va a ejecutar sobre el primer QuBit despues de hacer el estado de Bell con los dos últimos.
-	qc = QCircuit("Teleportation", save=save, ancilla=[0, 0])
+def TeleportationCircuit(gate): # Recibe como argumento lo que se va a ejecutar sobre el primer QuBit despues de hacer el estado de Bell con los dos últimos.
+	qc = QCircuit("Teleportation", ancilla=[0, 0])
 	qc.addLine(I(1), H(1), I(1))
 	qc.addLine(I(1), CNOT())
 	# Aqui es donde trabajamos con el qubit Q que queremos enviar posteriormente. Se le aplica la puerta pasada como parámetro.
@@ -117,10 +127,9 @@ def TeleportationCircuit(gate, save=True): # Recibe como argumento lo que se va 
 def ExampleTC(value, gate, **kwargs): # El valor debe ser 0 o 1, valor inicial del QuBit a teleportar. Gate es la puerta que se va a aplicar sobre el QuBit a teleportar.
 	rnd.seed(kwargs.get('seed', None)) # Para asegurar la repetibilidad fijamos la semilla antes del experimento.
 
-	c = TeleportationCircuit(gate, save=kwargs.get('save', True))
+	c = TeleportationCircuit(gate)
 
 	(r, mess) = c.execute([val]) # Se ejecuta el circuito
-	print (mess)
 	exr = QRegistry(1)
 	if (value == 1):
 		exr.applyGate(PauliX())

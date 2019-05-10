@@ -1,12 +1,13 @@
-from qlibcj import *
+from qsimov import *
 import qalg as qa
 import structures.funmatrix as fm
 import sys, getopt
 import math
+import time as t
 
 def truncate(number, digits) -> float:
-    stepper = pow(10.0, digits)
-    return math.trunc(stepper * number) / stepper
+	stepper = pow(10.0, digits)
+	return math.trunc(stepper * number) / stepper
 
 def testhMat(n): # Devuelve una matriz que al ser multiplicada por 1/sqrt(2^n) resulta en la puerta Hadamard para n bits
 	H = np.ones((2,2), dtype=complex)
@@ -27,18 +28,20 @@ def hadamardTest(dec):
 	results = []
 	testsize = len(rand)
 	iteration = 0;
+	start = t.time()
 	for n in rand:
 		print("\t\tTest completion: " + str(iteration*100//testsize) + "%")
-		auxr = np.around(H(n).m[:], decimals=dec) == np.around(testH(n), decimals=dec)
+		auxr = np.around(H(n)[:], decimals=dec) == np.around(testH(n), decimals=dec)
 		auxr.shape = 2**(2*n)
 		results.append(all(auxr))
 		iteration += 1
 	result = all(results)
+	end = t.time()
 	print("\t\tTest completion: 100%")
 	if not result:
 		print ("\tHadamard test failed!\n")
 		return 1
-	print ("\tHadamard test passed!\n")
+	print ("\tHadamard test passed in " + str(end-start) + " seconds!\n")
 	return 0
 
 def fmatrixTest(dec):
@@ -69,6 +72,7 @@ def fmatrixTest(dec):
 		totalsize += 6 * m[i] * n[i] * x[i] * y[i]
 
 	comsize = 0;
+	start = t.time()
 	for i in range(testsize):
 		print("\t\tTest completion: " + str(truncate(comsize * 100/totalsize, 2)) + "%")
 		usize = m[i] * n[i] + x[i] * y[i]
@@ -156,11 +160,12 @@ def fmatrixTest(dec):
 			print (fA.shape)
 			print (fB.shape)
 			break
+	end = t.time()
 	print("\t\tTest completion: 100.00%")
 	if not result:
 		print ("\tFunctionalMatrix test failed!\n")
 		return 1
-	print ("\tFunctionalMatrix test passed!\n")
+	print ("\tFunctionalMatrix test passed in " + str(end-start) + " seconds!\n")
 	return 0
 
 def teleTest(dec, save=True):
@@ -170,10 +175,11 @@ def teleTest(dec, save=True):
 	gateList = [PauliX() @ PauliY() @ PauliZ(), u3(*(np.random.random_sample(3) * 2 * np.pi)), u3(*(np.random.random_sample(3) * 2 * np.pi))]
 	gl = len(gateList) * 2
 	iteration = 0
+	start = t.time()
 	for gate in gateList:
 		for val in [0, 1]:
 			print("\t\tTest completion: " + str(iteration * 100//gl) + "%") # ¿Trombombolicos o tromboembolicos?
-			c = qa.TeleportationCircuit(gate, save=save)
+			c = qa.TeleportationCircuit(gate)
 
 			(r, mess) = c.execute([val]) # Se ejecuta el circuito
 			exr = QRegistry(1)
@@ -181,18 +187,19 @@ def teleTest(dec, save=True):
 				exr.applyGate(PauliX())
 			exr.applyGate(gate)
 
-			if (not all((np.around(r.state, decimals=dec) == np.around(exr.state, decimals=dec))[0])):
+			if (not all(np.around(r.getState(), decimals=dec) == np.around(exr.getState(), decimals=dec))):
 				print ("\tError!")
 				print ("\tExpected result:\n\t", exr.state, "\n\tResult:\n\t", r.state)
 				print ("\tMeasured values:\n\t", str(mess))
 				result = False
 				break
 			iteration += 1
+	end = t.time()
 	print("\t\tTest completion: 100.00%")
 	if not result:
 		print ("\tTeleportation test failed!\n")
 		return 1
-	print ("\tTeleportation test passed!\n")
+	print ("\tTeleportation test passed in " + str(end-start) + " seconds!\n")
 	return 0
 
 def djTest(dec, save=True):
@@ -200,24 +207,29 @@ def djTest(dec, save=True):
 	print("\tDeutsch-Josza test starting...")
 
 	oracleList = [(qa.Bal(4), 4, False), (I(4), 4, True), (qa.Bal(6), 6, False), (I(6), 6, True)] # (U_f, size, f is constant)
-	ol = len(oracleList)
+
+	ol = 0
+	for triplet in oracleList:
+		ol += 2**triplet[1]
 
 	iteration = 0
+	start = t.time()
 	for triplet in oracleList:
-		print("\t\tTest completion: " + str(iteration * 100//ol) + "%")
-		c = qa.DJAlgCircuit(triplet[1], triplet[0], save=save)
+		print("\t\tTest completion: " + str(truncate(iteration * 100 / ol, 2)) + "%")
+		c = qa.DJAlgCircuit(triplet[1], triplet[0])
 		(r, mess) = c.execute([0 for i in range(triplet[1] - 1)]) # Los qubits se inicializan a cero (x1..xn) excepto el ultimo (y), inicializado a uno por el circuito tal y como se indicó en su construccion
 		if (all(i == 0 for i in mess[0][:-1]) != triplet[2]):
 			print ("\tError with U_f " + str(iteration))
 			print ("\tMeasured values:\n\t", str(mess))
 			result = False
 			break
-		iteration += 1
+		iteration += 2**triplet[1]
+	end = t.time()
 	print("\t\tTest completion: 100.00%")
 	if not result:
 		print ("\tDeutsch-Josza test failed!\n")
 		return 1
-	print ("\tDeutsch-Josza test passed!\n")
+	print ("\tDeutsch-Josza test passed in " + str(end-start) + " seconds!\n")
 	return 0
 
 def main(argv):
@@ -235,7 +247,7 @@ def main(argv):
 			elif opt in ("-d"):
 				d = int(arg)
 
-	tests = [hadamardTest, fmatrixTest, teleTest, djTest]
+	tests = [hadamardTest, teleTest, djTest]
 	ntests = len(tests)
 
 	maxint = np.iinfo(np.int_).max + 1
