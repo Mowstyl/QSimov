@@ -112,12 +112,10 @@ class QCircuit(object):
             if any(self.ancilla):
                 a.applyGate(*[I(1) if i == 0 else __pX__ for i in self.ancilla])
             raux = superposition(r, a)
-            #freeRegistry(r)
-            #freeRegistry(a)
+            del r
+            del a
             r = raux
-
         try:
-            print(r.getState())
             mres = []
             for line in self.lines:
                 g = line[0]
@@ -126,7 +124,6 @@ class QCircuit(object):
                     for gate in line[1:]:
                         g = fm.kron(g, _getMatrix(gate))
                     r.applyGate(g)
-                    print(r.getState())
                     del g
                 else:
                     r = g.check(r)
@@ -134,7 +131,6 @@ class QCircuit(object):
                     r = r[0]
                 gc.collect()
         finally:
-            print ("Done!")
             gc.collect()
         return (r, mres)
 
