@@ -125,7 +125,7 @@ class QRegistry:
     def densityMatrix(self):
         dm = QGate("DensityMatrix")
         dm.addLine(ct.c_void_p(__cDensityMat__(self.reg)))
-        return dm
+        return np.array(dm[:])
 
     def vnEntropy(self, **kwargs):
         base = kwargs.get('base', "e")

@@ -94,28 +94,30 @@ class QCircuit(object):
         finally:
             gc.collect()
 
-    def _executeOnce(self, qregistry, iterations = 1): # You can pass a QRegistry or an array to build a new QRegistry. When the second option is used, the ancilliary qubits will be added to the specified list.
+    def _executeOnce(self, qregistry): # You can pass a QRegistry or an array to build a new QRegistry. When the second option is used, the ancilliary qubits will be added to the specified list.
         g = []
         r = qregistry
         firstGate = False
         if type(qregistry) == int:
-            r = QRegistry(qregistry + len(self.ancilla))
+            r = QRegistry(qregistry)
         elif type(qregistry) == list:
-            r = QRegistry(len(qregistry) + len(self.ancilla))
-            g = [I(1) if i == 0 else __pX__ for i in qregistry]
-            firstGate = any(qregistry)
+            r = QRegistry(len(qregistry))
+            if any(qregistry):
+                r.applyGate(*[I(1) if i == 0 else __pX__ for i in qregistry])
         elif self.ancilla is not None:
-            print ("Can not use ancilla with precreated registry!")
-            return
+            raise ValueError("Can not use ancilla with precreated registry!")
 
         if self.ancilla is not None and len(self.ancilla) > 0:
-            g += [I(1) if i == 0 else __pX__ for i in self.ancilla]
-            firstGate = firstGate or any(self.ancilla)
-
-        if firstGate:
-            self.lines.insert(0, g)
+            a = QRegistry(len(self.ancilla))
+            if any(self.ancilla):
+                a.applyGate(*[I(1) if i == 0 else __pX__ for i in self.ancilla])
+            raux = superposition(r, a)
+            #freeRegistry(r)
+            #freeRegistry(a)
+            r = raux
 
         try:
+            print(r.getState())
             mres = []
             for line in self.lines:
                 g = line[0]
@@ -124,6 +126,7 @@ class QCircuit(object):
                     for gate in line[1:]:
                         g = fm.kron(g, _getMatrix(gate))
                     r.applyGate(g)
+                    print(r.getState())
                     del g
                 else:
                     r = g.check(r)
@@ -131,11 +134,14 @@ class QCircuit(object):
                     r = r[0]
                 gc.collect()
         finally:
+            print ("Done!")
             gc.collect()
         return (r, mres)
 
     def execute(self, qregistry, iterations=1, qmachine=None, args=None):
-        if (qmachine == None or qmachine == "local"):
+        if type(qregistry) == QRegistry and iterations > 1:
+            raise ValueError("Can not do more than one iteration with a precreated registry!")
+        elif (qmachine == None or qmachine == "local"):
             sol = [self._executeOnce(qregistry) for i in range(iterations)]
             if iterations == 1:
                 sol = sol[0]
