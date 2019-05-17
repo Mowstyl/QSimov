@@ -1,6 +1,6 @@
 import numpy as np
 import structures.funmatrix as fm
-from structures.qgate import _getMatrix
+from structures.qgate import _getMatrix, QGate
 import ctypes as ct
 import cmath as cm
 
@@ -53,11 +53,18 @@ __cGetSize__ = __qsimov__.getSize
 __cGetSize__.argtypes = [ct.c_void_p]
 __cGetSize__.restype = ct.c_int
 
+__cDensityMat__ = __qsimov__.DensityMat
+__cDensityMat__.argtypes = [ct.c_void_p]
+__cDensityMat__.restype = ct.c_void_p
+
 class QRegistry:
     def __init__(self, nqbits, **kwargs):
         # nqbits -> number of QuBits in the registry.
         # Seed for the Pseudo Random Number Generation can be specified with seed = <seed> as an argument.
         self.reg = __new_QRegistry__(nqbits)
+
+    def __del__(self):
+        freeRegistry(self)
 
     def getSize(self):
         return int(__cGetSize__(self.reg))
@@ -116,7 +123,9 @@ class QRegistry:
         return result
 
     def densityMatrix(self):
-        return np.dot(self.ket(), self.bra())
+        dm = QGate("DensityMatrix")
+        dm.addLine(ct.c_void_p(__cDensityMat__(self.reg)))
+        return dm
 
     def vnEntropy(self, **kwargs):
         base = kwargs.get('base', "e")
@@ -170,7 +179,17 @@ def prob(q, x): # Devuelve la probabilidad de obtener x al medir el qbit q
         p = cm.polar(q[0,x])[0]**2
     return p
 
-def superposition(x, y): # Devuelve el estado compuesto por los dos QuBits.
-    z = np.kron(x, y)
-    normalize(z)
-    return z
+__cFreeState__ = __qsimov__.freeState
+__cFreeState__.argtypes = [ct.c_void_p]
+__cFreeState__.restype = ct.c_int
+def freeRegistry(r):
+    __cFreeState__(r.reg)
+
+__cJoinStates__ = __qsimov__.joinStates
+__cJoinStates__.argtypes = [ct.c_void_p, ct.c_void_p]
+__cJoinStates__.restype = ct.c_void_p
+def superposition(a, b): # Devuelve el estado compuesto por los dos QuBits.
+    r = QRegistry(1);
+    __cFreeState__(r.reg)
+    r.reg = ct.c_void_p(__cJoinStates__(a.reg, b.reg))
+    return r
