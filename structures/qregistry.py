@@ -57,6 +57,10 @@ __cDensityMat__ = __qsimov__.DensityMat
 __cDensityMat__.argtypes = [ct.c_void_p]
 __cDensityMat__.restype = ct.c_void_p
 
+__cFreeState__ = __qsimov__.freeState
+__cFreeState__.argtypes = [ct.c_void_p]
+__cFreeState__.restype = ct.c_int
+
 class QRegistry:
     def __init__(self, nqbits, **kwargs):
         # nqbits -> number of QuBits in the registry.
@@ -64,7 +68,8 @@ class QRegistry:
         self.reg = __new_QRegistry__(nqbits)
 
     def __del__(self):
-        freeRegistry(self)
+        __cFreeState__(self.reg)
+        self.reg = None
 
     def getSize(self):
         return int(__cGetSize__(self.reg))
@@ -123,9 +128,15 @@ class QRegistry:
         return result
 
     def densityMatrix(self):
-        dm = QGate("DensityMatrix")
-        dm.addLine(ct.c_void_p(__cDensityMat__(self.reg)))
-        return np.array(dm[:])
+        return np.array(fm.getItem(ct.c_void_p(__cDensityMat__(self.reg)), slice(None, None, 1)))
+
+    def reducedDensityMatrix(self):
+        return __partialTrace__(self.densityMatrix())
+
+    def reducedTrace(self):
+        rho_a = self.reducedDensityMatrix()
+        rt = (rho_a @ rho_a).trace().real
+        return rt if rt <= 1.0 else 1.0
 
     def vnEntropy(self, **kwargs):
         base = kwargs.get('base', "2")
@@ -169,6 +180,21 @@ class QRegistry:
         k.shape = (k.shape[0], 1)
         return k
 
+def __partialTrace__(rho, a=True):
+    n = rho.shape[0]
+    if (n == rho.shape[1]):
+        if (n % 2 == 0):
+            n1 = n2 = n // 2
+            rho_tensor = rho.reshape([n1, n2, n1, n2])
+            if (a):
+                return np.trace(rho_tensor, axis1=1, axis2=3) #rho_a
+            else:
+                return np.trace(rho_tensor, axis1=0, axis2=2) #rho_b
+        else:
+            raise ValueError("The number of rows (and columns) must be a multiple of 2")
+    else:
+        raise ValueError("The partial trace can only be calculated for a square matrix!")
+
 def _calculateState(tnum, cnum, size, fun):
     indexes = [i for i in range(cnum, size, tnum)]
     return [(index, fun(index, 0)) for index in indexes]
@@ -178,12 +204,6 @@ def prob(q, x): # Devuelve la probabilidad de obtener x al medir el qbit q
     if (x < q.size):
         p = cm.polar(q[0,x])[0]**2
     return p
-
-__cFreeState__ = __qsimov__.freeState
-__cFreeState__.argtypes = [ct.c_void_p]
-__cFreeState__.restype = ct.c_int
-def freeRegistry(r):
-    __cFreeState__(r.reg)
 
 __cJoinStates__ = __qsimov__.joinStates
 __cJoinStates__.argtypes = [ct.c_void_p, ct.c_void_p]
