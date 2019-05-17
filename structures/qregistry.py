@@ -128,7 +128,7 @@ class QRegistry:
         return np.array(dm[:])
 
     def vnEntropy(self, **kwargs):
-        base = kwargs.get('base', "e")
+        base = kwargs.get('base', "2")
         #dm = self.densityMatrix()
         #evalues, m = np.linalg.eig(dm)
         entropy = 0
