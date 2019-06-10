@@ -13,6 +13,7 @@ free.argtypes = [ct.c_void_p]
 free.restype = ct.c_void_p
 
 __qsimov__ = ct.CDLL("libqsimov.dll")
+__funmat__ = ct.CDLL("libfunmat.dll")
 __new_QRegistry__ = __qsimov__.new_QRegistry
 __new_QRegistry__.argtypes = [ct.c_uint]
 __new_QRegistry__.restype = ct.c_void_p
@@ -60,6 +61,10 @@ __cDensityMat__.restype = ct.c_void_p
 __cFreeState__ = __qsimov__.freeState
 __cFreeState__.argtypes = [ct.c_void_p]
 __cFreeState__.restype = ct.c_int
+
+__partialTrace__ = __funmat__.partial_trace
+__partialTrace__.argtypes = [ct.c_void_p, ct.c_int]
+__partialTrace__.restype = ct.c_void_p
 
 class QRegistry:
     def __init__(self, nqbits, **kwargs):
@@ -130,11 +135,16 @@ class QRegistry:
     def densityMatrix(self):
         return np.array(fm.getItem(ct.c_void_p(__cDensityMat__(self.reg)), slice(None, None, 1)))
 
-    def reducedDensityMatrix(self):
-        return __partialTrace__(self.densityMatrix())
+    def reducedDensityMatrix(self, elem):
+        nq = self.getNQubits()
+        if 0 <= elem < nq:
+            elem = nq - elem - 1
+            return np.array(fm.getItem(ct.c_void_p(__partialTrace__(ct.c_void_p(__cDensityMat__(self.reg)), ct.c_int(elem))), slice(None, None, 1)))
+        else:
+            print("The specified QuBit doesn't exist in this registry!")
 
-    def reducedTrace(self):
-        rho_a = self.reducedDensityMatrix()
+    def reducedTrace(self, elem):
+        rho_a = self.reducedDensityMatrix(elem)
         rt = (rho_a @ rho_a).trace().real
         return rt if rt <= 1.0 else 1.0
 
@@ -179,21 +189,6 @@ class QRegistry:
         k = np.array(self.getState())
         k.shape = (k.shape[0], 1)
         return k
-
-def __partialTrace__(rho, a=True):
-    n = rho.shape[0]
-    if (n == rho.shape[1]):
-        if (n % 2 == 0):
-            n1 = n2 = n // 2
-            rho_tensor = rho.reshape([n1, n2, n1, n2])
-            if (a):
-                return np.trace(rho_tensor, axis1=1, axis2=3) #rho_a
-            else:
-                return np.trace(rho_tensor, axis1=0, axis2=2) #rho_b
-        else:
-            raise ValueError("The number of rows (and columns) must be a multiple of 2")
-    else:
-        raise ValueError("The partial trace can only be calculated for a square matrix!")
 
 def _calculateState(tnum, cnum, size, fun):
     indexes = [i for i in range(cnum, size, tnum)]
