@@ -162,8 +162,10 @@ class QGate(object):
     def invert(self):
         return self.dagger()
 
-def I(n): # Returns Identity Matrix for the specified number of QuBits
-    return ct.c_void_p(__cIdentity__(ct.c_int(n)))
+def I(n=1): # Returns Identity Matrix for the specified number of QuBits
+    ig = QGate("I(" + str(n) + ")")
+    ig.addLine(ct.c_void_p(__cIdentity__(ct.c_int(n))))
+    return ig
 
 def _getMatrix(gate):
     m = gate
