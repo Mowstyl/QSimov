@@ -9,8 +9,9 @@ import structures.funmatrix as fm
 from structures.qregistry import *
 from structures.qgate import *
 from structures.qcircuit import *
+from structures.measure import Measure
+from structures.condition import Condition
 from connectors.qsimovapi import *
-
 
 # np.zeros((h,w), dtype=complex) Inicializa una matriz de numeros complejos con alto h y ancho w
 # La suma de matrices se realiza con +. A + B
@@ -30,45 +31,6 @@ def setRandomSeed(seed, debug=False):
     if debug:
         print ("Seed: " + str(seed.value))
     __cSrand__(seed)
-
-__rep__ = re.compile("^((?:C-)+)?([a-zA-Z0-9]+)(\((?:(?:(?:[a-zA-Z]+)|(?:[0-9]+(?:\.[0-9]+)?))\,\s*)*(?:(?:(?:[a-zA-Z]+)|(?:[0-9]+(?:\.[0-9]+)?)))\))?$")
-def getGroups(str_gate):
-    res = __rep__.match(str_gate)
-    return parseGroups(res.groups()) if res is not None else None
-
-def parseGroups(groups):
-    errored = False
-    g1 = groups[0].count("C") if groups[0] is not None else 0
-    g2 = groups[1]
-    if groups[2] is not None:
-        aux = groups[2][1:-1].split(",")
-        g3 = len(aux)
-        g4 = []
-        for attr in aux:
-            attr = attr.strip()
-            if "." in attr:
-                attr = float(attr)
-            elif attr[0] in "0123456789":
-                attr = int(attr)
-            elif attr.lower() == "pi":
-                attr = np.pi
-            elif attr.lower() == "tau":
-                attr = 2 * np.pi
-            elif attr.lower() == "e":
-                attr = np.e
-            else:
-                print (attr)
-                errored = True
-                break
-            g4.append(attr)
-    else:
-        g3 = 0
-        g4 = None
-
-    if not errored:
-        return (g1, g2, g3, g4)
-    else:
-        return None
 
 def getTruthTable(gate, ancilla=None, garbage=0, iterations=1): # Prints the truth table of the given gate.
     # You can set the ancilla bits to not include them in the table, with the list of values they must have.

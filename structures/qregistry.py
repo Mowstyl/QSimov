@@ -1,6 +1,6 @@
 import numpy as np
 import structures.funmatrix as fm
-from structures.qgate import _getMatrix, QGate
+from structures.qgate import QGate
 import ctypes as ct
 import cmath as cm
 
@@ -108,12 +108,16 @@ class QRegistry:
         else:
             return list(result)
 
-    def applyGate(self, *gates): # Applies a quantum gate to the registry.
-        gate = _getMatrix(gates[0])
+    def applyGate(self, *gates): # Applies a quantum gate to the registry. TODO: not simple gates
+        gate = gates[0]
+        if type(gate) == QGate:
+            gate = gate.m
         for g in list(gates)[1:]:
-            gate = fm.kron(gate, _getMatrix(g))
+            if type(g) == QGate:
+                g = g.m
+            gate = gate ** g.m
 
-        if int(__cApplyGate__(self.reg, gate)) == 0:
+        if int(__cApplyGate__(self.reg, gate.m)) == 0:
             print("Error applying gate!")
 
     def getState(self):
