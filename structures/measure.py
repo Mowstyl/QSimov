@@ -6,7 +6,7 @@ class Measure(object):
         self.remove = remove
 
     def __repr__(self):
-        return ["Measure" if i == 1 else "I" for i in self.mask]
+        return str(["Measure" if i == 1 else "I" for i in self.mask])
 
     def __str__(self):
         return self.__repr__()
