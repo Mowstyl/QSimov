@@ -1,4 +1,5 @@
 from structures.funmatrix import Funmatrix
+from structures.measure import Measure
 from functools import reduce
 import numpy as np
 import ctypes as ct
@@ -72,14 +73,32 @@ def I(n=1): # Returns Identity Matrix for the specified number of QuBits
     return ig
 
 def joinGates(gates):
-    maxgatelen = max(map(lambda gate: len(gate.lines), gates))
+    maxgatelen = max(map(getLines, gates))
     newlines = []
     for i in range(maxgatelen):
         newline = []
         for gate in gates:
-            if i < len(gate.lines):
-                newline += gate.lines[i]
+            if type(gate) != Measure:
+                if i < len(gate.lines):
+                    newline += gate.lines[i]
+                else:
+                    newline += [I(gate.size)]
             else:
-                newline += [I(gate.size)]
+                if i < 1:
+                    newline += [gate]
+                else:
+                    newline += [I(getGateSize(gate))]
         newlines += [newline]
     return newlines
+
+def getGateSize(gate):
+    if type(gate) == str:
+        gate = qapi.getGate(gate)
+    elif type(gate) == Measure:
+        return len(gate.mask)
+    return int(np.log2(gate.getMatrix().shape()[0]))
+
+def getLines(gate):
+    if type(gate) == Measure:
+        return 1
+    return len(gate.lines)

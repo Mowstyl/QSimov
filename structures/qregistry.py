@@ -108,15 +108,11 @@ class QRegistry:
         else:
             return list(result)
 
-    def applyGate(self, *gates): # Applies a quantum gate to the registry. TODO: not simple gates
-        gate = gates[0]
-        if type(gate) == QGate:
-            gate = gate.m
+    def applyGate(self, *gates): # Applies a quantum gate to the registry
+        gate = gates[0].getMatrix()
         for g in list(gates)[1:]:
-            if type(g) == QGate:
-                g = g.m
-            gate = gate ** g.m
-
+            g = g.getMatrix()
+            gate = gate ** g
         if int(__cApplyGate__(self.reg, gate.m)) == 0:
             print("Error applying gate!")
 

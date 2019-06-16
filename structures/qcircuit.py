@@ -1,5 +1,6 @@
 from structures.qregistry import QRegistry
-from structures.qgate import QGate, joinGates
+from structures.qgate import QGate, joinGates, getGateSize
+from structures.measure import Measure
 import connectors.qsimovapi as qapi
 import numpy as np
 import gc
@@ -14,7 +15,7 @@ class QCircuit(object):
     def addLine(self, *args):
         try:
             if (self.lines == [] and len(args) == 1):
-                size = int(np.log2(args[0].getMatrix().shape()[0]))
+                size = getGateSize(args[0])
                 if self.size == None:
                     self.size = size
                 if self.size == size:
@@ -25,7 +26,7 @@ class QCircuit(object):
                 else:
                     raise ValueError("This cirquit requires " + str(self.size) + " QuBit gates. Received " + str(size) + " QuBit gate.")
             else:
-                size = sum(map(lambda gate: int(np.log2(gate.getMatrix().shape()[0])), args))
+                size = sum(map(getGateSize, args))
                 if self.size == None:
                     self.size = size
                 if self.size == size:

@@ -1,5 +1,5 @@
 from structures.qgate import QGate, I
-from structures.qregistry import QRegistry
+from structures.qregistry import QRegistry, superposition
 from structures.measure import Measure
 from structures.funmatrix import Funmatrix
 import ctypes as ct
