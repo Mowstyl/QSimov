@@ -1,4 +1,5 @@
 import ctypes as ct
+import connectors.parser as prs
 
 c_double_p = ct.POINTER(ct.c_double)
 
@@ -285,9 +286,7 @@ class Funmatrix(object):
 
     def invert(self):
         res = None
-        if self.name == "H" or self.name == "X" or self.name == "Y" \
-            or self.name == "Z" or self.name == "SWAP" \
-            or self.name[:5] == "C-NOT":
+        if prs.getGroups(self.name)[1] in ["H", "X", "NOT", "Y", "Z", "SWAP"]:
             res = self
         else:
             try:
