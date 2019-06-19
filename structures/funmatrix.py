@@ -285,7 +285,9 @@ class Funmatrix(object):
 
     def invert(self):
         res = None
-        if self.name == "H" or self.name == "X" or self.name == "Y" or self.name == "Z" or self.name[:5] == "C-NOT":
+        if self.name == "H" or self.name == "X" or self.name == "Y" \
+            or self.name == "Z" or self.name == "SWAP" \
+            or self.name[:5] == "C-NOT":
             res = self
         else:
             try:
