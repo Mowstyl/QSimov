@@ -149,7 +149,7 @@ class QRegistry:
         return rt if rt <= 1.0 else 1.0
 
     def vnEntropy(self, **kwargs):
-        base = kwargs.get('base', "2")
+        base = kwargs.get('base', 2)
         #dm = self.densityMatrix()
         #evalues, m = np.linalg.eig(dm)
         entropy = 0
