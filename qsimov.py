@@ -5,7 +5,7 @@ import numpy as np
 import ctypes as ct
 import time as t
 import re
-import structures.funmatrix as fm
+from structures.funmatrix import Funmatrix
 from structures.qregistry import *
 from structures.qgate import *
 from structures.qcircuit import *
