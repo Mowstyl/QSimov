@@ -285,10 +285,13 @@ class Funmatrix(object):
 
     def invert(self):
         res = None
-        try:
-            res = Funmatrix(ct.c_void_p(__cDagger__(self.m)))
-        except Exception as e:
-            print (e)
+        if self.name == "H" or self.name == "X" or self.name == "Y" or self.name == "Z" or self.name[:5] == "C-NOT":
+            res = self
+        else:
+            try:
+                res = Funmatrix(ct.c_void_p(__cDagger__(self.m)), self.name + "-1")
+            except Exception as e:
+                print (e)
         return res
 
     def getMatrix(self):

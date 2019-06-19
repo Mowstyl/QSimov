@@ -56,7 +56,7 @@ class QGate(object):
             invgate.lines = [[self.lines[0][0].invert()]]
         else:
             invgate.lines = [[gate.invert() for gate in line] for line in self.lines[::-1]]
-        return self
+        return invgate
 
     def invert(self):
         return self.dagger()
