@@ -286,7 +286,7 @@ class Funmatrix(object):
 
     def invert(self):
         res = None
-        if prs.getGroups(self.name)[1] in ["H", "X", "NOT", "Y", "Z", "SWAP"]:
+        if prs.getGroups(self.name)[1] in ["I", "H", "X", "NOT", "Y", "Z", "SWAP"]:
             res = self
         else:
             try:
