@@ -196,8 +196,9 @@ def _calculateState(tnum, cnum, size, fun):
 
 def prob(q, x): # Devuelve la probabilidad de obtener x al medir el qbit q
     p = 0
-    if (x < q.size):
-        p = cm.polar(q[0,x])[0]**2
+    if (x < q.getSize()):
+        qs = q.getState()
+        p = cm.polar(qs[0,x])[0]**2
     return p
 
 __cJoinStates__ = __qsimov__.joinStates
