@@ -1,5 +1,5 @@
 import numpy as np
-import structures.funmatrix as fm
+from structures.funmatrix import Funmatrix
 from structures.qgate import QGate
 import ctypes as ct
 import cmath as cm
@@ -133,18 +133,18 @@ class QRegistry:
         return result
 
     def densityMatrix(self):
-        return np.array(fm.getItem(ct.c_void_p(__cDensityMat__(self.reg)), slice(None, None, 1)))
+        return Funmatrix(ct.c_void_p(__cDensityMat__(self.reg)), "Rho")
 
     def reducedDensityMatrix(self, elem):
         nq = self.getNQubits()
         if 0 <= elem < nq:
             elem = nq - elem - 1
-            return np.array(fm.getItem(ct.c_void_p(__partialTrace__(ct.c_void_p(__cDensityMat__(self.reg)), ct.c_int(elem))), slice(None, None, 1)))
+            return Funmatrix(ct.c_void_p(__partialTrace__(ct.c_void_p(__cDensityMat__(self.reg)), ct.c_int(elem))), "Tr_" + str(elem) + "(Rho)")
         else:
             print("The specified QuBit doesn't exist in this registry!")
 
     def reducedTrace(self, elem):
-        rho_a = self.reducedDensityMatrix(elem)
+        rho_a = np.array(self.reducedDensityMatrix(elem)[:])
         rt = (rho_a @ rho_a).trace().real
         return rt if rt <= 1.0 else 1.0
 
