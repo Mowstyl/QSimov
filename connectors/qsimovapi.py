@@ -413,11 +413,11 @@ def _executeOnce(qregistry, lines, ancilla=None): # You can pass a QRegistry or 
             if type(g) != Measure:
                 g = getGate(g)
                 if type(g) == QGate:
-                    g = g.m
+                    g = g.getMatrix()
                 for rawgate in line[1:]:
                     gate = getGate(rawgate)
                     if type(gate) == QGate:
-                        gate = gate.m
+                        gate = gate.getMatrix()
                     g = g ** gate
                 r.applyGate(g)
                 del g
