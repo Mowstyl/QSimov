@@ -6,7 +6,7 @@ import ctypes as ct
 import time as t
 import re
 from structures.funmatrix import Funmatrix
-from structures.qregistry import QRegistry, prob, superposition
+from structures.qregistry import QRegistry, superposition
 from structures.qgate import QGate, I
 from structures.qcircuit import QCircuit
 from structures.measure import Measure

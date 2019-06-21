@@ -156,9 +156,9 @@ class QRegistry:
         #for e in evalues:
         #    if e != 0:
         #        entropy += e * np.log(e)
-        sta = self.getState()
-        for amp in sta:
-            p = cm.polar(amp)[0]**2
+        size = self.getSize()
+        for i in range(size):
+            p = self.prob(i)
             if p > 0:
                 if base == "e":
                     entropy += p * np.log(p)
@@ -190,16 +190,15 @@ class QRegistry:
         k.shape = (k.shape[0], 1)
         return k
 
+    def prob(self, x): # Devuelve la probabilidad de obtener x al medir el registro
+        p = 0
+        if (x < self.getSize()):
+            p = self.densityMatrix()[x, x].real
+        return p
+
 def _calculateState(tnum, cnum, size, fun):
     indexes = [i for i in range(cnum, size, tnum)]
     return [(index, fun(index, 0)) for index in indexes]
-
-def prob(q, x): # Devuelve la probabilidad de obtener x al medir el qbit q
-    p = 0
-    if (x < q.getSize()):
-        qs = q.getState()
-        p = cm.polar(qs[0,x])[0]**2
-    return p
 
 __cJoinStates__ = __qsimov__.joinStates
 __cJoinStates__.argtypes = [ct.c_void_p, ct.c_void_p]

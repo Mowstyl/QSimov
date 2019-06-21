@@ -1,7 +1,7 @@
 import numpy as np
 import re
 
-__rep__ = re.compile("^((?:C\-)+)?([a-zA-Z0-9]+)(\-1)?(\((?:(?:(?:[a-zA-Z]+)|(?:[0-9]+(?:\.[0-9]+)?))\,\s*)*(?:(?:(?:[a-zA-Z]+)|(?:[0-9]+(?:\.[0-9]+)?)))\))?$")
+__rep__ = re.compile("^((?:C\-)+)?([a-zA-Z0-9]+)(\((?:(?:(?:[a-zA-Z]+)|(?:[0-9]+(?:\.[0-9]+)?))\,\s*)*(?:(?:(?:[a-zA-Z]+)|(?:[0-9]+(?:\.[0-9]+)?)))\))?(\-1)?$")
 
 def parseGroups(groups):
     errored = False
@@ -34,7 +34,7 @@ def parseGroups(groups):
         g5 = None
 
     if not errored:
-        return (g1, g2, g3, g4, g5)
+        return (g1, g2, g4, g5, g3)
     else:
         return None
 

@@ -345,8 +345,9 @@ __gateDict__["d"] = (Deutsch, 1, 1)
 __gateDict__["toffoli"] = (Toffoli, 0, 0)
 
 def getGate(gate):
+    invert = False
     if type(gate) == str:
-        ncontrols, gatename, invert, nargs, args = prs.getGroups(gate) # TODO: invert
+        ncontrols, gatename, nargs, args, invert = prs.getGroups(gate)
         gatename = gatename.lower()
         if gatename in __gateDict__:
             gatemet, minargs, maxargs = __gateDict__[gatename]
@@ -383,6 +384,8 @@ def getGate(gate):
         else:
             raise ValueError(gatename + " can't be used with QSimovAPI")
     else:
+        if invert:
+            gate = gate.dagger()
         return gate
 
 def _executeOnce(qregistry, lines, ancilla=None): # You can pass a QRegistry or an array to build a new QRegistry. When the second option is used, the ancilliary qubits will be added to the specified list.
