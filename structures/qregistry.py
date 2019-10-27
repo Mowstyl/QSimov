@@ -26,6 +26,10 @@ __cApplyGate__ = __qsimov__.applyGate
 __cApplyGate__.argtypes = [ct.c_void_p, ct.c_void_p]
 __cApplyGate__.restype = ct.c_int
 
+__cApplyGateQubit__ = __qsimov__.applyGateQubit
+__cApplyGateQubit__.argtypes = [ct.c_void_p, ct.c_void_p, ct.c_int, ct.c_int]
+__cApplyGateQubit__.restype = ct.c_int
+
 __cBlochCoords__ = __qsimov__.blochCoords
 __cBlochCoords__.argtypes = [ct.c_void_p]
 __cBlochCoords__.restype = c_double_p
@@ -65,6 +69,10 @@ __cFreeState__.restype = ct.c_int
 __partialTrace__ = __funmat__.partial_trace
 __partialTrace__.argtypes = [ct.c_void_p, ct.c_int]
 __partialTrace__.restype = ct.c_void_p
+
+__cQBitGate__ = __qsimov__.QBitGate
+__cQBitGate__.argtypes = [ct.c_void_p, ct.c_int, ct.c_int, ct.c_int]
+__cQBitGate__.restype = ct.c_void_p
 
 class QRegistry:
     def __init__(self, nqbits, **kwargs):
@@ -115,6 +123,21 @@ class QRegistry:
             gate = gate ** g
         if int(__cApplyGate__(self.reg, gate.m)) == 0:
             print("Error applying gate!")
+
+    def applyGateQubit(self, gate, qubit): # Applies a quantum gate to the registry
+        if qubit < self.getNQubits() and qubit >= 0:
+            gate = ct.c_void_p(__cQBitGate__(gate.getMatrix().m, gate.size, qubit, self.getNQubits()))
+            if int(__cApplyGate__(self.reg, gate)) == 0:
+                print("Error applying gate to specified QuBit!")
+        else:
+            print("The specified qubit doesn't exist!")
+
+    def applyGateQubit2(self, gate, qubit): # Applies a quantum gate to the registry
+        if qubit < self.getNQubits() and qubit >= 0:
+            if int(__cApplyGateQubit__(self.reg, gate.getMatrix().m, gate.size, qubit)) == 0:
+                print("Error applying gate to specified QuBit!")
+        else:
+            print("The specified qubit doesn't exist!")
 
     def getState(self):
         rawState = __cGetState__(self.reg)
