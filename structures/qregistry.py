@@ -1,10 +1,12 @@
 import numpy as np
 from structures.funmatrix import Funmatrix
 from structures.qgate import QGate
+from connectors.parser import getGateData
 import ctypes as ct
 import cmath as cm
 
 c_double_p = ct.POINTER(ct.c_double)
+c_int_p = ct.POINTER(ct.c_int)
 
 # Lib C functions
 _libc = ct.cdll.msvcrt
@@ -22,13 +24,15 @@ __cToString__ = __qsimov__.QR_toString
 __cToString__.argtypes = [ct.c_void_p]
 __cToString__.restype = ct.c_char_p
 
-__cApplyGate__ = __qsimov__.applyGate
-__cApplyGate__.argtypes = [ct.c_void_p, ct.c_void_p]
-__cApplyGate__.restype = ct.c_int
-
+'''
 __cApplyGateQubit__ = __qsimov__.applyGateQubit
-__cApplyGateQubit__.argtypes = [ct.c_void_p, ct.c_void_p, ct.c_int, ct.c_int]
+__cApplyGateQubit__.argtypes = [ct.c_void_p, ct.c_char_p, ct.c_double, ct.c_double, ct.c_double, ct.c_int, ct.c_int]
 __cApplyGateQubit__.restype = ct.c_int
+'''
+
+__cApplyGate__ = __qsimov__.applyGate
+__cApplyGate__.argtypes = [ct.c_void_p, ct.c_char_p, ct.c_double, ct.c_double, ct.c_double, ct.c_int, ct.c_int, c_int_p, ct.c_int, c_int_p, ct.c_int]
+__cApplyGate__.restype = ct.c_int
 
 __cBlochCoords__ = __qsimov__.blochCoords
 __cBlochCoords__.argtypes = [ct.c_void_p]
@@ -39,7 +43,7 @@ __cHopfCoords__.argtypes = [ct.c_void_p]
 __cHopfCoords__.restype = c_double_p
 
 __cMeasure__ = __qsimov__.measure
-__cMeasure__.argtypes = [ct.c_void_p, ct.POINTER(ct.c_int), ct.c_int, ct.POINTER(ct.c_int), ct.c_int]
+__cMeasure__.argtypes = [ct.c_void_p, c_int_p, ct.c_int, c_int_p, ct.c_int]
 __cMeasure__.restype = ct.c_int
 
 __cGetState__ = __qsimov__.getState
@@ -69,10 +73,6 @@ __cFreeState__.restype = ct.c_int
 __partialTrace__ = __funmat__.partial_trace
 __partialTrace__.argtypes = [ct.c_void_p, ct.c_int]
 __partialTrace__.restype = ct.c_void_p
-
-__cQBitGate__ = __qsimov__.QBitGate
-__cQBitGate__.argtypes = [ct.c_void_p, ct.c_int, ct.c_int, ct.c_int]
-__cQBitGate__.restype = ct.c_void_p
 
 class QRegistry:
     def __init__(self, nqbits, **kwargs):
@@ -116,26 +116,70 @@ class QRegistry:
         else:
             return list(result)
 
-    def applyGate(self, *gates): # Applies a quantum gate to the registry
-        gate = gates[0].getMatrix()
-        for g in list(gates)[1:]:
-            g = g.getMatrix()
-            gate = gate ** g
-        if int(__cApplyGate__(self.reg, gate.m)) == 0:
-            print("Error applying gate!")
-
-    def applyGateQubit(self, gate, qubit): # Applies a quantum gate to the registry
-        if qubit < self.getNQubits() and qubit >= 0:
-            gate = ct.c_void_p(__cQBitGate__(gate.getMatrix().m, gate.size, qubit, self.getNQubits()))
-            if int(__cApplyGate__(self.reg, gate)) == 0:
+    '''
+    def applyGate(self, gate, qubit): # Applies a quantum gate to the registry
+        if type(qubit) == int and qubit < self.getNQubits() and qubit >= 0:
+            name, arg1, arg2, arg3, invert = getGateData(gate)
+            if int(__cApplyGateQubit__(self.reg, ct.c_char_p(name.encode()), ct.c_double(arg1), ct.c_double(arg2), ct.c_double(arg3), ct.c_int(int(invert)), ct.c_int(qubit))) == 0:
                 print("Error applying gate to specified QuBit!")
         else:
             print("The specified qubit doesn't exist!")
+    '''
 
-    def applyGateQubit2(self, gate, qubit): # Applies a quantum gate to the registry
-        if qubit < self.getNQubits() and qubit >= 0:
-            if int(__cApplyGateQubit__(self.reg, gate.getMatrix().m, gate.size, qubit)) == 0:
-                print("Error applying gate to specified QuBit!")
+    def applyGate(self, gate, qubit=0, control=None, anticontrol=None):
+        if type(qubit) == int and qubit < self.getNQubits() and qubit >= 0:
+            if type(control) != list and type(control) != int and not (control is None):
+                print("Control must be an int, a list of ints or None!")
+            elif type(anticontrol) != list and type(anticontrol) != int and not (anticontrol is None):
+                print("Anticontrol must be an int, a list of ints or None!")
+            elif type(control) == list and type(anticontrol) == list and len(set(control) & set(anticontrol)) > 0:
+                print("A control can't be an anticontrol!")
+            else:
+                allOk = True
+
+                clen = 0
+                if type(control) == int:
+                    int_array = ct.c_int * 1
+                    control = int_array(control)
+                    clen = 1
+                elif control == None:
+                    control = c_int_p()
+                    clen = 0
+                else:
+                    control = set(control)
+                    clen = len(control)
+                    int_array = ct.c_int * clen
+                    control = int_array(*control)
+                    allOk = all(0 <= id < self.getNQubits() for id in control)
+
+                aclen = 0
+                if type(anticontrol) == int:
+                    int_array = ct.c_int * 1
+                    anticontrol = int_array(control)
+                    aclen = 1
+                elif anticontrol == None:
+                    anticontrol = c_int_p()
+                    aclen = 0
+                else:
+                    anticontrol = set(anticontrol)
+                    aclen = len(anticontrol)
+                    int_array = ct.c_int * aclen
+                    anticontrol = int_array(*anticontrol)
+                    allOk = allOk and all(0 <= id < self.getNQubits() for id in control)
+
+                if allOk:
+                    name, arg1, arg2, arg3, invert = getGateData(gate)
+                    if (name.lower() == "swap"):
+                        __SWAPQubits__(self.reg, arg1, arg2, False, False, invert, control, clen, anticontrol, aclen)
+                    elif (name.lower() == "iswap"):
+                        __SWAPQubits__(self.reg, arg1, arg2, True, False, invert, control, clen, anticontrol, aclen)
+                    elif (name.lower() == "sqrtswap"):
+                        __SWAPQubits__(self.reg, arg1, arg2, False, True, invert, control, clen, anticontrol, aclen)
+                    else:
+                        if int(__cApplyGate__(self.reg, ct.c_char_p(name.encode()), ct.c_double(arg1), ct.c_double(arg2), ct.c_double(arg3), ct.c_int(int(invert)), ct.c_int(qubit), control, ct.c_int(clen), anticontrol, ct.c_int(aclen))) == 0:
+                            print("Error applying gate to specified QuBit!")
+                else:
+                    print("The ids must be between 0 and " + str(self.getNQubits))
         else:
             print("The specified qubit doesn't exist!")
 
@@ -231,3 +275,10 @@ def superposition(a, b): # Devuelve el estado compuesto por los dos QuBits.
     __cFreeState__(r.reg)
     r.reg = ct.c_void_p(__cJoinStates__(a.reg, b.reg))
     return r
+
+__cSWAPQubits__ = __qsimov__.SWAPQubits
+__cSWAPQubits__.argtypes = [ct.c_void_p, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_int, c_int_p, ct.c_int, c_int_p, ct.c_int]
+__cSWAPQubits__.restype = ct.c_int
+def __SWAPQubits__(reg, qubit1, qubit2, imaginary, sqrt, invert, control, clen, anticontrol, aclen): # Applies a quantum gate to the registry
+    if int(__cSWAPQubits__(reg, ct.c_int(qubit1), ct.c_int(qubit2), ct.c_int(int(imaginary)), ct.c_int(int(sqrt)), ct.c_int(int(invert)), control, ct.c_int(clen), anticontrol, ct.c_int(aclen))) == 0:
+        print("Error swapping specified QuBits!")

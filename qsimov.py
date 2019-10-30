@@ -7,13 +7,11 @@ import time as t
 import re
 from structures.funmatrix import Funmatrix
 from structures.qregistry import QRegistry, superposition
-from structures.qgate import QGate, I
+from structures.qgate import getGate
 from structures.qcircuit import QCircuit
 from structures.measure import Measure
 from structures.condition import Condition
-from connectors.qsimovapi import H, PauliX, PauliY, PauliZ, Rx, Ry, Rz, SqrtNOT, \
-                                 CU, CNOT, SWAP, ISWAP, SqrtSWAP, Toffoli, QFT, \
-                                 Fredkin, Deutsch, u3, u2, u1, customGate, IAA
+
 
 # np.zeros((h,w), dtype=complex) Inicializa una matriz de numeros complejos con alto h y ancho w
 # La suma de matrices se realiza con +. A + B

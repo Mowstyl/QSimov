@@ -1,13 +1,12 @@
 from structures.funmatrix import Funmatrix
 from structures.measure import Measure
 from functools import reduce
+import connectors.parser as prs
 import numpy as np
 import ctypes as ct
 
 __qsimov__ = ct.CDLL("libqsimov.dll")
-__cIdentity__ = __qsimov__.Identity
-__cIdentity__.argtypes = [ct.c_int]
-__cIdentity__.restype = ct.c_void_p
+c_double_p = ct.POINTER(ct.c_double)
 
 class QGate(object):
     def __init__(self, name="UNNAMED", size=None):
@@ -67,10 +66,38 @@ class QGate(object):
         else:
             return reduce(lambda gate1, gate2: gate1 @ gate2, map(lambda line: reduce(lambda gate1, gate2: gate1.getMatrix() ** gate2.getMatrix(), line), self.lines))
 
-def I(n=1): # Returns Identity Matrix for the specified number of QuBits
-    ig = QGate("I(" + str(n) + ")")
-    ig.addLine(Funmatrix(ct.c_void_p(__cIdentity__(ct.c_int(n))), ig.name))
-    return ig
+__cGetQGate__ = __qsimov__.getQGate
+__cGetQGate__.argtypes = [ct.c_char_p, ct.c_double, ct.c_double, ct.c_double, ct.c_int]
+__cGetQGate__.restype = ct.c_void_p
+
+__cGetQGateQubits__ = __qsimov__.getQGateQubits
+__cGetQGateQubits__.argtypes = [ct.c_void_p]
+__cGetQGateQubits__.restype = ct.c_int
+
+__cGetQGateSize__ = __qsimov__.getQGateSize
+__cGetQGateSize__.argtypes = [ct.c_void_p]
+__cGetQGateSize__.restype = ct.c_uint
+
+__cGet2dGate__ = __qsimov__.get2dGate
+__cGet2dGate__.argtypes = [ct.c_void_p]
+__cGet2dGate__.restype = c_double_p
+def getGate(gatename):
+    name, arg1, arg2, arg3, invert = prs.getGateData(gatename)
+    qgate = ct.c_void_p(__cGetQGate__(ct.c_char_p(name.encode()), ct.c_double(arg1), ct.c_double(arg2), ct.c_double(arg3), ct.c_int(int(invert))))
+    if (qgate or False) == qgate: # NOTNULLPTR and True returns True, NOTNULLPTR or False returns NOTNULLPTR
+        nqubits = int(__cGetQGateQubits__(qgate))
+        size = int(__cGetQGateSize__(qgate))
+        plainmatrix2d = __cGet2dGate__(qgate)[:size*size*2]
+        rematrix2d = plainmatrix2d[:size*size]
+        immatrix2d = plainmatrix2d[size*size:size*size*2]
+        matrix = np.array([complex(rematrix2d[i], immatrix2d[i]) for i in range(size*size)])
+        matrix = matrix.reshape(size, size)
+        # print("Gate for " + str(nqubits) + " qubits with size " + str(size))
+    else:
+        matrix = None
+        print("Error while getting the specified gate!")
+
+    return matrix
 
 def joinGates(gates):
     maxgatelen = max(map(getLines, gates))
