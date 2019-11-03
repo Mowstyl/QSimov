@@ -175,6 +175,12 @@ class QRegistry:
                         __SWAPQubits__(self.reg, arg1, arg2, True, False, invert, control, clen, anticontrol, aclen)
                     elif (name.lower() == "sqrtswap"):
                         __SWAPQubits__(self.reg, arg1, arg2, False, True, invert, control, clen, anticontrol, aclen)
+                    elif (name.lower() == "xx"):
+                        __IsingQubits__(self.reg, 0, arg1, arg2, arg3, invert, control, clen, anticontrol, aclen)
+                    elif (name.lower() == "yy"):
+                        __IsingQubits__(self.reg, 1, arg1, arg2, arg3, invert, control, clen, anticontrol, aclen)
+                    elif (name.lower() == "zz"):
+                        __IsingQubits__(self.reg, 2, arg1, arg2, arg3, invert, control, clen, anticontrol, aclen)
                     else:
                         if int(__cApplyGate__(self.reg, ct.c_char_p(name.encode()), ct.c_double(arg1), ct.c_double(arg2), ct.c_double(arg3), ct.c_int(int(invert)), ct.c_int(qubit), control, ct.c_int(clen), anticontrol, ct.c_int(aclen))) == 0:
                             print("Error applying gate to specified QuBit!")
@@ -282,3 +288,10 @@ __cSWAPQubits__.restype = ct.c_int
 def __SWAPQubits__(reg, qubit1, qubit2, imaginary, sqrt, invert, control, clen, anticontrol, aclen): # Applies a quantum gate to the registry
     if int(__cSWAPQubits__(reg, ct.c_int(qubit1), ct.c_int(qubit2), ct.c_int(int(imaginary)), ct.c_int(int(sqrt)), ct.c_int(int(invert)), control, ct.c_int(clen), anticontrol, ct.c_int(aclen))) == 0:
         print("Error swapping specified QuBits!")
+
+__cIsingQubits__ = __qsimov__.IsingQubits
+__cIsingQubits__.argtypes = [ct.c_void_p, ct.c_int, ct.c_double, ct.c_int, ct.c_int, ct.c_int, c_int_p, ct.c_int, c_int_p, ct.c_int]
+__cIsingQubits__.restype = ct.c_int
+def __IsingQubits__(reg, type, angle, qubit1, qubit2, invert, control, clen, anticontrol, aclen): # Applies a quantum gate to the registry
+    if int(__cIsingQubits__(reg, ct.c_int(type), ct.c_double(angle), ct.c_int(qubit1), ct.c_int(qubit2), ct.c_int(int(invert)), control, ct.c_int(clen), anticontrol, ct.c_int(aclen))) == 0:
+        print("Error coupling specified QuBits!")
