@@ -127,7 +127,7 @@ class QRegistry:
     '''
 
     def applyGate(self, gate, qubit=0, control=None, anticontrol=None):
-        if type(qubit) == int and qubit < self.getNQubits() and qubit >= 0:
+        if np.issubdtype(type(qubit), np.integer) and qubit < self.getNQubits() and qubit >= 0:
             if type(control) != list and type(control) != int and not (control is None):
                 print("Control must be an int, a list of ints or None!")
             elif type(anticontrol) != list and type(anticontrol) != int and not (anticontrol is None):
@@ -142,7 +142,7 @@ class QRegistry:
                     int_array = ct.c_int * 1
                     control = int_array(control)
                     clen = 1
-                elif control == None:
+                elif control == None or len(control) == 0:
                     control = c_int_p()
                     clen = 0
                 else:
@@ -157,7 +157,7 @@ class QRegistry:
                     int_array = ct.c_int * 1
                     anticontrol = int_array(control)
                     aclen = 1
-                elif anticontrol == None:
+                elif anticontrol == None or len(anticontrol) == 0:
                     anticontrol = c_int_p()
                     aclen = 0
                 else:
@@ -165,7 +165,7 @@ class QRegistry:
                     aclen = len(anticontrol)
                     int_array = ct.c_int * aclen
                     anticontrol = int_array(*anticontrol)
-                    allOk = allOk and all(0 <= id < self.getNQubits() for id in control)
+                    allOk = allOk and all(0 <= id < self.getNQubits() for id in anticontrol)
 
                 if allOk:
                     name, arg1, arg2, arg3, invert = getGateData(gate)
@@ -187,7 +187,10 @@ class QRegistry:
                 else:
                     print("The ids must be between 0 and " + str(self.getNQubits))
         else:
-            print("The specified qubit doesn't exist!")
+            if not np.issubdtype(type(qubit), np.integer):
+                print("Qubit must be of integer type!")
+            elif qubit >= self.getNQubits() or qubit < 0:
+                print("The specified qubit doesn't exist!")
 
     def getState(self):
         rawState = __cGetState__(self.reg)
