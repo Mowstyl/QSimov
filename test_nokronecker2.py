@@ -268,6 +268,16 @@ def swapUpstairs(id1, id2, nq, reg):
         reg = gateToRegId(swap, i, nq, reg)
     return reg
 
+def swapDownstairsList(id1, id2, li):
+    for i in range(id1, id2 + 1):
+        li[i], li[i+1] = li[i+1], li[i]
+    return li
+
+def swapUpstairsList(id1, id2, li):
+    for i in range(id2, id1 - 1, -1):
+        li[i], li[i+1] = li[i+1], li[i]
+    return li
+
 def sparseTwoGate(gate, id1, id2, nq, reg):
     if id2 < id1:
         id1, id2 = id2, id1
@@ -279,6 +289,53 @@ def sparseTwoGate(gate, id1, id2, nq, reg):
         reg = gateToRegId(gate, id2 - 1, nq, reg)
         if id2 - id1 > 1:
             reg = swapUpstairs(id1, id2 - 1, nq, reg)
+    return reg
+
+def CU(gate, ncontrols):
+    nqgate = int(np.log2(gate.shape[0]))
+    cu = np.eye(2**(nqgate+ncontrols), dtype=complex)
+    aux = cu.shape[0] - gate.shape[0]
+    for i in range(gate.shape[0]):
+        for j in range(gate.shape[1]):
+            cu[aux + i, aux + j] = gate[i,j]
+
+    return cu
+
+def negateQubits(qubits, nq, reg):
+    for id in qubits:
+        reg = gateToRegId(X(), id, nq, reg)
+    return reg
+
+def applyCACU(gate, id, controls, anticontrols, nq, reg): # Controlled and Anti-Controlled U
+    cset = set(controls)
+    acset = set(anticontrols)
+    cuac = list(cset.union(acset))
+    if type(id) == list:
+        extended_cuac = id + cuac
+    else:
+        extended_cuac = [id] + cuac
+    qubitIds = [i for i in range(nq)]
+    first = cuac[0]
+
+    reg = negateQubits(acset, nq, reg)
+    #print("Ids: " + str(qubitIds))
+    for i in range(len(extended_cuac)):
+        if qubitIds[i] != extended_cuac[i]:
+            indaux = qubitIds.index(extended_cuac[i])
+            reg = swapUpstairs(i, indaux - 1, nq, reg)
+            qubitIds = swapUpstairsList(i, indaux - 1, qubitIds)
+            #print("Ids: " + str(qubitIds))
+    #print(reg)
+    reg = gateToRegId(CU(gate, len(cuac)), 0, nq, reg)
+    #print(reg)
+    for i in range(nq):
+        if qubitIds[i] != i:
+            indaux = qubitIds.index(i)
+            reg = swapUpstairs(i, indaux - 1, nq, reg)
+            qubitIds = swapUpstairsList(i, indaux - 1, qubitIds)
+            #print("Ids: " + str(qubitIds))
+    reg = negateQubits(acset, nq, reg)
+    #print(reg)
     return reg
 
 def gateTests(gatename, verbose=False, hasInv=False, nArgs=0):
@@ -552,174 +609,6 @@ def sparseSwapTests(nq, imaginary, sqrt, invert, verbose=False):
         del b
     return (passed, total)
 
-'''
-def swapTests(nq, imaginary, verbose=False):
-    passed = 0
-    total = 2 * (nq - 1)
-    if verbose:
-        if not imaginary:
-            print(" SWAP tests:")
-            print("  SWAP gate:")
-        else:
-            print("  ISWAP gate:")
-    for id in range(1, nq):
-        gate = "U(" + str(rnd.random()) + "," + str(rnd.random()) + "," + str(rnd.random()) + ")"
-        numpygate = qj.getGate(gate)
-        if verbose:
-            print("   Testing gate " + gate + " to qubit " + str(id) + "...")
-            # print("    Gate: " + str(numpygate))
-        b = qj.QRegistry(nq)
-        b.applyGate(gate)
-        if not imaginary:
-            a = gateToId(numpygate, id, nq)
-            if verbose:
-                print("    Numpy done")
-            b.applyGate("SWAP(0, " + str(id) + ")")
-        else:
-            a = gateToId(numpygate, id, nq)
-            a = np.array([a[i] if i&1 == (i>>id)&1 else a[i] * 1j for i in range(a.size)])
-            if verbose:
-                print("    Numpy done")
-            b.applyGate("ISWAP(0, " + str(id) + ")")
-        if verbose:
-            print("    QSimov done")
-        allOk = np.allclose(a, b.getState())
-        if not allOk:
-            if verbose:
-                print(a)
-                print(b.getState())
-                print(a == b.getState())
-                print("    Michael Bay visited your simulator...")
-            del a
-            del b
-            break
-        passed += 1
-        if verbose:
-            print("    Noice, reverting")
-        a = gateToId(numpygate, 0, nq)
-        if verbose:
-            print("    Numpy done")
-        if not imaginary:
-            b.applyGate("SWAP(0, " + str(id) + ")")
-        else:
-            b.applyGate("ISWAP(0, " + str(id) + ")-1")
-        if verbose:
-            print("    QSimov done")
-        allOk = np.allclose(a, b.getState())
-        if not allOk:
-            if verbose:
-                print(a)
-                print(b.getState())
-                print(a == b.getState())
-                print("    Michael Bay visited your simulator...")
-            del a
-            del b
-            break
-        passed += 1
-        if verbose:
-            print("    Noice")
-        del a
-        del b
-    return (passed, total)
-
-def sswapTests(nq, verbose=False):
-    passed = 0
-    total = 2 * (nq - 1)
-    if verbose:
-        print("  SqrtSWAP gate:")
-    for id in range(1, nq):
-        gate = "U(" + str(rnd.random()) + "," + str(rnd.random()) + "," + str(rnd.random()) + ")"
-        numpygate = qj.getGate(gate)
-        if verbose:
-            print("   Testing gate " + gate + " to qubit " + str(id) + "...")
-            # print("    Gate: " + str(numpygate))
-        b = qj.QRegistry(nq)
-        b.applyGate(gate)
-        a = gateToId(numpygate, id, nq)
-        if verbose:
-            print("    Numpy done")
-        b.applyGate("SqrtSWAP(0, " + str(id) + ")")
-        b.applyGate("SqrtSWAP(0, " + str(id) + ")")
-        if verbose:
-            print("    QSimov done")
-        allOk = np.allclose(a, b.getState())
-        if not allOk:
-            if verbose:
-                print(a)
-                print(b.getState())
-                print(a == b.getState())
-                print("    Michael Bay visited your simulator...")
-            del a
-            del b
-            break
-        passed += 1
-        b.applyGate("SWAP(0, " + str(id) + ")")
-        if verbose:
-            print("    Noice, reverting")
-        a = gateToId(numpygate, 0, nq)
-        if verbose:
-            print("    Numpy done")
-        b.applyGate("SqrtSWAP(0, " + str(id) + ")")
-        b.applyGate("SqrtSWAP(0, " + str(id) + ")-1")
-        if verbose:
-            print("    QSimov done")
-        allOk = np.allclose(a, b.getState())
-        if not allOk:
-            if verbose:
-                print(a)
-                print(b.getState())
-                print(a == b.getState())
-                print("    Michael Bay visited your simulator...")
-            del a
-            del b
-            break
-        passed += 1
-        if verbose:
-            print("    Noice")
-        del a
-        del b
-    return (passed, total)
-
-def isingTests(nq, verbose=False):
-    passed = 0
-    total = nq - 1
-    for id in range(nq - 1):
-        ranin = rnd.randint(0, 2)
-        angle = rnd.random()
-        gatename = "XX"
-        numpygate = xx(angle, False)
-        if ranin == 1:
-            gatename = "YY"
-            numpygate = yy(angle, False)
-        elif ranin == 2:
-            gatename = "ZZ"
-            numpygate = zz(angle, False)
-        gate = gatename + "(" + str(angle) + "," + str(id) + "," + str(id+1) + ")"
-        # numpygate = qj.getGate(gate)
-        if verbose:
-            print("   Testing gate " + gate + " to qubit " + str(id) + "...")
-            # print("   Gate: " + str(numpygate))
-        b = qj.QRegistry(nq)
-        a = gateToId(numpygate, id, nq)
-        b.applyGate(gate)
-        allOk = np.allclose(a, b.getState())
-        if not allOk:
-            if verbose:
-                print(a)
-                print(b.getState())
-                print(a == b.getState())
-                print("    Michael Bay visited your simulator...")
-            del a
-            del b
-            break
-        passed += 1
-        if verbose:
-            print("    Noice")
-        del a
-        del b
-    return (passed, total)
-'''
-
 def simpleIsingTests(nq, type, invert, verbose=False):
     passed = 0
     total = nq - 1
@@ -871,11 +760,200 @@ def sparseIsingTests(nq, type, invert, verbose=False):
         del b
     return (passed, total)
 
+# def applyCACU(gate, id, controls, anticontrols, nq, reg)
+# cascada aleatoria
+def controlledGateTests(nq, verbose=False):
+    total = nq - 1
+    passed = 0
+    isControl = bool(rnd.randint(0, 1))
+    qubitIds = np.random.permutation(nq)
+    lastid = qubitIds[0]
+    control = []
+    anticontrol = []
+    gate = "U(" + str(rnd.random()) + "," + str(rnd.random()) + "," + str(rnd.random()) + ")"
+    if verbose:
+        print(" Controlled gate tests:")
+        print("  Gate: " + gate + " to qubit " + str(lastid))
+    numpygate = qj.getGate(gate)
+    a = gateToId(numpygate, lastid, nq)
+    b = qj.QRegistry(nq)
+    b.applyGate(gate, lastid)
+    for id in qubitIds[1:]:
+        if isControl:
+            control.append(lastid)
+        else:
+            anticontrol.append(lastid)
+        if verbose:
+            print("   id: " + str(id))
+            print("   controls: " + str(control))
+            print("   anticontrols: " + str(anticontrol))
+        a = applyCACU(numpygate, id, control, anticontrol, nq, a)
+        b.applyGate(gate, qubit=id, control=control, anticontrol=anticontrol)
+        isControl = not isControl
+        lastid = id
+        allOk = np.allclose(a, b.getState())
+        if not allOk:
+            if verbose:
+                print(a)
+                print(b.getState())
+                print(a == b.getState())
+                print("    Michael Bay visited your simulator...")
+            break
+        passed += 1
+        if verbose:
+            print("    Noice")
+    del a
+    del b
+    return (passed, total)
+
+def cSWAPTests(nq, imaginary, sqrt, invert, verbose=False):
+    total = nq - 1
+    passed = 0
+    isControl = bool(rnd.randint(0, 1))
+    qubitIds = np.random.permutation(nq)
+    lastid = qubitIds[:2]
+    control = []
+    anticontrol = []
+    gate = "U(" + str(rnd.random()) + "," + str(rnd.random()) + "," + str(rnd.random()) + ")"
+    if verbose:
+        print(" Controlled gate tests:")
+        print("  Gate: " + gate + " to qubit " + str(lastid))
+    numpygate = qj.getGate(gate)
+    a = gateToId(numpygate, lastid[0], nq)
+    b = qj.QRegistry(nq)
+    b.applyGate(gate, lastid[0])
+
+    gate = "SWAP"
+    numpygate = SWAP()
+    invstring = ""
+    if invert:
+        invstring = "-1"
+    if imaginary:
+        gate = "i" + gate
+        numpygate = iSWAP(invert)
+    elif sqrt:
+        gate = "sqrt" + gate
+        numpygate = sqrtSWAP(invert)
+
+    a = sparseTwoGate(numpygate, lastid[0], lastid[1], nq, a)
+    b.applyGate(gate + "(" + str(lastid[0]) + "," + str(lastid[1]) + ")" + invstring)
+    allOk = np.allclose(a, b.getState())
+    if not allOk:
+        if verbose:
+            print(a)
+            print(b.getState())
+            print(a == b.getState())
+            print("    Michael Bay visited your simulator...")
+    passed += 1
+    if verbose:
+        print("    Noice")
+
+    if allOk:
+        for id in qubitIds[2:]:
+            if isControl:
+                control.append(lastid[0])
+            else:
+                anticontrol.append(lastid[0])
+            lastid = [lastid[1], id]
+            isControl = not isControl
+            if verbose:
+                print("   ids: " + str(lastid))
+                print("   controls: " + str(control))
+                print("   anticontrols: " + str(anticontrol))
+            a = applyCACU(numpygate, lastid, control, anticontrol, nq, a)
+            b.applyGate(gate + "(" + str(lastid[0]) + "," + str(lastid[1]) + ")" + invstring, control=control, anticontrol=anticontrol)
+            allOk = np.allclose(a, b.getState())
+            if not allOk:
+                if verbose:
+                    print(a)
+                    print(b.getState())
+                    print(a == b.getState())
+                    print("    Michael Bay visited your simulator...")
+                break
+            passed += 1
+            if verbose:
+                print("    Noice")
+    del a
+    del b
+    return (passed, total)
+
+def cIsingTests(nq, type, invert, verbose=False):
+    total = nq - 1
+    passed = 0
+    isControl = bool(rnd.randint(0, 1))
+    qubitIds = np.random.permutation(nq)
+    lastid = qubitIds[:2]
+    control = []
+    anticontrol = []
+    gate = "U(" + str(rnd.random()) + "," + str(rnd.random()) + "," + str(rnd.random()) + ")"
+    if verbose:
+        print(" Controlled gate tests:")
+        print("  Gate: " + gate + " to qubit " + str(lastid))
+    numpygate = qj.getGate(gate)
+    a = gateToId(numpygate, lastid[0], nq)
+    b = qj.QRegistry(nq)
+    b.applyGate(gate, lastid[0])
+
+    gate = "XX"
+    gatefun = xx
+    invstring = ""
+    if type == 1:
+        gate = "YY"
+        gatefun = yy
+    elif type == 2:
+        gate = "ZZ"
+        gatefun = zz
+    if invert:
+        invstring = "-1"
+    angle = rnd.random()
+    a = sparseTwoGate(gatefun(angle, invert), lastid[0], lastid[1], nq, a)
+    b.applyGate(gate + "(" + str(angle) + "," + str(lastid[0]) + "," + str(lastid[1]) + ")" + invstring)
+    allOk = np.allclose(a, b.getState())
+    if not allOk:
+        if verbose:
+            print(a)
+            print(b.getState())
+            print(a == b.getState())
+            print("    Michael Bay visited your simulator...")
+    passed += 1
+    if verbose:
+        print("    Noice")
+
+    if allOk:
+        for id in qubitIds[2:]:
+            if isControl:
+                control.append(lastid[0])
+            else:
+                anticontrol.append(lastid[0])
+            lastid = [lastid[1], id]
+            isControl = not isControl
+            if verbose:
+                print("   ids: " + str(lastid))
+                print("   controls: " + str(control))
+                print("   anticontrols: " + str(anticontrol))
+            a = applyCACU(gatefun(angle, invert), lastid, control, anticontrol, nq, a)
+            b.applyGate(gate + "(" + str(angle) + "," + str(lastid[0]) + "," + str(lastid[1]) + ")" + invstring, control=control, anticontrol=anticontrol)
+            allOk = np.allclose(a, b.getState())
+            if not allOk:
+                if verbose:
+                    print(a)
+                    print(b.getState())
+                    print(a == b.getState())
+                    print("    Michael Bay visited your simulator...")
+                break
+            passed += 1
+            if verbose:
+                print("    Noice")
+    del a
+    del b
+    return (passed, total)
+
 def tests(minqubits, maxqubits, seed=None, verbose=False):
     if not (seed is None):
         print("Seed: " + str(seed))
         qj.setRandomSeed(seed)
         rnd.seed(seed)
+        np.random.seed(seed)
     result = (0, 0)
     for nq in range(minqubits, maxqubits + 1):
         if verbose:
@@ -906,10 +984,6 @@ def tests(minqubits, maxqubits, seed=None, verbose=False):
         result = map(add, result, sparseSwapTests(nq, False, True, False, verbose=verbose)) # Sparse sqrtSWAP gate tests
         result = map(add, result, sparseSwapTests(nq, True, False, True, verbose=verbose)) # Sparse iSWAP-1 gate tests
         result = map(add, result, sparseSwapTests(nq, False, True, True, verbose=verbose)) # Sparse sqrtSWAP-1 gate tests
-        #result = map(add, result, swapTests(nq, False, verbose=verbose))    # Old SWAP gate tests
-        #result = map(add, result, swapTests(nq, True, verbose=verbose))     # Old ISWAP gate tests
-        #result = map(add, result, sswapTests(nq, verbose=verbose))          # Old SqrtSWAP gate tests
-        #result = map(add, result, isingTests(nq, verbose=verbose))          # Old Ising gate tests
         result = map(add, result, simpleIsingTests(nq, 0, False, verbose=verbose)) # Simple XX gate tests
         result = map(add, result, simpleIsingTests(nq, 1, False, verbose=verbose)) # Simple YY gate tests
         result = map(add, result, simpleIsingTests(nq, 2, False, verbose=verbose)) # Simple ZZ gate tests
@@ -922,6 +996,18 @@ def tests(minqubits, maxqubits, seed=None, verbose=False):
         result = map(add, result, sparseIsingTests(nq, 0, True, verbose=verbose)) # Sparse XX-1 gate tests
         result = map(add, result, sparseIsingTests(nq, 1, True, verbose=verbose)) # Sparse YY-1 gate tests
         result = map(add, result, sparseIsingTests(nq, 2, True, verbose=verbose)) # Sparse ZZ-1 gate tests
+        result = map(add, result, controlledGateTests(nq, verbose=verbose)) # Controlled U gate tests
+        result = map(add, result, cSWAPTests(nq, False, False, False, verbose=verbose)) # Controlled SWAP gate tests
+        result = map(add, result, cSWAPTests(nq, True, False, False, verbose=verbose)) # Controlled iSWAP gate tests
+        result = map(add, result, cSWAPTests(nq, False, True, False, verbose=verbose)) # Controlled sqrtSWAP gate tests
+        result = map(add, result, cSWAPTests(nq, True, False, True, verbose=verbose)) # Controlled iSWAP-1 gate tests
+        result = map(add, result, cSWAPTests(nq, False, True, True, verbose=verbose)) # Controlled sqrtSWAP-1 gate tests
+        result = map(add, result, cIsingTests(nq, 0, False, verbose=verbose)) # Controlled XX gate tests
+        result = map(add, result, cIsingTests(nq, 1, False, verbose=verbose)) # Controlled YY gate tests
+        result = map(add, result, cIsingTests(nq, 2, False, verbose=verbose)) # Controlled ZZ gate tests
+        result = map(add, result, cIsingTests(nq, 0, True, verbose=verbose)) # Controlled XX-1 gate tests
+        result = map(add, result, cIsingTests(nq, 1, True, verbose=verbose)) # Controlled YY-1 gate tests
+        result = map(add, result, cIsingTests(nq, 2, True, verbose=verbose)) # Controlled ZZ-1 gate tests
     return tuple(result)
 
 def main():
