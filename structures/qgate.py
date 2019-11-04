@@ -4,8 +4,19 @@ from functools import reduce
 import connectors.parser as prs
 import numpy as np
 import ctypes as ct
+import platform as plat
+import os.path
 
-__qsimov__ = ct.CDLL("libqsimov.dll")
+# DLL Load
+if plat.system() == "Windows":
+    extension = ".dll"
+else:
+    extension = ".so"
+__rootfolder__ = os.path.dirname(os.path.abspath(__file__)) + os.path.sep
+__libfolder__ = ".." + os.path.sep + "lib" + os.path.sep
+__qsimovpath__ = __rootfolder__ + __libfolder__ + "libqsimov" + extension
+__qsimov__ = ct.CDLL(__qsimovpath__)
+
 c_double_p = ct.POINTER(ct.c_double)
 
 class QGate(object):

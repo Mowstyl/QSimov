@@ -4,18 +4,31 @@ from structures.qgate import QGate
 from connectors.parser import getGateData
 import ctypes as ct
 import cmath as cm
+import platform as plat
+import os.path
 
+# DLL Load
+if plat.system() == "Windows":
+    __libc__ = ct.cdll.msvcrt
+    extension = ".dll"
+else:
+    __libc__ = ct.cdll.LoadLibrary("libc6.so.6")
+    extension = ".so"
+__rootfolder__ = os.path.dirname(os.path.abspath(__file__)) + os.path.sep
+__libfolder__ = ".." + os.path.sep + "lib" + os.path.sep
+__qsimovpath__ = __rootfolder__ + __libfolder__ + "libqsimov" + extension
+__funmatpath__ = __rootfolder__ + __libfolder__ + "libfunmat" + extension
+__qsimov__ = ct.CDLL(__qsimovpath__)
+__funmat__ = ct.CDLL(__funmatpath__)
+
+# C Pointer types
 c_double_p = ct.POINTER(ct.c_double)
 c_int_p = ct.POINTER(ct.c_int)
 
-# Lib C functions
-_libc = ct.cdll.msvcrt
-free = _libc.free
+free = __libc__.free
 free.argtypes = [ct.c_void_p]
 free.restype = ct.c_void_p
 
-__qsimov__ = ct.CDLL("libqsimov.dll")
-__funmat__ = ct.CDLL("libfunmat.dll")
 __new_QRegistry__ = __qsimov__.new_QRegistry
 __new_QRegistry__.argtypes = [ct.c_uint]
 __new_QRegistry__.restype = ct.c_void_p

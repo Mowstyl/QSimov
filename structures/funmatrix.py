@@ -1,9 +1,20 @@
 import ctypes as ct
 import connectors.parser as prs
+import platform as plat
+import os.path
+
+# DLL Load
+if plat.system() == "Windows":
+    extension = ".dll"
+else:
+    extension = ".so"
+__rootfolder__ = os.path.dirname(os.path.abspath(__file__)) + os.path.sep
+__libfolder__ = ".." + os.path.sep + "lib" + os.path.sep
+__funmatpath__ = __rootfolder__ + __libfolder__ + "libfunmat" + extension
+__funmat__ = ct.CDLL(__funmatpath__)
 
 c_double_p = ct.POINTER(ct.c_double)
 
-__funmat__ = ct.CDLL("libfunmat.dll")
 __cGetItem__ = __funmat__.getitemaux
 __cGetItem__.argtypes = [ct.c_void_p, ct.c_uint, ct.c_uint, c_double_p, c_double_p]
 __cGetItem__.restype = ct.c_int

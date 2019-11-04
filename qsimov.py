@@ -5,13 +5,13 @@ import numpy as np
 import ctypes as ct
 import time as t
 import re
+import platform as plat
 from structures.funmatrix import Funmatrix
 from structures.qregistry import QRegistry, superposition
 from structures.qgate import getGate
 from structures.qcircuit import QCircuit
 from structures.measure import Measure
 from structures.condition import Condition
-
 
 # np.zeros((h,w), dtype=complex) Inicializa una matriz de numeros complejos con alto h y ancho w
 # La suma de matrices se realiza con +. A + B
@@ -20,7 +20,10 @@ from structures.condition import Condition
 # El producto Kronecker de A y B esta definido con np.kron(A,B)
 
 # Lib C functions
-__libc__ = ct.cdll.msvcrt
+if plat.system() == "Windows":
+    __libc__ = ct.cdll.msvcrt
+else:
+    __libc__ = ct.cdll.LoadLibrary("libc6.so.6")
 __cSrand__ = __libc__.srand
 __cSrand__.argtypes = [ct.c_uint]
 def setRandomSeed(seed, debug=False):
