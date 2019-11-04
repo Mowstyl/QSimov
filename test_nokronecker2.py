@@ -954,76 +954,84 @@ def tests(minqubits, maxqubits, seed=None, verbose=False):
         qj.setRandomSeed(seed)
         rnd.seed(seed)
         np.random.seed(seed)
-    result = (0, 0)
+    result = [(0, 0) for i in range(50)] # We have 50 tests
     for nq in range(minqubits, maxqubits + 1):
         if verbose:
             print("Testing with " + str(nq) + " qubit registries")
-        result = map(add, result, gateTests("H", verbose=verbose, hasInv=False, nArgs=0)) # H gate tests
-        result = map(add, result, gateTests("X", verbose=verbose, hasInv=False, nArgs=0)) # X gate tests
-        result = map(add, result, gateTests("Y", verbose=verbose, hasInv=False, nArgs=0)) # Y gate tests
-        result = map(add, result, gateTests("Z", verbose=verbose, hasInv=False, nArgs=0)) # Z gate tests
-        result = map(add, result, gateTests("SqrtX", verbose=verbose, hasInv=True, nArgs=0)) # SqrtX gate tests
-        result = map(add, result, gateTests("RX", verbose=verbose, hasInv=True, nArgs=1)) # RX gate tests
-        result = map(add, result, gateTests("RY", verbose=verbose, hasInv=True, nArgs=1)) # RY gate tests
-        result = map(add, result, gateTests("RZ", verbose=verbose, hasInv=True, nArgs=1)) # RZ gate tests
-        result = map(add, result, gateTests("R", verbose=verbose, hasInv=True, nArgs=1)) # Phase shift gate tests
-        result = map(add, result, gateTests("RUnity", verbose=verbose, hasInv=True, nArgs=1)) # Roots of unity gate tests
-        result = map(add, result, gateTests("HalfDeutsch", verbose=verbose, hasInv=True, nArgs=1)) # Partial Deutsch gate tests
-        result = map(add, result, gateTests("U", verbose=verbose, hasInv=True, nArgs=3)) # U gate tests
-        result = map(add, result, gateTests("U3", verbose=verbose, hasInv=True, nArgs=3)) # U3 gate tests
-        result = map(add, result, gateTests("U2", verbose=verbose, hasInv=True, nArgs=2)) # U2 gate tests
-        result = map(add, result, gateTests("U1", verbose=verbose, hasInv=True, nArgs=1)) # U1 gate tests
-        result = map(add, result, oneGateTests(nq, verbose=verbose)) # Apply U gate tests
-        result = map(add, result, simpleSwapTests(nq, False, False, False, verbose=verbose)) # Simple SWAP gate tests
-        result = map(add, result, simpleSwapTests(nq, True, False, False, verbose=verbose)) # Simple iSWAP gate tests
-        result = map(add, result, simpleSwapTests(nq, False, True, False, verbose=verbose)) # Simple sqrtSWAP gate tests
-        result = map(add, result, simpleSwapTests(nq, True, False, True, verbose=verbose)) # Simple iSWAP-1 gate tests
-        result = map(add, result, simpleSwapTests(nq, False, True, True, verbose=verbose)) # Simple sqrtSWAP-1 gate tests
-        result = map(add, result, sparseSwapTests(nq, False, False, False, verbose=verbose)) # Sparse SWAP gate tests
-        result = map(add, result, sparseSwapTests(nq, True, False, False, verbose=verbose)) # Sparse iSWAP gate tests
-        result = map(add, result, sparseSwapTests(nq, False, True, False, verbose=verbose)) # Sparse sqrtSWAP gate tests
-        result = map(add, result, sparseSwapTests(nq, True, False, True, verbose=verbose)) # Sparse iSWAP-1 gate tests
-        result = map(add, result, sparseSwapTests(nq, False, True, True, verbose=verbose)) # Sparse sqrtSWAP-1 gate tests
-        result = map(add, result, simpleIsingTests(nq, 0, False, verbose=verbose)) # Simple XX gate tests
-        result = map(add, result, simpleIsingTests(nq, 1, False, verbose=verbose)) # Simple YY gate tests
-        result = map(add, result, simpleIsingTests(nq, 2, False, verbose=verbose)) # Simple ZZ gate tests
-        result = map(add, result, simpleIsingTests(nq, 0, True, verbose=verbose)) # Simple XX-1 gate tests
-        result = map(add, result, simpleIsingTests(nq, 1, True, verbose=verbose)) # Simple YY-1 gate tests
-        result = map(add, result, simpleIsingTests(nq, 2, True, verbose=verbose)) # Simple ZZ-1 gate tests
-        result = map(add, result, sparseIsingTests(nq, 0, False, verbose=verbose)) # Sparse XX gate tests
-        result = map(add, result, sparseIsingTests(nq, 1, False, verbose=verbose)) # Sparse YY gate tests
-        result = map(add, result, sparseIsingTests(nq, 2, False, verbose=verbose)) # Sparse ZZ gate tests
-        result = map(add, result, sparseIsingTests(nq, 0, True, verbose=verbose)) # Sparse XX-1 gate tests
-        result = map(add, result, sparseIsingTests(nq, 1, True, verbose=verbose)) # Sparse YY-1 gate tests
-        result = map(add, result, sparseIsingTests(nq, 2, True, verbose=verbose)) # Sparse ZZ-1 gate tests
-        result = map(add, result, controlledGateTests(nq, verbose=verbose)) # Controlled U gate tests
-        result = map(add, result, cSWAPTests(nq, False, False, False, verbose=verbose)) # Controlled SWAP gate tests
-        result = map(add, result, cSWAPTests(nq, True, False, False, verbose=verbose)) # Controlled iSWAP gate tests
-        result = map(add, result, cSWAPTests(nq, False, True, False, verbose=verbose)) # Controlled sqrtSWAP gate tests
-        result = map(add, result, cSWAPTests(nq, True, False, True, verbose=verbose)) # Controlled iSWAP-1 gate tests
-        result = map(add, result, cSWAPTests(nq, False, True, True, verbose=verbose)) # Controlled sqrtSWAP-1 gate tests
-        result = map(add, result, cIsingTests(nq, 0, False, verbose=verbose)) # Controlled XX gate tests
-        result = map(add, result, cIsingTests(nq, 1, False, verbose=verbose)) # Controlled YY gate tests
-        result = map(add, result, cIsingTests(nq, 2, False, verbose=verbose)) # Controlled ZZ gate tests
-        result = map(add, result, cIsingTests(nq, 0, True, verbose=verbose)) # Controlled XX-1 gate tests
-        result = map(add, result, cIsingTests(nq, 1, True, verbose=verbose)) # Controlled YY-1 gate tests
-        result = map(add, result, cIsingTests(nq, 2, True, verbose=verbose)) # Controlled ZZ-1 gate tests
-    return tuple(result)
+        result[0] = map(add, result[0], gateTests("H", verbose=verbose, hasInv=False, nArgs=0)) # H gate tests
+        result[1] = map(add, result[1], gateTests("X", verbose=verbose, hasInv=False, nArgs=0)) # X gate tests
+        result[2] = map(add, result[2], gateTests("Y", verbose=verbose, hasInv=False, nArgs=0)) # Y gate tests
+        result[3] = map(add, result[3], gateTests("Z", verbose=verbose, hasInv=False, nArgs=0)) # Z gate tests
+        result[4] = map(add, result[4], gateTests("SqrtX", verbose=verbose, hasInv=True, nArgs=0)) # SqrtX gate tests
+        result[5] = map(add, result[5], gateTests("RX", verbose=verbose, hasInv=True, nArgs=1)) # RX gate tests
+        result[6] = map(add, result[6], gateTests("RY", verbose=verbose, hasInv=True, nArgs=1)) # RY gate tests
+        result[7] = map(add, result[7], gateTests("RZ", verbose=verbose, hasInv=True, nArgs=1)) # RZ gate tests
+        result[8] = map(add, result[8], gateTests("R", verbose=verbose, hasInv=True, nArgs=1)) # Phase shift gate tests
+        result[9] = map(add, result[9], gateTests("RUnity", verbose=verbose, hasInv=True, nArgs=1)) # Roots of unity gate tests
+        result[10] = map(add, result[10], gateTests("HalfDeutsch", verbose=verbose, hasInv=True, nArgs=1)) # Partial Deutsch gate tests
+        result[11] = map(add, result[11], gateTests("U", verbose=verbose, hasInv=True, nArgs=3)) # U gate tests
+        result[12] = map(add, result[12], gateTests("U3", verbose=verbose, hasInv=True, nArgs=3)) # U3 gate tests
+        result[13] = map(add, result[13], gateTests("U2", verbose=verbose, hasInv=True, nArgs=2)) # U2 gate tests
+        result[14] = map(add, result[14], gateTests("U1", verbose=verbose, hasInv=True, nArgs=1)) # U1 gate tests
+        result[15] = map(add, result[15], oneGateTests(nq, verbose=verbose)) # Apply U gate tests
+        result[16] = map(add, result[16], simpleSwapTests(nq, False, False, False, verbose=verbose)) # Simple SWAP gate tests
+        result[17] = map(add, result[17], simpleSwapTests(nq, True, False, False, verbose=verbose)) # Simple iSWAP gate tests
+        result[18] = map(add, result[18], simpleSwapTests(nq, False, True, False, verbose=verbose)) # Simple sqrtSWAP gate tests
+        result[19] = map(add, result[19], simpleSwapTests(nq, True, False, True, verbose=verbose)) # Simple iSWAP-1 gate tests
+        result[20] = map(add, result[20], simpleSwapTests(nq, False, True, True, verbose=verbose)) # Simple sqrtSWAP-1 gate tests
+        result[21] = map(add, result[21], sparseSwapTests(nq, False, False, False, verbose=verbose)) # Sparse SWAP gate tests
+        result[22] = map(add, result[22], sparseSwapTests(nq, True, False, False, verbose=verbose)) # Sparse iSWAP gate tests
+        result[23] = map(add, result[23], sparseSwapTests(nq, False, True, False, verbose=verbose)) # Sparse sqrtSWAP gate tests
+        result[24] = map(add, result[24], sparseSwapTests(nq, True, False, True, verbose=verbose)) # Sparse iSWAP-1 gate tests
+        result[25] = map(add, result[25], sparseSwapTests(nq, False, True, True, verbose=verbose)) # Sparse sqrtSWAP-1 gate tests
+        result[26] = map(add, result[26], simpleIsingTests(nq, 0, False, verbose=verbose)) # Simple XX gate tests
+        result[27] = map(add, result[27], simpleIsingTests(nq, 1, False, verbose=verbose)) # Simple YY gate tests
+        result[28] = map(add, result[28], simpleIsingTests(nq, 2, False, verbose=verbose)) # Simple ZZ gate tests
+        result[29] = map(add, result[29], simpleIsingTests(nq, 0, True, verbose=verbose)) # Simple XX-1 gate tests
+        result[30] = map(add, result[30], simpleIsingTests(nq, 1, True, verbose=verbose)) # Simple YY-1 gate tests
+        result[31] = map(add, result[31], simpleIsingTests(nq, 2, True, verbose=verbose)) # Simple ZZ-1 gate tests
+        result[32] = map(add, result[32], sparseIsingTests(nq, 0, False, verbose=verbose)) # Sparse XX gate tests
+        result[33] = map(add, result[33], sparseIsingTests(nq, 1, False, verbose=verbose)) # Sparse YY gate tests
+        result[34] = map(add, result[34], sparseIsingTests(nq, 2, False, verbose=verbose)) # Sparse ZZ gate tests
+        result[35] = map(add, result[35], sparseIsingTests(nq, 0, True, verbose=verbose)) # Sparse XX-1 gate tests
+        result[36] = map(add, result[36], sparseIsingTests(nq, 1, True, verbose=verbose)) # Sparse YY-1 gate tests
+        result[37] = map(add, result[37], sparseIsingTests(nq, 2, True, verbose=verbose)) # Sparse ZZ-1 gate tests
+        result[38] = map(add, result[38], controlledGateTests(nq, verbose=verbose)) # Controlled U gate tests
+        result[39] = map(add, result[39], cSWAPTests(nq, False, False, False, verbose=verbose)) # Controlled SWAP gate tests
+        result[40] = map(add, result[40], cSWAPTests(nq, True, False, False, verbose=verbose)) # Controlled iSWAP gate tests
+        result[41] = map(add, result[41], cSWAPTests(nq, False, True, False, verbose=verbose)) # Controlled sqrtSWAP gate tests
+        result[42] = map(add, result[42], cSWAPTests(nq, True, False, True, verbose=verbose)) # Controlled iSWAP-1 gate tests
+        result[43] = map(add, result[43], cSWAPTests(nq, False, True, True, verbose=verbose)) # Controlled sqrtSWAP-1 gate tests
+        result[44] = map(add, result[44], cIsingTests(nq, 0, False, verbose=verbose)) # Controlled XX gate tests
+        result[45] = map(add, result[45], cIsingTests(nq, 1, False, verbose=verbose)) # Controlled YY gate tests
+        result[46] = map(add, result[46], cIsingTests(nq, 2, False, verbose=verbose)) # Controlled ZZ gate tests
+        result[47] = map(add, result[47], cIsingTests(nq, 0, True, verbose=verbose)) # Controlled XX-1 gate tests
+        result[48] = map(add, result[48], cIsingTests(nq, 1, True, verbose=verbose)) # Controlled YY-1 gate tests
+        result[49] = map(add, result[49], cIsingTests(nq, 2, True, verbose=verbose)) # Controlled ZZ-1 gate tests
+    for i in range(len(result)):
+        result[i] = tuple(result[i])
+    return result
 
 def main():
     argv = sys.argv[1:]
     if 2 <= len(argv) <= 4:
         if len(argv) == 2:
-            passed, total = tests(int(argv[0]), int(argv[1]))
+            results = tests(int(argv[0]), int(argv[1]))
         elif len(argv) == 3:
-            passed, total = tests(int(argv[0]), int(argv[1]), seed=int(argv[2]))
+            results = tests(int(argv[0]), int(argv[1]), seed=int(argv[2]))
         else:
-            passed, total = tests(int(argv[0]), int(argv[1]), seed=int(argv[2]), verbose=bool(argv[3]))
-        print("Passed: " + str(passed) + "/" + str(total))
-        if passed == total:
+            results = tests(int(argv[0]), int(argv[1]), seed=int(argv[2]), verbose=bool(argv[3]))
+        passed = [int(result[0] == result[1]) for result in results]
+        noice = sum(passed)
+        total = len(results)
+        print("Passed: " + str(noice) + "/" + str(total))
+        if noice == total:
             print("PEACE AND TRANQUILITY")
             #wb.open_new_tab("https://youtu.be/SHvhps47Lmc")
         else:
+            for testid in range(total):
+                if passed[testid] == 0:
+                    print("Test " + str(testid) + " failed!")
             print("SORROW")
             #wb.open_new_tab("https://youtu.be/4Js-XbNj6Tk?t=37")
     else:
