@@ -89,7 +89,7 @@ __partialTrace__.argtypes = [ct.c_void_p, ct.c_int]
 __partialTrace__.restype = ct.c_void_p
 
 class QRegistry:
-    def __init__(self, nqbits, **kwargs):
+    def __init__(self, nqbits):
         # nqbits -> number of QuBits in the registry.
         # Seed for the Pseudo Random Number Generation can be specified with seed = <seed> as an argument.
         self.reg = __new_QRegistry__(nqbits)
@@ -114,7 +114,7 @@ class QRegistry:
             raise ValueError('Not valid mask')
         mask = []
         for i in range(nqubits):
-            if msk[i] == 1:
+            if msk[-1-i] == 1:
                 mask.append(i)
         if (not all(num < nqubits and num > -1 for num in mask)):
             raise ValueError('Out of range')

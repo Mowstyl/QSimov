@@ -9,6 +9,7 @@ import re
 import platform as plat
 from structures.funmatrix import Funmatrix
 from structures.qregistry import QRegistry, superposition
+from structures.qsystem import QSystem
 from structures.qgate import getGate
 from structures.qcircuit import QCircuit
 from structures.measure import Measure
