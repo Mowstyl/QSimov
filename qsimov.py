@@ -3,6 +3,7 @@
 import cmath as cm
 import numpy as np
 import ctypes as ct
+import ctypes.util
 import time as t
 import re
 import platform as plat
@@ -23,7 +24,7 @@ from structures.condition import Condition
 if plat.system() == "Windows":
     __libc__ = ct.cdll.msvcrt
 else:
-    __libc__ = ct.cdll.LoadLibrary("libc6.so.6")
+    __libc__ = ct.cdll.LoadLibrary(ctypes.util.find_library("c"))
 __cSrand__ = __libc__.srand
 __cSrand__.argtypes = [ct.c_uint]
 def setRandomSeed(seed, debug=False):

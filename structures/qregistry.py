@@ -1,25 +1,26 @@
 import numpy as np
+import ctypes as ct
+import ctypes.util
+import cmath as cm
+import platform as plat
+from os.path import dirname, abspath, sep
 from structures.funmatrix import Funmatrix
 from structures.qgate import QGate
 from connectors.parser import getGateData
-import ctypes as ct
-import cmath as cm
-import platform as plat
-import os.path
 
 # DLL Load
 if plat.system() == "Windows":
     __libc__ = ct.cdll.msvcrt
     extension = ".dll"
 else:
-    __libc__ = ct.cdll.LoadLibrary("libc6.so.6")
+    __libc__ = ct.cdll.LoadLibrary(ctypes.util.find_library("c"))
     extension = ".so"
-__rootfolder__ = os.path.dirname(os.path.abspath(__file__)) + os.path.sep
-__libfolder__ = ".." + os.path.sep + "lib" + os.path.sep
-__qsimovpath__ = __rootfolder__ + __libfolder__ + "libqsimov" + extension
-__funmatpath__ = __rootfolder__ + __libfolder__ + "libfunmat" + extension
-__qsimov__ = ct.CDLL(__qsimovpath__)
+__rootfolder__ = dirname(dirname(abspath(__file__)))
+__libfolder__ = __rootfolder__ + sep + "lib"
+__funmatpath__ = __libfolder__ + sep + "libfunmat" + extension
+__qsimovpath__ = __libfolder__ + sep + "libqsimov" + extension
 __funmat__ = ct.CDLL(__funmatpath__)
+__qsimov__ = ct.CDLL(__qsimovpath__)
 
 # C Pointer types
 c_double_p = ct.POINTER(ct.c_double)
@@ -119,25 +120,18 @@ class QRegistry:
             raise ValueError('Out of range')
 
         nq = len(mask)
-        int_array = ct.c_int * nq
-        result = int_array(*[0 for i in mask])
-        rem = 0
-        if (remove):
-            rem = 1
-        if int(__cMeasure__(self.reg, int_array(*mask), ct.c_int(nq), result, ct.c_int(rem))) == 0:
-            print("Error measuring!")
+        if nq > 0:
+            int_array = ct.c_int * nq
+            result = int_array(*[0 for i in mask])
+            rem = 0
+            if (remove):
+                rem = 1
+            if int(__cMeasure__(self.reg, int_array(*mask), ct.c_int(nq), result, ct.c_int(rem))) == 0:
+                print("Error measuring!")
+            else:
+                return list(result)
         else:
-            return list(result)
-
-    '''
-    def applyGate(self, gate, qubit): # Applies a quantum gate to the registry
-        if type(qubit) == int and qubit < self.getNQubits() and qubit >= 0:
-            name, arg1, arg2, arg3, invert = getGateData(gate)
-            if int(__cApplyGateQubit__(self.reg, ct.c_char_p(name.encode()), ct.c_double(arg1), ct.c_double(arg2), ct.c_double(arg3), ct.c_int(int(invert)), ct.c_int(qubit))) == 0:
-                print("Error applying gate to specified QuBit!")
-        else:
-            print("The specified qubit doesn't exist!")
-    '''
+            return []
 
     def applyGate(self, gate, qubit=0, control=None, anticontrol=None):
         if np.issubdtype(type(qubit), np.integer) and qubit < self.getNQubits() and qubit >= 0:
@@ -227,7 +221,7 @@ class QRegistry:
     def reducedDensityMatrix(self, elem):
         nq = self.getNQubits()
         if 0 <= elem < nq:
-            elem = nq - elem - 1
+            # elem = nq - elem - 1
             return Funmatrix(ct.c_void_p(__partialTrace__(ct.c_void_p(__cDensityMat__(self.reg)), ct.c_int(elem))), "Tr_" + str(elem) + "(Rho)")
         else:
             print("The specified QuBit doesn't exist in this registry!")
@@ -259,14 +253,14 @@ class QRegistry:
         if self.getNQubits() == 1:
             return __cHopfCoords__(self.reg)[:3]
         else:
-            print("You can only use 1 qubit registries!")
+            #print("You can only use 1 qubit registries!")
             return None
 
     def blochCoords(self):
         if self.getNQubits() == 1:
             return __cBlochCoords__(self.reg)[:2]
         else:
-            print("You can only use 1 qubit registries!")
+            #print("You can only use 1 qubit registries!")
             return None
 
     def bra(self): # Devuelve el vector de estado en forma de fila conjugado. <v|

@@ -1,20 +1,20 @@
-from structures.funmatrix import Funmatrix
-from structures.measure import Measure
-from functools import reduce
-import connectors.parser as prs
 import numpy as np
 import ctypes as ct
 import platform as plat
-import os.path
+import connectors.parser as prs
+from structures.funmatrix import Funmatrix
+from structures.measure import Measure
+from functools import reduce
+from os.path import dirname, abspath, sep
 
 # DLL Load
 if plat.system() == "Windows":
     extension = ".dll"
 else:
     extension = ".so"
-__rootfolder__ = os.path.dirname(os.path.abspath(__file__)) + os.path.sep
-__libfolder__ = ".." + os.path.sep + "lib" + os.path.sep
-__qsimovpath__ = __rootfolder__ + __libfolder__ + "libqsimov" + extension
+__rootfolder__ = dirname(dirname(abspath(__file__)))
+__libfolder__ = __rootfolder__ + sep + "lib"
+__qsimovpath__ = __libfolder__ + sep + "libqsimov" + extension
 __qsimov__ = ct.CDLL(__qsimovpath__)
 
 c_double_p = ct.POINTER(ct.c_double)
@@ -109,6 +109,19 @@ def getGate(gatename):
         print("Error while getting the specified gate!")
 
     return matrix
+
+def getGateData(gatename):
+    name, arg1, arg2, arg3, invert = prs.getGateData(gatename)
+    qgate = ct.c_void_p(__cGetQGate__(ct.c_char_p(name.encode()), ct.c_double(arg1), ct.c_double(arg2), ct.c_double(arg3), ct.c_int(int(invert))))
+    if (qgate or False) == qgate: # NOTNULLPTR and True returns True, NOTNULLPTR or False returns NOTNULLPTR
+        nqubits = int(__cGetQGateQubits__(qgate))
+        size = int(__cGetQGateSize__(qgate))
+        shape = (nqubits, size)
+    else:
+        shape = None
+        print("Error while getting the specified gate!")
+
+    return shape
 
 def joinGates(gates):
     maxgatelen = max(map(getLines, gates))
