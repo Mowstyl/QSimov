@@ -80,6 +80,8 @@ class QSystem:
             else:
                 gate = (gate, getGateData(gate)[0])
             qubit = kwargs.get("qubit", 0)
+            if len(args) == 2:
+                qubit = args[1]
             control = kwargs.get("control", [])
             if type(control) != list:
                 control = [control]
