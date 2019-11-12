@@ -143,15 +143,18 @@ class QSystem:
             del b[0]
 
     def getState(self):
-        reg = self.regs[0]
-        for i in range(1, len(self.regs)):
-            if self.regs[i] != None:
-                aux = reg
-                reg = joinRegs(aux, self.regs[i])
-                del aux[0]
-        state = reg[0].getState()
-        del reg[0]
-        return state
+        if len(self.regs) == 1:
+            return self.regs[0][0].getState()
+        else:
+            reg = joinRegs(self.regs[0], self.regs[1])
+            for i in range(2, len(self.regs)):
+                if self.regs[i] != None:
+                    aux = reg
+                    reg = joinRegs(aux, self.regs[i])
+                    del aux[0]
+            state = reg[0].getState()
+            del reg[0]
+            return state
 
 def joinRegs(a, b):
     newregdata = []
