@@ -81,7 +81,11 @@ class QSystem:
                 gate = (gate, getGateData(gate)[0])
             qubit = kwargs.get("qubit", 0)
             control = kwargs.get("control", [])
+            if type(control) != list:
+                control = [control]
             anticontrol = kwargs.get("anticontrol", [])
+            if type(anticontrol) != list:
+                anticontrol = [anticontrol]
             if type(qubit) == list or type(qubit) == set:
                 for qid in qubit:
                     self.applyGate(gate[0], qubit=qid, control=control, anticontrol=anticontrol)
