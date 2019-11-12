@@ -67,27 +67,7 @@ class QSystem:
         return result
 
     def applyGate(self, *args, **kwargs): # gate, qubit=0, control=None, anticontrol=None):
-        if len(kwargs) == 0 and len(args) > 0:
-            nq = 0
-            gates = []
-            for arg in args:
-                if type(arg) == QGate:
-                    gatenq = (arg, arg.getNQubits())
-                elif arg == "I" or arg is None:
-                    gatenq = (None, 1)
-                else:
-                    gatenq = (arg, getGateData(arg)[0])
-                nq += gatenq[1]
-                gates.append(gatenq)
-            if nq == self.getNQubits():
-                qid = 0
-                for gate in gates:
-                    if gate[0] != None:
-                        self.applyGate(gate[0], qubit=qid)
-                    qid += gate[1]
-            else:
-                print ("You have to specify a gate for each QuBit (or None if you don't want to operate with it)")
-        elif len(args) == 1:
+        if len(args) == 1 or (len(args) == 2 and "qubit" not in kwargs):
             for key in kwargs:
                 if key != "qubit" and key != "control" and key != "anticontrol":
                     print('Apart from the gates, you can only specify "qubit", "control" and/or "anticontrol" (lowercase)')
@@ -119,7 +99,26 @@ class QSystem:
                     pass
                 else:
                     reg.applyGate(gate[0], qubit=newqubit, control=newcontrol, anticontrol=newanticontrol)
-
+        elif len(kwargs) == 0 and len(args) > 0:
+            nq = 0
+            gates = []
+            for arg in args:
+                if type(arg) == QGate:
+                    gatenq = (arg, arg.getNQubits())
+                elif arg == "I" or arg is None:
+                    gatenq = (None, 1)
+                else:
+                    gatenq = (arg, getGateData(arg)[0])
+                nq += gatenq[1]
+                gates.append(gatenq)
+            if nq == self.getNQubits():
+                qid = 0
+                for gate in gates:
+                    if gate[0] != None:
+                        self.applyGate(gate[0], qubit=qid)
+                    qid += gate[1]
+            else:
+                print ("You have to specify a gate for each QuBit (or None if you don't want to operate with it)")
         elif len(args) == 0:
             print("You must specify at least one gate")
         else:
