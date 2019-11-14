@@ -189,9 +189,11 @@ def joinRegs(a, b):
     newregdata = []
     if b[1][0] > a[1][-1]:
         newregdata = [superposition(b[0], a[0]), a[1] + b[1]]
-    else:
+    if a[1][0] > b[1][-1]:
         newregdata = [superposition(a[0], b[0]), b[1] + a[1]]
-    newregdata = sortRegdata(newregdata)
+    else:
+        newregdata = [superposition(b[0], a[0]), a[1] + b[1]]
+        newregdata = sortRegdata(newregdata)
     return newregdata
 
 def sortRegdata(regdata): # regdata[1] = [1,3,2,4] -> el qubit 0 del registro es el 1 del sistema
