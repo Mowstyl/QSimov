@@ -1,4 +1,5 @@
 import numpy as np
+import connectors.parser as prs
 from structures.qregistry import QRegistry, superposition
 from structures.qgate import QGate, getGateData
 
@@ -92,11 +93,27 @@ class QSystem:
                 for qid in qubit:
                     self.applyGate(gate[0], qubit=qid, control=control, anticontrol=anticontrol)
             else:
-                qubits = set([qubit + i for i in range(1, gate[1])] + control + anticontrol) # Todos los participantes
+                name = ""
+                if type(gate[0]) != QGate:
+                    name, arg1, arg2, arg3, invert = prs.getGateData(gate[0])
+                invstring = ""
+                if invert:
+                    invstring = "-1"
+                qubits = set(control + anticontrol) # Todos los participantes
+                if "SWAP" in name:
+                    qubit = arg1
+                    qubits.add(arg2)
+                elif name == "XX" or name == "YY" or name == "ZZ":
+                    qubit = arg2
+                    qubits.add(arg3)
+                else:
+                    qubits.update([qubit + i for i in range(1, gate[1])])
+                #print("Participants: " + str([qubit] + list(qubits)))
                 rid = self.qubitMap[qubit]
                 for qid in qubits:
                     self.superposition(rid, self.qubitMap[qid])
                 reg, idlist = self.regs[rid]
+                #print("RDATA: [" + str(reg.getNQubits()) + ", " + str(idlist) + "]")
                 regmap = {idlist[i]: i for i in range(len(idlist))}
                 newqubit = regmap[qubit]
                 newcontrol = [regmap[qid] for qid in control]
@@ -104,6 +121,11 @@ class QSystem:
                 if type(gate[0]) == QGate:
                     pass
                 else:
+                    if "SWAP" in name:
+                        gate = (name + "(" + str(regmap[arg1]) + "," + str(regmap[arg2]) + ")" + invstring, gate[1])
+                    if name == "XX" or name == "YY" or name == "ZZ":
+                        gate = (name + "(" + str(arg1) + "," + str(regmap[arg2]) + "," + str(regmap[arg3]) + ")" + invstring, gate[1])
+                    #print(gate[0])
                     reg.applyGate(gate[0], qubit=newqubit, control=newcontrol, anticontrol=newanticontrol)
         elif len(kwargs) == 0 and len(args) > 0:
             nq = 0
@@ -167,11 +189,9 @@ def joinRegs(a, b):
     newregdata = []
     if b[1][0] > a[1][-1]:
         newregdata = [superposition(b[0], a[0]), a[1] + b[1]]
-    elif a[1][0] > b[1][-1]:
-        newregdata = [superposition(a[0], b[0]), b[1] + a[1]]
     else:
-        newregdata = [superposition(b[0], a[0]), a[1] + b[1]]
-        newregdata = sortRegdata(newregdata)
+        newregdata = [superposition(a[0], b[0]), b[1] + a[1]]
+    newregdata = sortRegdata(newregdata)
     return newregdata
 
 def sortRegdata(regdata): # regdata[1] = [1,3,2,4] -> el qubit 0 del registro es el 1 del sistema
@@ -179,7 +199,7 @@ def sortRegdata(regdata): # regdata[1] = [1,3,2,4] -> el qubit 0 del registro es
     for i in range(relen-1):
         aux = regdata[1][i:]
         minid = min(aux)
-        minindex = aux.index(minid)
+        minindex = aux.index(minid) + i
         if aux[0] != minid:
             regdata[0].applyGate("SWAP(" + str(i) + "," + str(minindex) + ")")
             regdata[1][i], regdata[1][minindex] = minid, regdata[1][i]

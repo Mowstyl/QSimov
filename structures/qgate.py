@@ -112,14 +112,17 @@ def getGate(gatename):
 
 def getGateData(gatename):
     name, arg1, arg2, arg3, invert = prs.getGateData(gatename)
-    qgate = ct.c_void_p(__cGetQGate__(ct.c_char_p(name.encode()), ct.c_double(arg1), ct.c_double(arg2), ct.c_double(arg3), ct.c_int(int(invert))))
-    if (qgate or False) == qgate: # NOTNULLPTR and True returns True, NOTNULLPTR or False returns NOTNULLPTR
-        nqubits = int(__cGetQGateQubits__(qgate))
-        size = int(__cGetQGateSize__(qgate))
-        shape = (nqubits, size)
+    if "SWAP" in name or name == "XX" or name == "YY" or name == "ZZ":
+        shape = (2, 4)
     else:
-        shape = None
-        print("Error while getting the specified gate!")
+        qgate = ct.c_void_p(__cGetQGate__(ct.c_char_p(name.encode()), ct.c_double(arg1), ct.c_double(arg2), ct.c_double(arg3), ct.c_int(int(invert))))
+        if (qgate or False) == qgate: # NOTNULLPTR and True returns True, NOTNULLPTR or False returns NOTNULLPTR
+            nqubits = int(__cGetQGateQubits__(qgate))
+            size = int(__cGetQGateSize__(qgate))
+            shape = (nqubits, size)
+        else:
+            shape = None
+            print("Error while getting the specified gate!")
 
     return shape
 

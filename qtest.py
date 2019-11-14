@@ -442,7 +442,7 @@ def gateTests(gatename, verbose=False, hasInv=False, nArgs=0):
 
     return (passed, total)
 
-def oneGateTests(nq, verbose=False):
+def oneGateTests(nq, verbose=False, QItem=qj.QRegistry):
     passed = 0
     total = nq
     if verbose:
@@ -453,7 +453,7 @@ def oneGateTests(nq, verbose=False):
         if verbose:
             print("  Testing gate " + gate + " to qubit " + str(id) + "...")
         #print("    Gate: " + str(numpygate))
-        b = qj.QRegistry(nq)
+        b = QItem(nq)
         a = gateToId(numpygate, id, nq)
         if verbose:
             print("    Numpy done")
@@ -477,13 +477,13 @@ def oneGateTests(nq, verbose=False):
         del b
     return (passed, total)
 
-def simpleSwapTests(nq, imaginary, sqrt, invert, verbose=False):
+def simpleSwapTests(nq, imaginary, sqrt, invert, verbose=False, QItem=qj.QRegistry):
     passed = 0
     total = nq - 1
     gate2 = "U(" + str(rnd.random()) + "," + str(rnd.random()) + "," + str(rnd.random()) + ")"
     numpygate2 = qj.getGate(gate2)
     a = gateToId(numpygate2, 0, nq)
-    b = qj.QRegistry(nq)
+    b = QItem(nq)
     b.applyGate(gate2)
     if verbose:
         if not imaginary and not sqrt:
@@ -541,7 +541,7 @@ def simpleSwapTests(nq, imaginary, sqrt, invert, verbose=False):
         del b
     return (passed, total)
 
-def sparseSwapTests(nq, imaginary, sqrt, invert, verbose=False):
+def sparseSwapTests(nq, imaginary, sqrt, invert, verbose=False, QItem=qj.QRegistry):
     passed = 0
     total = ((nq - 1) * (nq - 2))//2
     # for i in range(2, nq):
@@ -565,7 +565,7 @@ def sparseSwapTests(nq, imaginary, sqrt, invert, verbose=False):
     for id1 in range(nq - 1):
         for id2 in range(id1 + 2, nq):
             a = gateToId(numpygate2, id1, nq)
-            b = qj.QRegistry(nq)
+            b = QItem(nq)
             b.applyGate(gate2, id1)
             if verbose:
                 print("   Applied gate " + gate2 + " to qubit 0")
@@ -609,7 +609,7 @@ def sparseSwapTests(nq, imaginary, sqrt, invert, verbose=False):
         del b
     return (passed, total)
 
-def simpleIsingTests(nq, type, invert, verbose=False):
+def simpleIsingTests(nq, type, invert, verbose=False, QItem=qj.QRegistry):
     passed = 0
     total = nq - 1
     gate = "XX"
@@ -649,7 +649,7 @@ def simpleIsingTests(nq, type, invert, verbose=False):
     gate2 = "U(" + str(rnd.random()) + "," + str(rnd.random()) + "," + str(rnd.random()) + ")"
     numpygate2 = qj.getGate(gate2)
     a = gateToId(numpygate2, 0, nq)
-    b = qj.QRegistry(nq)
+    b = QItem(nq)
     b.applyGate(gate2)
     if verbose:
         print("   Applied gate " + gate2 + " to qubit 0")
@@ -684,7 +684,7 @@ def simpleIsingTests(nq, type, invert, verbose=False):
         del b
     return (passed, total)
 
-def sparseIsingTests(nq, type, invert, verbose=False):
+def sparseIsingTests(nq, type, invert, verbose=False, QItem=qj.QRegistry):
     passed = 0
     total = ((nq - 1) * (nq - 2))//2
     # for i in range(2, nq):
@@ -729,7 +729,7 @@ def sparseIsingTests(nq, type, invert, verbose=False):
             angle = rnd.random()
             numpygate = gatefun(angle, invert)
             a = gateToId(numpygate2, id1, nq)
-            b = qj.QRegistry(nq)
+            b = QItem(nq)
             b.applyGate(gate2, id1)
             if verbose:
                 print("   Applied gate " + gate2 + " to qubit 0")
@@ -762,7 +762,7 @@ def sparseIsingTests(nq, type, invert, verbose=False):
 
 # def applyCACU(gate, id, controls, anticontrols, nq, reg)
 # cascada aleatoria
-def controlledGateTests(nq, verbose=False):
+def controlledGateTests(nq, verbose=False, QItem=qj.QRegistry):
     total = nq - 1
     passed = 0
     isControl = bool(rnd.randint(0, 1))
@@ -776,7 +776,7 @@ def controlledGateTests(nq, verbose=False):
         print("  Gate: " + gate + " to qubit " + str(lastid))
     numpygate = qj.getGate(gate)
     a = gateToId(numpygate, lastid, nq)
-    b = qj.QRegistry(nq)
+    b = QItem(nq)
     b.applyGate(gate, lastid)
     for id in qubitIds[1:]:
         if isControl:
@@ -806,7 +806,7 @@ def controlledGateTests(nq, verbose=False):
     del b
     return (passed, total)
 
-def cSWAPTests(nq, imaginary, sqrt, invert, verbose=False):
+def cSWAPTests(nq, imaginary, sqrt, invert, verbose=False, QItem=qj.QRegistry):
     total = nq - 1
     passed = 0
     isControl = bool(rnd.randint(0, 1))
@@ -820,7 +820,7 @@ def cSWAPTests(nq, imaginary, sqrt, invert, verbose=False):
         print("  Gate: " + gate + " to qubit " + str(lastid))
     numpygate = qj.getGate(gate)
     a = gateToId(numpygate, lastid[0], nq)
-    b = qj.QRegistry(nq)
+    b = QItem(nq)
     b.applyGate(gate, lastid[0])
 
     gate = "SWAP"
@@ -877,7 +877,7 @@ def cSWAPTests(nq, imaginary, sqrt, invert, verbose=False):
     del b
     return (passed, total)
 
-def cIsingTests(nq, type, invert, verbose=False):
+def cIsingTests(nq, type, invert, verbose=False, QItem=qj.QRegistry):
     total = nq - 1
     passed = 0
     isControl = bool(rnd.randint(0, 1))
@@ -891,7 +891,7 @@ def cIsingTests(nq, type, invert, verbose=False):
         print("  Gate: " + gate + " to qubit " + str(lastid))
     numpygate = qj.getGate(gate)
     a = gateToId(numpygate, lastid[0], nq)
-    b = qj.QRegistry(nq)
+    b = QItem(nq)
     b.applyGate(gate, lastid[0])
 
     gate = "XX"
@@ -948,79 +948,109 @@ def cIsingTests(nq, type, invert, verbose=False):
     del b
     return (passed, total)
 
-def tests(minqubits, maxqubits, seed=None, verbose=False):
+def allGateTests(seed=None, verbose=False):
     if not (seed is None):
-        print("Seed: " + str(seed))
         qj.setRandomSeed(seed)
         rnd.seed(seed)
         np.random.seed(seed)
-    result = [(0, 0) for i in range(50)] # We have 50 tests
+    result = [(0, 0) for i in range(15)] # We have 15 tests
+
+    result[0] = gateTests("H", verbose=verbose, hasInv=False, nArgs=0) # H gate tests
+    result[1] = gateTests("X", verbose=verbose, hasInv=False, nArgs=0) # X gate tests
+    result[2] = gateTests("Y", verbose=verbose, hasInv=False, nArgs=0) # Y gate tests
+    result[3] = gateTests("Z", verbose=verbose, hasInv=False, nArgs=0) # Z gate tests
+    result[4] = gateTests("SqrtX", verbose=verbose, hasInv=True, nArgs=0) # SqrtX gate tests
+    result[5] = gateTests("RX", verbose=verbose, hasInv=True, nArgs=1) # RX gate tests
+    result[6] = gateTests("RY", verbose=verbose, hasInv=True, nArgs=1) # RY gate tests
+    result[7] = gateTests("RZ", verbose=verbose, hasInv=True, nArgs=1) # RZ gate tests
+    result[8] = gateTests("R", verbose=verbose, hasInv=True, nArgs=1) # Phase shift gate tests
+    result[9] = gateTests("RUnity", verbose=verbose, hasInv=True, nArgs=1) # Roots of unity gate tests
+    result[10] = gateTests("HalfDeutsch", verbose=verbose, hasInv=True, nArgs=1) # Partial Deutsch gate tests
+    result[11] = gateTests("U", verbose=verbose, hasInv=True, nArgs=3) # U gate tests
+    result[12] = gateTests("U3", verbose=verbose, hasInv=True, nArgs=3) # U3 gate tests
+    result[13] = gateTests("U2", verbose=verbose, hasInv=True, nArgs=2) # U2 gate tests
+    result[14] = gateTests("U1", verbose=verbose, hasInv=True, nArgs=1) # U1 gate tests
+
+    return result
+
+def dataStructureTests(minqubits, maxqubits, seed=None, verbose=False, QItem=qj.QRegistry):
+    if not (seed is None):
+        qj.setRandomSeed(seed)
+        rnd.seed(seed)
+        np.random.seed(seed)
+    result = [(0, 0) for i in range(35)] # We have 35 tests
+
     for nq in range(minqubits, maxqubits + 1):
         if verbose:
             print("Testing with " + str(nq) + " qubit registries")
-        result[0] = map(add, result[0], gateTests("H", verbose=verbose, hasInv=False, nArgs=0)) # H gate tests
-        result[1] = map(add, result[1], gateTests("X", verbose=verbose, hasInv=False, nArgs=0)) # X gate tests
-        result[2] = map(add, result[2], gateTests("Y", verbose=verbose, hasInv=False, nArgs=0)) # Y gate tests
-        result[3] = map(add, result[3], gateTests("Z", verbose=verbose, hasInv=False, nArgs=0)) # Z gate tests
-        result[4] = map(add, result[4], gateTests("SqrtX", verbose=verbose, hasInv=True, nArgs=0)) # SqrtX gate tests
-        result[5] = map(add, result[5], gateTests("RX", verbose=verbose, hasInv=True, nArgs=1)) # RX gate tests
-        result[6] = map(add, result[6], gateTests("RY", verbose=verbose, hasInv=True, nArgs=1)) # RY gate tests
-        result[7] = map(add, result[7], gateTests("RZ", verbose=verbose, hasInv=True, nArgs=1)) # RZ gate tests
-        result[8] = map(add, result[8], gateTests("R", verbose=verbose, hasInv=True, nArgs=1)) # Phase shift gate tests
-        result[9] = map(add, result[9], gateTests("RUnity", verbose=verbose, hasInv=True, nArgs=1)) # Roots of unity gate tests
-        result[10] = map(add, result[10], gateTests("HalfDeutsch", verbose=verbose, hasInv=True, nArgs=1)) # Partial Deutsch gate tests
-        result[11] = map(add, result[11], gateTests("U", verbose=verbose, hasInv=True, nArgs=3)) # U gate tests
-        result[12] = map(add, result[12], gateTests("U3", verbose=verbose, hasInv=True, nArgs=3)) # U3 gate tests
-        result[13] = map(add, result[13], gateTests("U2", verbose=verbose, hasInv=True, nArgs=2)) # U2 gate tests
-        result[14] = map(add, result[14], gateTests("U1", verbose=verbose, hasInv=True, nArgs=1)) # U1 gate tests
-        result[15] = map(add, result[15], oneGateTests(nq, verbose=verbose)) # Apply U gate tests
-        result[16] = map(add, result[16], simpleSwapTests(nq, False, False, False, verbose=verbose)) # Simple SWAP gate tests
-        result[17] = map(add, result[17], simpleSwapTests(nq, True, False, False, verbose=verbose)) # Simple iSWAP gate tests
-        result[18] = map(add, result[18], simpleSwapTests(nq, False, True, False, verbose=verbose)) # Simple sqrtSWAP gate tests
-        result[19] = map(add, result[19], simpleSwapTests(nq, True, False, True, verbose=verbose)) # Simple iSWAP-1 gate tests
-        result[20] = map(add, result[20], simpleSwapTests(nq, False, True, True, verbose=verbose)) # Simple sqrtSWAP-1 gate tests
-        result[21] = map(add, result[21], sparseSwapTests(nq, False, False, False, verbose=verbose)) # Sparse SWAP gate tests
-        result[22] = map(add, result[22], sparseSwapTests(nq, True, False, False, verbose=verbose)) # Sparse iSWAP gate tests
-        result[23] = map(add, result[23], sparseSwapTests(nq, False, True, False, verbose=verbose)) # Sparse sqrtSWAP gate tests
-        result[24] = map(add, result[24], sparseSwapTests(nq, True, False, True, verbose=verbose)) # Sparse iSWAP-1 gate tests
-        result[25] = map(add, result[25], sparseSwapTests(nq, False, True, True, verbose=verbose)) # Sparse sqrtSWAP-1 gate tests
-        result[26] = map(add, result[26], simpleIsingTests(nq, 0, False, verbose=verbose)) # Simple XX gate tests
-        result[27] = map(add, result[27], simpleIsingTests(nq, 1, False, verbose=verbose)) # Simple YY gate tests
-        result[28] = map(add, result[28], simpleIsingTests(nq, 2, False, verbose=verbose)) # Simple ZZ gate tests
-        result[29] = map(add, result[29], simpleIsingTests(nq, 0, True, verbose=verbose)) # Simple XX-1 gate tests
-        result[30] = map(add, result[30], simpleIsingTests(nq, 1, True, verbose=verbose)) # Simple YY-1 gate tests
-        result[31] = map(add, result[31], simpleIsingTests(nq, 2, True, verbose=verbose)) # Simple ZZ-1 gate tests
-        result[32] = map(add, result[32], sparseIsingTests(nq, 0, False, verbose=verbose)) # Sparse XX gate tests
-        result[33] = map(add, result[33], sparseIsingTests(nq, 1, False, verbose=verbose)) # Sparse YY gate tests
-        result[34] = map(add, result[34], sparseIsingTests(nq, 2, False, verbose=verbose)) # Sparse ZZ gate tests
-        result[35] = map(add, result[35], sparseIsingTests(nq, 0, True, verbose=verbose)) # Sparse XX-1 gate tests
-        result[36] = map(add, result[36], sparseIsingTests(nq, 1, True, verbose=verbose)) # Sparse YY-1 gate tests
-        result[37] = map(add, result[37], sparseIsingTests(nq, 2, True, verbose=verbose)) # Sparse ZZ-1 gate tests
-        result[38] = map(add, result[38], controlledGateTests(nq, verbose=verbose)) # Controlled U gate tests
-        result[39] = map(add, result[39], cSWAPTests(nq, False, False, False, verbose=verbose)) # Controlled SWAP gate tests
-        result[40] = map(add, result[40], cSWAPTests(nq, True, False, False, verbose=verbose)) # Controlled iSWAP gate tests
-        result[41] = map(add, result[41], cSWAPTests(nq, False, True, False, verbose=verbose)) # Controlled sqrtSWAP gate tests
-        result[42] = map(add, result[42], cSWAPTests(nq, True, False, True, verbose=verbose)) # Controlled iSWAP-1 gate tests
-        result[43] = map(add, result[43], cSWAPTests(nq, False, True, True, verbose=verbose)) # Controlled sqrtSWAP-1 gate tests
-        result[44] = map(add, result[44], cIsingTests(nq, 0, False, verbose=verbose)) # Controlled XX gate tests
-        result[45] = map(add, result[45], cIsingTests(nq, 1, False, verbose=verbose)) # Controlled YY gate tests
-        result[46] = map(add, result[46], cIsingTests(nq, 2, False, verbose=verbose)) # Controlled ZZ gate tests
-        result[47] = map(add, result[47], cIsingTests(nq, 0, True, verbose=verbose)) # Controlled XX-1 gate tests
-        result[48] = map(add, result[48], cIsingTests(nq, 1, True, verbose=verbose)) # Controlled YY-1 gate tests
-        result[49] = map(add, result[49], cIsingTests(nq, 2, True, verbose=verbose)) # Controlled ZZ-1 gate tests
+        result[0] = map(add, result[0], oneGateTests(nq, verbose=verbose, QItem=QItem)) # Apply U gate tests
+        result[1] = map(add, result[1], simpleSwapTests(nq, False, False, False, verbose=verbose, QItem=QItem)) # Simple SWAP gate tests
+        result[2] = map(add, result[2], simpleSwapTests(nq, True, False, False, verbose=verbose, QItem=QItem)) # Simple iSWAP gate tests
+        result[3] = map(add, result[3], simpleSwapTests(nq, False, True, False, verbose=verbose, QItem=QItem)) # Simple sqrtSWAP gate tests
+        result[4] = map(add, result[4], simpleSwapTests(nq, True, False, True, verbose=verbose, QItem=QItem)) # Simple iSWAP-1 gate tests
+        result[5] = map(add, result[5], simpleSwapTests(nq, False, True, True, verbose=verbose, QItem=QItem)) # Simple sqrtSWAP-1 gate tests
+        result[6] = map(add, result[6], sparseSwapTests(nq, False, False, False, verbose=verbose, QItem=QItem)) # Sparse SWAP gate tests
+        result[7] = map(add, result[7], sparseSwapTests(nq, True, False, False, verbose=verbose, QItem=QItem)) # Sparse iSWAP gate tests
+        result[8] = map(add, result[8], sparseSwapTests(nq, False, True, False, verbose=verbose, QItem=QItem)) # Sparse sqrtSWAP gate tests
+        result[9] = map(add, result[9], sparseSwapTests(nq, True, False, True, verbose=verbose, QItem=QItem)) # Sparse iSWAP-1 gate tests
+        result[10] = map(add, result[10], sparseSwapTests(nq, False, True, True, verbose=verbose, QItem=QItem)) # Sparse sqrtSWAP-1 gate tests
+        result[11] = map(add, result[11], simpleIsingTests(nq, 0, False, verbose=verbose, QItem=QItem)) # Simple XX gate tests
+        result[12] = map(add, result[12], simpleIsingTests(nq, 1, False, verbose=verbose, QItem=QItem)) # Simple YY gate tests
+        result[13] = map(add, result[13], simpleIsingTests(nq, 2, False, verbose=verbose, QItem=QItem)) # Simple ZZ gate tests
+        result[14] = map(add, result[14], simpleIsingTests(nq, 0, True, verbose=verbose, QItem=QItem)) # Simple XX-1 gate tests
+        result[15] = map(add, result[15], simpleIsingTests(nq, 1, True, verbose=verbose, QItem=QItem)) # Simple YY-1 gate tests
+        result[16] = map(add, result[16], simpleIsingTests(nq, 2, True, verbose=verbose, QItem=QItem)) # Simple ZZ-1 gate tests
+        result[17] = map(add, result[17], sparseIsingTests(nq, 0, False, verbose=verbose, QItem=QItem)) # Sparse XX gate tests
+        result[18] = map(add, result[18], sparseIsingTests(nq, 1, False, verbose=verbose, QItem=QItem)) # Sparse YY gate tests
+        result[19] = map(add, result[19], sparseIsingTests(nq, 2, False, verbose=verbose, QItem=QItem)) # Sparse ZZ gate tests
+        result[20] = map(add, result[20], sparseIsingTests(nq, 0, True, verbose=verbose, QItem=QItem)) # Sparse XX-1 gate tests
+        result[21] = map(add, result[21], sparseIsingTests(nq, 1, True, verbose=verbose, QItem=QItem)) # Sparse YY-1 gate tests
+        result[22] = map(add, result[22], sparseIsingTests(nq, 2, True, verbose=verbose, QItem=QItem)) # Sparse ZZ-1 gate tests
+        result[23] = map(add, result[23], controlledGateTests(nq, verbose=verbose, QItem=QItem)) # Controlled U gate tests
+        result[24] = map(add, result[24], cSWAPTests(nq, False, False, False, verbose=verbose, QItem=QItem)) # Controlled SWAP gate tests
+        result[25] = map(add, result[25], cSWAPTests(nq, True, False, False, verbose=verbose, QItem=QItem)) # Controlled iSWAP gate tests
+        result[26] = map(add, result[26], cSWAPTests(nq, False, True, False, verbose=verbose, QItem=QItem)) # Controlled sqrtSWAP gate tests
+        result[27] = map(add, result[27], cSWAPTests(nq, True, False, True, verbose=verbose, QItem=QItem)) # Controlled iSWAP-1 gate tests
+        result[28] = map(add, result[28], cSWAPTests(nq, False, True, True, verbose=verbose, QItem=QItem)) # Controlled sqrtSWAP-1 gate tests
+        result[29] = map(add, result[29], cIsingTests(nq, 0, False, verbose=verbose, QItem=QItem)) # Controlled XX gate tests
+        result[30] = map(add, result[30], cIsingTests(nq, 1, False, verbose=verbose, QItem=QItem)) # Controlled YY gate tests
+        result[31] = map(add, result[31], cIsingTests(nq, 2, False, verbose=verbose, QItem=QItem)) # Controlled ZZ gate tests
+        result[32] = map(add, result[32], cIsingTests(nq, 0, True, verbose=verbose, QItem=QItem)) # Controlled XX-1 gate tests
+        result[33] = map(add, result[33], cIsingTests(nq, 1, True, verbose=verbose, QItem=QItem)) # Controlled YY-1 gate tests
+        result[34] = map(add, result[34], cIsingTests(nq, 2, True, verbose=verbose, QItem=QItem)) # Controlled ZZ-1 gate tests
+
     for i in range(len(result)):
         result[i] = tuple(result[i])
+
     return result
 
 def main():
     argv = sys.argv[1:]
     if 2 <= len(argv) <= 4:
+        results = []
         if len(argv) == 2:
-            results = tests(int(argv[0]), int(argv[1]))
+            print("\tTesting Gates...")
+            results += allGateTests()
+            print("\tTesting QRegistry...")
+            results += dataStructureTests(int(argv[0]), int(argv[1]))
+            print("\tTesting QSystem...")
+            results += dataStructureTests(int(argv[0]), int(argv[1]), QItem=qj.QSystem)
         elif len(argv) == 3:
-            results = tests(int(argv[0]), int(argv[1]), seed=int(argv[2]))
+            print("Seed: " + str(int(argv[2])))
+            print("\tTesting Gates...")
+            results += allGateTests(seed=int(argv[2]))
+            print("\tTesting QRegistry...")
+            results += dataStructureTests(int(argv[0]), int(argv[1]), seed=int(argv[2]))
+            print("\tTesting QSystem...")
+            results += dataStructureTests(int(argv[0]), int(argv[1]), seed=int(argv[2]), QItem=qj.QSystem)
         else:
-            results = tests(int(argv[0]), int(argv[1]), seed=int(argv[2]), verbose=bool(argv[3]))
+            print("Seed: " + str(int(argv[2])))
+            print("\tTesting Gates...")
+            #results += allGateTests(seed=int(argv[2]), verbose=bool(argv[3]))
+            print("\tTesting QRegistry...")
+            #results += dataStructureTests(int(argv[0]), int(argv[1]), seed=int(argv[2]), verbose=bool(argv[3]))
+            print("\tTesting QSystem...")
+            results += dataStructureTests(int(argv[0]), int(argv[1]), seed=int(argv[2]), verbose=bool(argv[3]), QItem=qj.QSystem)
         passed = [int(result[0] == result[1]) for result in results]
         noice = sum(passed)
         total = len(results)
@@ -1031,7 +1061,12 @@ def main():
         else:
             for testid in range(total):
                 if passed[testid] == 0:
-                    print("Test " + str(testid) + " failed!")
+                    if testid < 15:
+                        print("Gate Test " + str(testid) + " failed!")
+                    elif testid < 50:
+                        print("QRegistry Test " + str(testid - 15) + " failed!")
+                    else:
+                        print("QRegistry Test " + str(testid - 50) + " failed!")
             print("SORROW")
             #wb.open_new_tab("https://youtu.be/4Js-XbNj6Tk?t=37")
     else:
