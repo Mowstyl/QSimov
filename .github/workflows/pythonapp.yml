@@ -17,7 +17,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        echo "$(pwd)/lib" > /etc/ld.so.conf.d/libqsimov.conf
+        sudo echo "$(pwd)/lib" > /etc/ld.so.conf.d/libqsimov.conf
     - name: Lint with flake8
       run: |
         pip install flake8
