@@ -11,9 +11,12 @@ if plat.system() == "Windows":
 else:
     extension = ".so"
 __libfolder__ = os.getcwd() + sep + "lib"
-os.add_dll_directory(os.getcwd())
-os.add_dll_directory(__libfolder__)
-__funmat__ = ct.CDLL("libfunmat" + extension)
+__funmatpath__ = __libfolder__ + sep + "libfunmat" + extension
+if hasattr(os, "add_dll_directory"):
+    os.add_dll_directory(os.getcwd())
+    os.add_dll_directory(__libfolder__)
+    __funmatpath__ = "libfunmat" + extension
+__funmat__ = ct.CDLL(__funmatpath__)
 
 c_double_p = ct.POINTER(ct.c_double)
 
