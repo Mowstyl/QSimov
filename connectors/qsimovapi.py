@@ -14,7 +14,7 @@ def _executeOnce(qsystem, lines, ancilla=None): # You can pass a QRegistry or an
     firstGate = False
     if type(qsystem) == int:
         r = QSystem(qsystem)
-    elif type(qregistry) == list:
+    elif type(qsystem) == list:
         r = QSystem(len(qsystem))
         if any(qsystem):
             r.applyGate(*[None if i == 0 else "X" for i in qsystem])
