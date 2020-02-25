@@ -136,21 +136,21 @@ def joinGates(gates):
                 if i < len(gate.lines):
                     newline += gate.lines[i]
                 else:
-                    newline += [I(gate.size)]
+                    newline += [None for i in range(gate.size)]
             else:
                 if i < 1:
                     newline += [gate]
                 else:
-                    newline += [I(getGateSize(gate))]
+                    newline += [None for i in range(getGateSize(gate))]
         newlines += [newline]
     return newlines
 
 def getGateSize(gate):
     if type(gate) == str:
-        gate = qapi.getGate(gate)
+        return getGateData(gate)
     elif type(gate) == Measure:
         return len(gate.mask)
-    return int(np.log2(gate.getMatrix().shape()[0]))
+    return gate.size
 
 def getLines(gate):
     if type(gate) == Measure:

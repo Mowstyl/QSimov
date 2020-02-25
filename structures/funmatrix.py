@@ -2,6 +2,7 @@ import ctypes as ct
 import connectors.parser as prs
 import platform as plat
 import os
+import numpy as np
 from os.path import dirname, abspath, sep
 
 # DLL Load
@@ -207,11 +208,11 @@ class Funmatrix(object):
             except Exception as e:
                 print (e)
             return res
-        elif type(other) == int or type(other) == long or type(other) == float or type(other) == complex:
+        elif type(other) == int or type(other) == float or type(other) == complex:
             res = None
             re = 0
             im = 0
-            if type(other) == int or type(other) == long or type(other) == float:
+            if type(other) == int or type(other) == float:
                 re = other
             else:
                 re = other.real
@@ -232,11 +233,11 @@ class Funmatrix(object):
             except Exception as e:
                 print (e)
             return res
-        elif type(other) == int or type(other) == long or type(other) == float or type(other) == complex:
+        elif type(other) == int or type(other) == float or type(other) == complex:
             res = None
             re = 0
             im = 0
-            if type(other) == int or type(other) == long or type(other) == float:
+            if type(other) == int or type(other) == float:
                 re = other
             else:
                 re = other.real
@@ -250,11 +251,11 @@ class Funmatrix(object):
             raise TypeError("unsupported operand type(s) for *: '" + type(self).__name__ + "' and '" + type(self).__name__ + "'")
 
     def __truediv__(self, other):
-        if type(other) == int or type(other) == long or type(other) == float or type(other) == complex:
+        if type(other) == int or type(other) == float or type(other) == complex:
             res = None
             re = 0
             im = 0
-            if type(other) == int or type(other) == long or type(other) == float:
+            if type(other) == int or type(other) == float:
                 re = other
             else:
                 re = other.real

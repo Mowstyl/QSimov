@@ -10,7 +10,7 @@ import platform as plat
 from structures.funmatrix import Funmatrix
 from structures.qregistry import QRegistry, superposition
 from structures.qsystem import QSystem
-from structures.qgate import getGate
+from structures.qgate import getGate, QGate
 from structures.qcircuit import QCircuit
 from structures.measure import Measure
 from structures.condition import Condition
@@ -53,8 +53,8 @@ def getTruthTable(gate, ancilla=None, garbage=0, iterations=1): # Prints the tru
             qinit = [0 for j in range(num - len(nbin))]
             qinit += nbin
             if ancilla == None or qinit[-len(ancilla):] == ancilla:
-                qr = QRegistry(len(qinit))
-                qr.applyGate(*[I(1) if j == 0 else PauliX() for j in qinit])
+                qr = QSystem(len(qinit))
+                qr.applyGate(*[None if j == 0 else "X" for j in qinit])
                 qr.applyGate(gate)
                 mes = qr.measure([1 for j in range(num-garbage)])
                 if ancilla != None:

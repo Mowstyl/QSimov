@@ -7,23 +7,23 @@ import connectors.parser as prs
 import structures.funmatrix as fm
 import gc
 
-def _executeOnce(qregistry, lines, ancilla=None): # You can pass a QRegistry or an array to build a new QRegistry. When the second option is used, the ancilliary qubits will be added to the specified list.
+def _executeOnce(qsystem, lines, ancilla=None): # You can pass a QRegistry or an array to build a new QRegistry. When the second option is used, the ancilliary qubits will be added to the specified list.
     g = []
     r = qregistry
     firstGate = False
     if type(qregistry) == int:
-        r = QRegistry(qregistry)
+        r = QSystem(qsystem)
     elif type(qregistry) == list:
-        r = QRegistry(len(qregistry))
-        if any(qregistry):
-            r.applyGate(*[I(1) if i == 0 else PauliX() for i in qregistry])
+        r = QSystem(len(qsystem))
+        if any(qsystem):
+            r.applyGate(*[None if i == 0 else "X" for i in qregistry])
     elif ancilla is not None:
         raise ValueError("Can not use ancilla with precreated registry!")
 
     if ancilla is not None and len(ancilla) > 0:
-        a = QRegistry(len(ancilla))
+        a = QSystem(len(ancilla))
         if any(ancilla):
-            a.applyGate(*[I(1) if i == 0 else PauliX() for i in ancilla])
+            a.applyGate(*[None if i == 0 else "X" for i in ancilla])
         raux = superposition(r, a)
         del r
         del a
@@ -33,11 +33,11 @@ def _executeOnce(qregistry, lines, ancilla=None): # You can pass a QRegistry or 
         for line in lines:
             g = line[0]
             if type(g) != Measure:
-                g = getGate(g)
+                #g = getGate(g)   # TODO
                 if type(g) == QGate:
                     g = g.getMatrix()
                 for rawgate in line[1:]:
-                    gate = getGate(rawgate)
+                    #gate = getGate(rawgate)
                     if type(gate) == QGate:
                         gate = gate.getMatrix()
                     g = g ** gate
