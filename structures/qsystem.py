@@ -185,24 +185,25 @@ class QSystem:
             del reg[0]
             return state
 
-def joinRegs(a, b):
+def joinRegs(a, b): # Este metodo une dos registros en uno solo y deja los qubits ordenados SIEMPRE
     newregdata = []
-    if b[1][0] > a[1][-1]:
-        newregdata = [superposition(b[0], a[0]), a[1] + b[1]]
-    if a[1][0] > b[1][-1]:
-        newregdata = [superposition(a[0], b[0]), b[1] + a[1]]
-    else:
-        newregdata = [superposition(b[0], a[0]), a[1] + b[1]]
-        newregdata = sortRegdata(newregdata)
+    # Como a y b estan ordenados
+    if b[1][0] > a[1][-1]: # Si el ultimo qubit de a es menor que el primero de b
+        newregdata = [superposition(b[0], a[0]), a[1] + b[1]] # Hacemos el producto tensorial de b y a (recordemos que en los registros los qubits van en orden decreciente)
+    elif a[1][0] > b[1][-1]: # Si el ultimo qubit de b es menor que el primero de a
+        newregdata = [superposition(a[0], b[0]), b[1] + a[1]] # Hacemos el producto tensorial de a y b
+    else: # En caso contrario
+        newregdata = [superposition(b[0], a[0]), a[1] + b[1]] # Hacemos el producto tensorial sin importar el orden de a y b
+        newregdata = sortRegdata(newregdata) # Y los reordenamos porque estan desordenados
     return newregdata
 
 def sortRegdata(regdata): # regdata[1] = [1,3,2,4] -> el qubit 0 del registro es el 1 del sistema
-    relen = len(regdata[1])
-    for i in range(relen-1):
-        aux = regdata[1][i:]
-        minid = min(aux)
-        minindex = aux.index(minid) + i
-        if aux[0] != minid:
-            regdata[0].applyGate("SWAP(" + str(i) + "," + str(minindex) + ")")
-            regdata[1][i], regdata[1][minindex] = minid, regdata[1][i]
+    relen = len(regdata[1]) # Qubits almacenados en el registro
+    for i in range(relen-1): # Si hay n elementos, no será necesaria la iteracion en la que colocamos el ultimo en su misma posicion
+        aux = regdata[1][i:] # Elementos todavia no ordenados del registro
+        minid = min(aux) # Obtenemos el elemento con menor identificador
+        minindex = aux.index(minid) + i # Vemos a que id del registro corresponde
+        if aux[0] != minid: # Si no esta en la primera posicion todavia
+            regdata[0].applyGate("SWAP(" + str(i) + "," + str(minindex) + ")") # Lo intercambiamos con el qubit en dicha posicion
+            regdata[1][i], regdata[1][minindex] = minid, regdata[1][i] # Y actualizamos la lista de qubits de forma acorde al intercambio
     return regdata

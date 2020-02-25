@@ -1,6 +1,7 @@
 import ctypes as ct
 import connectors.parser as prs
 import platform as plat
+import os
 from os.path import dirname, abspath, sep
 
 # DLL Load
@@ -8,10 +9,10 @@ if plat.system() == "Windows":
     extension = ".dll"
 else:
     extension = ".so"
-__rootfolder__ = dirname(dirname(abspath(__file__)))
-__libfolder__ = __rootfolder__ + sep + "lib"
-__funmatpath__ = __libfolder__ + sep + "libfunmat" + extension
-__funmat__ = ct.CDLL(__funmatpath__)
+__libfolder__ = os.getcwd() + sep + "lib"
+os.add_dll_directory(os.getcwd())
+os.add_dll_directory(__libfolder__)
+__funmat__ = ct.CDLL("libfunmat" + extension)
 
 c_double_p = ct.POINTER(ct.c_double)
 
