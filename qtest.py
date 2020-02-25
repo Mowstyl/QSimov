@@ -1071,6 +1071,7 @@ def main():
                         print("QRegistry Test " + str(testid - 50) + " failed!")
             print("SORROW")
             #wb.open_new_tab("https://youtu.be/4Js-XbNj6Tk?t=37")
+        # We assert so the test fails if we failed something
         assert noice == total
     else:
         print ("Syntax: " + sys.argv[0] + " <minimum number of qubits (min 3)> <maximum number of qubits> <seed (optional)>")
