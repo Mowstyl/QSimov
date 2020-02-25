@@ -1026,15 +1026,17 @@ def dataStructureTests(minqubits, maxqubits, seed=None, verbose=False, QItem=qj.
 
 def main():
     argv = sys.argv[1:]
-    if 2 <= len(argv) <= 4:
+    if 2 <= len(argv) <= 4 and int(argv[0]) >= 3:
         results = []
         if len(argv) == 2:
+            seed = rnd.randrange(2**32 - 1)
+            print("Seed: " + str(seed))
             print("\tTesting Gates...")
             results += allGateTests()
             print("\tTesting QRegistry...")
-            results += dataStructureTests(int(argv[0]), int(argv[1]))
+            results += dataStructureTests(int(argv[0]), int(argv[1]), seed=seed)
             print("\tTesting QSystem...")
-            results += dataStructureTests(int(argv[0]), int(argv[1]), QItem=qj.QSystem)
+            results += dataStructureTests(int(argv[0]), int(argv[1]), seed=seed, QItem=qj.QSystem)
         elif len(argv) == 3:
             print("Seed: " + str(int(argv[2])))
             print("\tTesting Gates...")
@@ -1046,9 +1048,9 @@ def main():
         else:
             print("Seed: " + str(int(argv[2])))
             print("\tTesting Gates...")
-            #results += allGateTests(seed=int(argv[2]), verbose=bool(argv[3]))
+            results += allGateTests(seed=int(argv[2]), verbose=bool(argv[3]))
             print("\tTesting QRegistry...")
-            #results += dataStructureTests(int(argv[0]), int(argv[1]), seed=int(argv[2]), verbose=bool(argv[3]))
+            results += dataStructureTests(int(argv[0]), int(argv[1]), seed=int(argv[2]), verbose=bool(argv[3]))
             print("\tTesting QSystem...")
             results += dataStructureTests(int(argv[0]), int(argv[1]), seed=int(argv[2]), verbose=bool(argv[3]), QItem=qj.QSystem)
         passed = [int(result[0] == result[1]) for result in results]
@@ -1069,8 +1071,9 @@ def main():
                         print("QRegistry Test " + str(testid - 50) + " failed!")
             print("SORROW")
             #wb.open_new_tab("https://youtu.be/4Js-XbNj6Tk?t=37")
+        assert noice == total
     else:
-        print ("Syntax: " + sys.argv[0] + " <minimum number of qubits> <maximum number of qubits> <seed (optional)>")
+        print ("Syntax: " + sys.argv[0] + " <minimum number of qubits (min 3)> <maximum number of qubits> <seed (optional)>")
 
 if __name__ == "__main__":
     main()
