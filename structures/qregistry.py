@@ -175,22 +175,25 @@ class QRegistry:
                     allOk = allOk and all(0 <= id < self.getNQubits() for id in anticontrol)
 
                 if allOk:
-                    name, arg1, arg2, arg3, invert = getGateData(gate)
-                    if (name.lower() == "swap"):
-                        __SWAPQubits__(self.reg, arg1, arg2, False, False, invert, control, clen, anticontrol, aclen)
-                    elif (name.lower() == "iswap"):
-                        __SWAPQubits__(self.reg, arg1, arg2, True, False, invert, control, clen, anticontrol, aclen)
-                    elif (name.lower() == "sqrtswap"):
-                        __SWAPQubits__(self.reg, arg1, arg2, False, True, invert, control, clen, anticontrol, aclen)
-                    elif (name.lower() == "xx"):
-                        __IsingQubits__(self.reg, 0, arg1, arg2, arg3, invert, control, clen, anticontrol, aclen)
-                    elif (name.lower() == "yy"):
-                        __IsingQubits__(self.reg, 1, arg1, arg2, arg3, invert, control, clen, anticontrol, aclen)
-                    elif (name.lower() == "zz"):
-                        __IsingQubits__(self.reg, 2, arg1, arg2, arg3, invert, control, clen, anticontrol, aclen)
-                    else:
-                        if int(__cApplyGate__(self.reg, ct.c_char_p(name.encode()), ct.c_double(arg1), ct.c_double(arg2), ct.c_double(arg3), ct.c_int(int(invert)), ct.c_int(qubit), control, ct.c_int(clen), anticontrol, ct.c_int(aclen))) == 0:
-                            print("Error applying gate to specified QuBit!")
+                    if type(gate) == str:
+                        name, arg1, arg2, arg3, invert = getGateData(gate)
+                        if (name.lower() == "swap"):
+                            __SWAPQubits__(self.reg, arg1, arg2, False, False, invert, control, clen, anticontrol, aclen)
+                        elif (name.lower() == "iswap"):
+                            __SWAPQubits__(self.reg, arg1, arg2, True, False, invert, control, clen, anticontrol, aclen)
+                        elif (name.lower() == "sqrtswap"):
+                            __SWAPQubits__(self.reg, arg1, arg2, False, True, invert, control, clen, anticontrol, aclen)
+                        elif (name.lower() == "xx"):
+                            __IsingQubits__(self.reg, 0, arg1, arg2, arg3, invert, control, clen, anticontrol, aclen)
+                        elif (name.lower() == "yy"):
+                            __IsingQubits__(self.reg, 1, arg1, arg2, arg3, invert, control, clen, anticontrol, aclen)
+                        elif (name.lower() == "zz"):
+                            __IsingQubits__(self.reg, 2, arg1, arg2, arg3, invert, control, clen, anticontrol, aclen)
+                        else:
+                            if int(__cApplyGate__(self.reg, ct.c_char_p(name.encode()), ct.c_double(arg1), ct.c_double(arg2), ct.c_double(arg3), ct.c_int(int(invert)), ct.c_int(qubit), control, ct.c_int(clen), anticontrol, ct.c_int(aclen))) == 0:
+                                print("Error applying gate to specified QuBit!")
+                    elif type(gate) == QGate:
+                        gate._applyGate(self, qubit, control[:clen], anticontrol[:aclen])
                 else:
                     print("The ids must be between 0 and " + str(self.getNQubits))
         else:
