@@ -28,7 +28,7 @@ class QCircuit(object):
                             raise ValueError("This circuit requires a measurement mask for " + str(self.size) + " QuBits. Received mask for " + str(size) + " QuBits.")
                         self.lines += [args]
                 else:
-                    args = [_rebuildGateName(gate) isinstance(type(gate), str) or (isinstance(gate, Iterable) and isinstance(type(gate[0]), str)) else gate for gate in args]
+                    args = [_rebuildGateName(gate) if isinstance(type(gate), str) or (isinstance(gate, Iterable) and isinstance(type(gate[0]), str)) else gate for gate in args]
                     size = sum([getGateSize(gate) for gate in args])
                     if size > 0:
                         if (self.empty):
