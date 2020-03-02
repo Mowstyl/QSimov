@@ -44,6 +44,26 @@ class QGate(object):
                 self.empty = False
             if (self.size != size):
                 raise ValueError("This gate requires a " + str(self.size) + " QuBit gate. Received " + str(size) + " QuBit gate.")
+            parties = set()
+            for i in range(len(args)):
+                myparty = _getQuBitArg(args[i][0])
+                if myparty is None:
+                    myparty = set([i])
+                if args[i][0] is not None:
+                    if len(myparty.intersection(args[i][1])) == 0:
+                        myparty = myparty.union(args[i][1])
+                    else:
+                        raise ValueError("You can't apply a gate to a qubit and use it as a control: " + str(myparty.intersection(args[i][1])))
+                if args[i][0] is not None:
+                    if len(myparty.intersection(args[i][2])) == 0:
+                        myparty = myparty.union(args[i][2])
+                    else:
+                        raise ValueError("You can't apply a gate to a qubit and use it as a control, or use it as control and anticontrol at the same time: " + str(myparty.intersection(args[i][2]))
+                if len(parties.intersection(myparty)) == 0:
+                    parties = parties.union(myparty)
+                else:
+                    raise ValueError("You can't apply two or more gates to the same qubit in the same line: " + str(parties.intersection(myparty)))
+
             self.lines += [args]
 
     def setName(self, name):
@@ -78,7 +98,7 @@ class QGate(object):
                     else:
                         anticontrols += [i + qubit for i in line[i][2]]
                 if type(line[i][0]) == str:
-                    registry.applyGate(line[i][0], qubit=i+qubit, control=controls, anticontrol=anticontrols)
+                    registry.applyGate(_addQubitOffset(line[i][0], qubit), qubit=i+qubit, control=controls, anticontrol=anticontrols)
                 else:
                     line[i][0]._applyGate(registry, qubit+i, controls, anticontrols)
 
@@ -125,12 +145,12 @@ def _rebuildGateName(gate):
             if gate[1] is None or len(gate[1]) == 0:
                 cons = None
             else:
-                cons = gate[1]
+                cons = set(gate[1])
         if (len(gate) > 2):
             if gate[2] is None or len(gate[2]) == 0:
                 acons = None
             else:
-                acons = gate[2]
+                acons = set(gate[2])
     name, arg1, arg2, arg3, invert = prs.getGateData(gatename)
     if arg1 is not None:
         name += "(" + str(arg1)
@@ -142,6 +162,36 @@ def _rebuildGateName(gate):
         name += "-1"
     return [name, cons, acons]
 
+def _getQuBitArg(gatename):
+    args = None
+    qubitargs = ["XX", "YY", "ZZ"]
+    name, arg1, arg2, arg3, invert = prs.getGateData(gatename)
+    if name in qubitargs or "SWAP" in name:
+        if name in qubitargs:
+            args = set([arg2, arg3])
+        else:
+            args = set([arg1, arg2])
+    return args
+
+def _addQubitOffset(gatename, offset):
+    qubitargs = ["XX", "YY", "ZZ"]
+    name, arg1, arg2, arg3, invert = prs.getGateData(gatename)
+    if name in qubitargs or "SWAP" in name:
+        arg2 += offset
+        if name in qubitargs:
+            arg3 += offset
+        else:
+            arg1 += offset
+        if arg1 is not None:
+            name += "(" + str(arg1)
+        if arg2 is not None:
+            name += str(arg2)
+        if arg3 is not None:
+            name += str(arg3) + ")"
+        if invert:
+            name += "-1"
+        gatename = name
+    return gatename
 
 
 def _invertStrGate(gatename):

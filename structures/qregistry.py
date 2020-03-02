@@ -7,6 +7,7 @@ from os.path import dirname, abspath, sep
 from structures.funmatrix import Funmatrix
 from structures.qgate import QGate
 from connectors.parser import getGateData
+from collections.abc import Iterable
 
 # DLL Load
 if plat.system() == "Windows":
@@ -135,17 +136,17 @@ class QRegistry:
 
     def applyGate(self, gate, qubit=0, control=None, anticontrol=None):
         if np.issubdtype(type(qubit), np.integer) and qubit < self.getNQubits() and qubit >= 0:
-            if type(control) != list and type(control) != int and not (control is None):
+            if not isinstance(control, Iterable) and type(control) != int and not (control is None):
                 print("Control must be an int, a list of ints or None!")
-            elif type(anticontrol) != list and type(anticontrol) != int and not (anticontrol is None):
+            elif not isinstance(anticontrol, Iterable) and type(anticontrol) != int and not (anticontrol is None):
                 print("Anticontrol must be an int, a list of ints or None!")
-            elif type(control) == list and type(anticontrol) == list and len(set(control) & set(anticontrol)) > 0:
+            elif isinstance(control, Iterable) and isinstance(anticontrol, Iterable) and len(set(control) & set(anticontrol)) > 0:
                 print("A control can't be an anticontrol!")
             else:
                 allOk = True
 
                 clen = 0
-                if type(control) == int:
+                if np.issubdtype(type(control), np.integer):
                     int_array = ct.c_int * 1
                     control = int_array(control)
                     clen = 1
@@ -160,7 +161,7 @@ class QRegistry:
                     allOk = all(0 <= id < self.getNQubits() for id in control)
 
                 aclen = 0
-                if type(anticontrol) == int:
+                if np.issubdtype(type(anticontrol), np.integer):
                     int_array = ct.c_int * 1
                     anticontrol = int_array(control)
                     aclen = 1
