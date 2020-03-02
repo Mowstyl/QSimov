@@ -1,4 +1,4 @@
-from structures.qgate import QGate
+from structures.qgate import QGate, getGateSize
 from structures.qregistry import QRegistry, superposition
 from structures.qsystem import QSystem, joinSystems
 from structures.measure import Measure
@@ -43,13 +43,18 @@ def _executeOnce(qsystem, lines, ancilla=None, useSystem=True): # You can pass a
         for line in lines:
             g = line[0]
             if type(g) != Measure:
+                currbit = 0
                 for i in range(len(line)):
-                    controls = line[i][1]
-                    anticontrols = line[i][2]
-                    if type(line[i][0]) == str:
-                        r.applyGate(line[i][0], qubit=i, control=controls, anticontrol=anticontrols)
+                    if line[i] is not None and line[i][0] is not None and (isinstance(line[i][0], QGate) or line[i][0].lower() != "i"):
+                        controls = line[i][1]
+                        anticontrols = line[i][2]
+                        if type(line[i][0]) == str:
+                            r.applyGate(line[i][0], qubit=currbit, control=controls, anticontrol=anticontrols)
+                        else:
+                            line[i][0]._applyGate(r, currbit, controls, anticontrols)
+                        currbit += getGateSize(line[i][0])
                     else:
-                        line[i][0]._applyGate(r, i, controls, anticontrols)
+                        currbit += 1
             else:
                 r = g.check(r)
                 mres += r[1]

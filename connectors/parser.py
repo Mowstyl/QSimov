@@ -101,11 +101,11 @@ def getGateData(gateraw):
 
                 if minargs <= nargs <= maxargs: # Adoro Python
                     if nargs == 0:
-                        gate = (gatemet, 0, 0, 0, invert)
+                        gate = (gatemet, None, None, None, invert)
                     elif nargs == 1:
-                        gate = (gatemet, args[0], 0, 0, invert)
+                        gate = (gatemet, args[0], None, None, invert)
                     elif nargs == 2:
-                        gate = (gatemet, args[0], args[1], 0, invert)
+                        gate = (gatemet, args[0], args[1], None, invert)
                     else:
                         gate = (gatemet, args[0], args[1], args[2], invert)
                 else:

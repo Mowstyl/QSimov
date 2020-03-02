@@ -137,11 +137,11 @@ class QRegistry:
     def applyGate(self, gate, qubit=0, control=None, anticontrol=None):
         if np.issubdtype(type(qubit), np.integer) and qubit < self.getNQubits() and qubit >= 0:
             if not isinstance(control, Iterable) and type(control) != int and not (control is None):
-                print("Control must be an int, a list of ints or None!")
+                raise ValueError("Control must be an int, a list of ints or None!")
             elif not isinstance(anticontrol, Iterable) and type(anticontrol) != int and not (anticontrol is None):
-                print("Anticontrol must be an int, a list of ints or None!")
+                raise ValueError("Anticontrol must be an int, a list of ints or None!")
             elif isinstance(control, Iterable) and isinstance(anticontrol, Iterable) and len(set(control) & set(anticontrol)) > 0:
-                print("A control can't be an anticontrol!")
+                raise ValueError("A control can't be an anticontrol!")
             else:
                 allOk = True
 
@@ -178,6 +178,12 @@ class QRegistry:
                 if allOk:
                     if type(gate) == str:
                         name, arg1, arg2, arg3, invert = getGateData(gate)
+                        if arg1 is None:
+                            arg1 = 0
+                        if arg2 is None:
+                            arg2 = 0
+                        if arg3 is None:
+                            arg3 = 0
                         if (name.lower() == "swap"):
                             __SWAPQubits__(self.reg, arg1, arg2, False, False, invert, control, clen, anticontrol, aclen)
                         elif (name.lower() == "iswap"):

@@ -72,8 +72,7 @@ class QSystem:
         if len(args) == 1 or (len(args) == 2 and "qubit" not in kwargs):
             for key in kwargs:
                 if key != "qubit" and key != "control" and key != "anticontrol":
-                    print('Apart from the gates, you can only specify "qubit", "control" and/or "anticontrol" (lowercase)')
-                    return
+                    raise ValueError('Apart from the gates, you can only specify "qubit", "control" and/or "anticontrol" (lowercase)')
             gate = args[0]
             if type(gate) == QGate:
                 gate = (gate, gate.getNQubits())
@@ -100,7 +99,7 @@ class QSystem:
                 invstring = ""
                 if invert:
                     invstring = "-1"
-                qubits = set(control + anticontrol) # Todos los participantes
+                qubits = set(control).union(anticontrol) # Todos los participantes
                 if "SWAP" in name:
                     qubit = arg1
                     qubits.add(arg2)
