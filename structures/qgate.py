@@ -58,7 +58,7 @@ class QGate(object):
                     if len(myparty.intersection(args[i][2])) == 0:
                         myparty = myparty.union(args[i][2])
                     else:
-                        raise ValueError("You can't apply a gate to a qubit and use it as a control, or use it as control and anticontrol at the same time: " + str(myparty.intersection(args[i][2]))
+                        raise ValueError("You can't apply a gate to a qubit and use it as a control, or use it as control and anticontrol at the same time: " + str(myparty.intersection(args[i][2])))
                 if len(parties.intersection(myparty)) == 0:
                     parties = parties.union(myparty)
                 else:
