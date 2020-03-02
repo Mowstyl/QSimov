@@ -1,6 +1,8 @@
 from structures.qregistry import QRegistry
+from structures.qsystem import QSystem
 from structures.qgate import QGate, getGateSize, _rebuildGateName, _getQuBitArg
 from structures.measure import Measure
+from collections.abc import Iterable
 import connectors.qsimovapi as qapi
 import numpy as np
 import gc
