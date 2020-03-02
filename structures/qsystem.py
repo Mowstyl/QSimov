@@ -2,6 +2,7 @@ import numpy as np
 import connectors.parser as prs
 from structures.qregistry import QRegistry, superposition
 from structures.qgate import QGate, getGateData
+from collections.abc import Iterable
 
 class QSystem:
     def __init__(self, nqbits):
@@ -84,12 +85,12 @@ class QSystem:
             if len(args) == 2:
                 qubit = args[1]
             control = kwargs.get("control", [])
-            if type(control) != list:
+            if not isinstance(control, Iterable):
                 control = [control]
             anticontrol = kwargs.get("anticontrol", [])
-            if type(anticontrol) != list:
+            if not isinstance(anticontrol, Iterable):
                 anticontrol = [anticontrol]
-            if type(qubit) == list or type(qubit) == set:
+            if isinstance(qubit, Iterable):
                 for qid in qubit:
                     self.applyGate(gate[0], qubit=qid, control=control, anticontrol=anticontrol)
             else:
@@ -184,6 +185,9 @@ class QSystem:
             state = reg[0].getState()
             del reg[0]
             return state
+
+def joinSystems(a, b): # Este metodo une dos QSystems
+    pass
 
 def joinRegs(a, b): # Este metodo une dos registros en uno solo y deja los qubits ordenados SIEMPRE
     newregdata = []

@@ -1,46 +1,73 @@
 from structures.qregistry import QRegistry
-from structures.qgate import QGate, joinGates, getGateSize
+from structures.qgate import QGate, getGateSize, _rebuildGateName
 from structures.measure import Measure
 import connectors.qsimovapi as qapi
 import numpy as np
 import gc
 
 class QCircuit(object):
-    def __init__(self, name="UNNAMED", size=None, ancilla=[]): # You can choose whether to save the circuit and apply gates separately on each computation (faster circuit creation) or to precompute the matrixes (faster execution)
+    def __init__(self, name="UNNAMED", size=None, ancilla=[]):
+        self.empty = True
         self.name = name
         self.lines = []
         self.ancilla = ancilla
-        self.size = None
+        self.size = size
 
     def addLine(self, *args):
         try:
-            if (self.lines == [] and len(args) == 1):
-                size = getGateSize(args[0])
-                if self.size == None:
-                    self.size = size
-                if self.size == size:
-                    if type(args[0]) == QGate:
-                        self.lines = args[0].lines
+            if args is not None and len(args) > 0:
+                if any(isinstance(e, Measure) for e in args):
+                    if len(args) > 1:
+                        raise ValueError("You can only use 1 measure per line")
                     else:
-                        self.lines = [[args[0]]]
+                        size = len(args[0].mask)
+                        if (self.empty):
+                            self.size = size
+                            self.empty = False
+                        if (self.size != size):
+                            raise ValueError("This circuit requires a measurement mask for " + str(self.size) + " QuBits. Received mask for " + str(size) + " QuBits.")
+                        self.lines += [args]
                 else:
-                    raise ValueError("This cirquit requires " + str(self.size) + " QuBit gates. Received " + str(size) + " QuBit gate.")
+                    args = [_rebuildGateName(gate) isinstance(type(gate), str) or (isinstance(gate, Iterable) and isinstance(type(gate[0]), str)) else gate for gate in args]
+                    size = sum([getGateSize(gate) for gate in args])
+                    if size > 0:
+                        if (self.empty):
+                            self.size = size
+                            self.empty = False
+                        if (self.size != size):
+                            raise ValueError("This circuit requires gates for " + str(self.size) + " QuBits. Received gates for " + str(size) + " QuBits.")
+                        parties = set()
+                        for i in range(len(args)):
+                            myparty = _getQuBitArg(args[i][0])
+                            if myparty is None:
+                                myparty = set([i])
+                            if args[i][0] is not None:
+                                if len(myparty.intersection(args[i][1])) == 0:
+                                    myparty = myparty.union(args[i][1])
+                                else:
+                                    raise ValueError("You can't apply a gate to a qubit and use it as a control: " + str(myparty.intersection(args[i][1])))
+                            if args[i][0] is not None:
+                                if len(myparty.intersection(args[i][2])) == 0:
+                                    myparty = myparty.union(args[i][2])
+                                else:
+                                    raise ValueError("You can't apply a gate to a qubit and use it as a control, or use it as control and anticontrol at the same time: " + str(myparty.intersection(args[i][2])))
+                            if len(parties.intersection(myparty)) == 0:
+                                parties = parties.union(myparty)
+                            else:
+                                raise ValueError("You can't apply two or more gates to the same qubit in the same line: " + str(parties.intersection(myparty)))
+
+                        self.lines += [args]
+                    else:
+                        print("No gates. Just Monika.")
             else:
-                size = sum(map(getGateSize, args))
-                if self.size == None:
-                    self.size = size
-                if self.size == size:
-                    self.simple = False
-                    self.lines += joinGates(args)
-                else:
-                    raise ValueError("This gate requires a " + str(self.size) + " QuBit matrix. Received " + str(size) + " QuBit matrix.")
+                print("Here goes nothing.")
         finally:
             gc.collect()
 
-    def execute(self, qregistry, iterations=1, qmachine=None, args=None):
-        if type(qregistry) == QRegistry and iterations > 1:
-            raise ValueError("Can not do more than one iteration with a precreated registry!")
+    def execute(self, qregistry, iterations=1, qmachine=None, args=None, useSystem=True):
+        if (isinstance(qregistry, QRegistry) or isinstance(qregistry, QSystem)) and iterations > 1:
+            raise ValueError("Can not do more than one iteration with a precreated registry or system!")
         elif (qmachine == None or qmachine == "local"):
-            return qapi.execute(qregistry, iterations, self.lines, self.ancilla)
+            return qapi.execute(qregistry, iterations, self.lines, self.ancilla, useSystem)
         else:
             raise ValueError("Unsupported qmachine!")

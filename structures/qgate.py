@@ -2,6 +2,7 @@ import numpy as np
 import ctypes as ct
 import platform as plat
 import connectors.parser as prs
+from collections.abc import Iterable
 from structures.funmatrix import Funmatrix
 from structures.measure import Measure
 from functools import reduce
@@ -36,7 +37,7 @@ class QGate(object):
         return self.name
 
     def addLine(self, *args):
-        args = [_rebuildGateName(gate) if type(gate) == str or (type(gate) == list and type(gate[0]) == str) else gate for gate in args]
+        args = [_rebuildGateName(gate) isinstance(type(gate), str) or (isinstance(gate, Iterable) and isinstance(type(gate[0]), str)) else gate for gate in args]
         size = sum([getGateSize(gate) for gate in args])
         if size > 0:
             if (self.empty):
@@ -65,6 +66,8 @@ class QGate(object):
                     raise ValueError("You can't apply two or more gates to the same qubit in the same line: " + str(parties.intersection(myparty)))
 
             self.lines += [args]
+        else:
+            print ("No gates. Just Monika.")
 
     def setName(self, name):
         self.name = name
@@ -78,25 +81,19 @@ class QGate(object):
     def invert(self):
         return self.dagger()
 
-    def getMatrix(self):
-        if self.empty:
-            return self.lines[0][0]
-        else:
-            return reduce(lambda gate1, gate2: gate1 @ gate2, map(lambda line: reduce(lambda gate1, gate2: gate1.getMatrix() ** gate2.getMatrix(), line), self.lines))
-
     def _applyGate(self, registry, qubit, controls, anticontrols):
         for line in self.lines:
             for i in range(len(line)):
                 if line[i][1] is not None:
                     if controls is None:
-                        controls = [i + qubit for i in line[i][1]]
+                        controls = [qubit + c for c in line[i][1]]
                     else:
-                        controls += [i + qubit for i in line[i][1]]
+                        controls += [qubit + c for c in line[i][1]]
                 if line[i][2] is not None:
                     if anticontrols is None:
-                        anticontrols = [i + qubit for i in line[i][2]]
+                        anticontrols = [qubit + ac for ac in line[i][2]]
                     else:
-                        anticontrols += [i + qubit for i in line[i][2]]
+                        anticontrols += [qubit + ac for ac in line[i][2]]
                 if type(line[i][0]) == str:
                     registry.applyGate(_addQubitOffset(line[i][0], qubit), qubit=i+qubit, control=controls, anticontrol=anticontrols)
                 else:
