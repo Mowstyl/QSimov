@@ -145,7 +145,7 @@ def ExampleTC(value, gate, **kwargs): # El valor debe ser 0 o 1, valor inicial d
 
     c = TeleportationCircuit(gate)
 
-    (r, mess) = c.execute([val]) # Se ejecuta el circuito
+    (r, mess) = c.execute([value]) # Se ejecuta el circuito
     exr = qj.QSystem(1)
     if (value == 1):
         exr.applyGate("X")
