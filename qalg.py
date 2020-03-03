@@ -1,59 +1,66 @@
-from qsimov import *
+import qsimov as qj
 import random as rnd
-import structures.funmatrix as fm
 
 def DJAlg(size, U_f, **kwargs): # U_f es el oraculo, que debe tener x1..xn e y como qubits. Tras aplicarlo el qubit y debe valer f(x1..xn) XOR y. El argumento size es n + 1, donde n es el numero de bits de entrada de f.
-	rnd.seed(kwargs.get('seed', None)) # Para asegurar la repetibilidad fijamos la semilla antes del experimento.
-	r = QRegistry(size) # Los qubits se inicializan a cero (x1..xn) excepto el ultimo (y), inicializado a uno
-	r.applyGate(I(size-1), PauliX())
-	r.applyGate(H(size)) # Se aplica una compuerta hadamard a todos los qubits
-	r.applyGate(U_f) # Se aplica el oraculo
-	r.applyGate(H(size - 1), I(1)) # Se aplica una puerta Hadamard a todos los qubits excepto al ultimo
-	return r.measure([1 for i in range(size - 1)] + [0]) # Se miden los qubit x, si es igual a 0 la funcion es constante. En caso contrario no lo es.
+    rnd.seed(kwargs.get('seed', None)) # Para asegurar la repetibilidad fijamos la semilla antes del experimento.
+    r = qj.QSystem(size) # Los qubits se inicializan a cero (x1..xn) excepto el ultimo (y), inicializado a uno
+    r.applyGate("X", qubit=size-1)
+    r.applyGate(*["H" for i in range(size)]) # Se aplica una compuerta hadamard a todos los qubits
+    r.applyGate(U_f) # Se aplica el oraculo
+    r.applyGate(*["H" for i in range(size-1)], "I") # Se aplica una puerta Hadamard a todos los qubits excepto al ultimo
+    return r.measure([1 for i in range(size - 1)] + [0]) # Se miden los qubit x, si es igual a 0 la funcion es constante. En caso contrario no lo es.
 
 def ExampleDJCircuit(size, U_f, **kwargs):
-	rnd.seed(kwargs.get('seed', None)) # Para asegurar la repetibilidad fijamos la semilla antes del experimento.
-	c = DJAlgCircuit(size, U_f)
-	res = c.execute([0 for i in range(size - 1)]) # Los qubits se inicializan a cero (x1..xn) excepto el ultimo (y), inicializado a uno por el circuito tal y como se indicó en su construccion
-	print(all(i == 0 for i in res[1][0][:-1]))
+    rnd.seed(kwargs.get('seed', None)) # Para asegurar la repetibilidad fijamos la semilla antes del experimento.
+    c = DJAlgCircuit(size, U_f)
+    res = c.execute([0 for i in range(size - 1)]) # Los qubits se inicializan a cero (x1..xn) excepto el ultimo (y), inicializado a uno por el circuito tal y como se indicó en su construccion
+    print(all(i == 0 for i in res[1][0][:-1]))
 
-	return res # Los qubits se inicializan a cero (x1..xn) excepto el ultimo (y), inicializado a uno por el circuito tal y como se indicó en su construccion
+    return res # Los qubits se inicializan a cero (x1..xn) excepto el ultimo (y), inicializado a uno por el circuito tal y como se indicó en su construccion
 
 def DJAlgCircuit(size, U_f): # U_f es el oraculo, que debe tener x1..xn e y como qubits. Tras aplicarlo el qubit y debe valer f(x1..xn) XOR y. El argumento size es n + 1, donde n es el numero de bits de entrada de f.
-	c = QCircuit("Deutsch-Josza Algorithm", ancilla=[1]) # El ultimo QuBit al ejecutar el algoritmo es de ancilla, con su valor a 1
-	c.addLine(H(size)) # Se aplica una compuerta hadamard a todos los qubits
-	c.addLine(U_f) # Se aplica el oraculo
-	c.addLine(H(size - 1), I(1)) # Se aplica una puerta Hadamard a todos los qubits excepto al ultimo
+    c = qj.QCircuit("Deutsch-Josza Algorithm", ancilla=[1]) # El ultimo QuBit al ejecutar el algoritmo es de ancilla, con su valor a 1
+    c.addLine(*["H" for i in range(size)]) # Se aplica una compuerta hadamard a todos los qubits
+    c.addLine(U_f) # Se aplica el oraculo
+    c.addLine(*["H" for i in range(size-1)], "I") # Se aplica una puerta Hadamard a todos los qubits excepto al ultimo
 
-	# f = lambda _, l: print(all(i == 0 for i in l[:-1])) # Funcion que imprimira cierto tras realizar la medida si la funcion es constante
+    # f = lambda _, l: print(all(i == 0 for i in l[:-1])) # Funcion que imprimira cierto tras realizar la medida si la funcion es constante
 
-	# c.addLine(Measure([1 for i in range(size - 1)] + [0], tasks=[f])) # Se miden los qubit x, si es igual a 0 la funcion es constante. En caso contrario no lo es.
-	c.addLine(Measure([1 for i in range(size - 1)] + [0])) # Se miden los qubit x, si es igual a 0 la funcion es constante. En caso contrario no lo es.
+    # c.addLine(Measure([1 for i in range(size - 1)] + [0], tasks=[f])) # Se miden los qubit x, si es igual a 0 la funcion es constante. En caso contrario no lo es.
+    c.addLine(qj.Measure([1 for i in range(size - 1)] + [0])) # Se miden los qubit x, si es igual a 0 la funcion es constante. En caso contrario no lo es.
 
-	return c
+    return c
 
 '''
 Crea un oraculo U_f tal y como viene definido en el algoritmo de Deutsch-Josza para una funcion balanceada f: {0,1}^n ---> {0,1}, f(x) = msb(x) (bit mas significativo de x).
 El argumento n no es el numero de bits de la entrada de f, sino dicho numero mas 1 (para el qubit de "salida").
 '''
+'''
 def Bal(n):
-	size = 2**n
-	'''
-	Se invierte el valor del qubit y en los casos en los que el bit mas significativo sea 1.
-	Una puerta C-NOT serviria de U_f con la definicion de f dada con n = 2. Bal(2) = CNOT().
-	'''
-	def fun(i, j):
-		if (i >= size/2 and j >= size/2):
-			if (((i < j and i % 2 == 0) or (j < i and j % 2 == 0)) and abs(i - j) == 1):
-				return 1
-			else:
-				return 0
-		else:
-			return 0**abs(i-j)
+    size = 2**n
+    # Se invierte el valor del qubit y en los casos en los que el bit mas significativo sea 1.
+    # Una puerta C-NOT serviria de U_f con la definicion de f dada con n = 2. Bal(2) = CNOT().
+    def fun(i, j):
+        if (i >= size/2 and j >= size/2):
+            if (((i < j and i % 2 == 0) or (j < i and j % 2 == 0)) and abs(i - j) == 1):
+                return 1
+            else:
+                return 0
+        else:
+            return 0**abs(i-j)
 
-	mat = np.array([[fun(i, j) for i in range(size)] for j in range(size)])
+    mat = np.array([[fun(i, j) for i in range(size)] for j in range(size)])
 
-	return customGate("Bal(" + str(n) + ")", mat)
+    return customGate("Bal(" + str(n) + ")", mat)
+'''
+def Bal(n):
+    gate = qj.QGate("Balanced")
+    gate.addLine(*[None for i in range(n-1)], ["X", [0], None])
+    return gate
+def Const(n):
+    gate = qj.QGate("Constant")
+    gate.addLine(*[None for i in range(n-1)], "X")
+    return gate
 '''
 U_f generada con n = 3:
 1 0 0 0 0 0 0 0
@@ -74,85 +81,95 @@ El oraculo U_f a su vez se comporta como se indica en el algoritmo, teniendo que
 '''
 
 def Teleportation(qbit, **kwargs): # El qubit que va a ser teleportado. Aunque en un computador cuantico real no es posible ver el valor de un qubit sin que colapse, al ser un simulador se puede. Puede especificarse semilla con seed = <seed>.
-	rnd.seed(kwargs.get('seed', None)) # Se fija la semilla antes de comenzar el experimento. En este caso la tomamos por parametro.
-	r = QRegistry([qbit, 0, 0]) # Se crea un registro con el qubit que debe ser enviado a Alice, el qubit de Bob y el de Alice, en adelante Q, B y A. B y A estan inicializados a |0>.
-	print ("Original registry:\n", r.state) # Se muestra el estado del registro de qubits.
-	r.applyGate(I(1), H(1), I(1)) # Se aplica la puerta Hadamard a B, ahora en una superposicion de los estados |0> y |1>, ambos exactamente con la misma probabilidad.
-	r.applyGate(I(1), CNOT()) # Se aplica una puerta C-NOT sobre B (control) y A (objetivo).
-	print ("With Bell+ state:\n", r.state) # Tras la aplicacion de las anteriores dos puertas tenemos un estado de Bell +, B y A estan entrelazados. Se muestra el valor del registro.
-	# Aqui es donde trabajamos con el qubit Q que queremos enviar posteriormente. En este caso de ejemplo le vamos a aplicar Hadamard y despues un cambio de fase de pi/2
-	r.applyGate(H(1), I(2))
-	r.applyGate(PhaseShift(np.pi/2), I(2))
-	# Una vez terminado todo lo que queremos hacerle al QuBit, procedemos a preparar el envio
-	r.applyGate(CNOT(), I(1)) # Se aplica una puerta C-NOT sobre Q (control) y B (objetivo).
-	r.applyGate(H(1), I(2)) # Se aplica una puerta Hadamard sobre Q.
-	print ("\nBefore measurement:\n", r.state) # Se muestra el valor del registro antes de la medida.
-	m = r.measure([1,1,0]) # Se miden los qubits Q y B.
-	print ("q0 = ", m[0], "\nq1 = ", m[1]) # Se muestra el resultado de la medida
-	q0 = 0 # Se crean para ver que la teleportacion se realiza con exito dos qubits, q0 y q1.
-	q1 = 0 # Usandolos crearemos un registro con los valores que debe tener si la teleportacion se ha realizado con exito.
-	if (m[1] == 1):
-		q1 = 1
-		r.applyGate(I(2), PauliX()) # Si al medir B obtuvimos un 1, rotamos A en el eje X (Pauli-X o NOT)
-	if (m[0] == 1):
-		q0 = 1
-		r.applyGate(I(2), PauliZ()) # Si al medir Q obtuvimos un 1, rotamos A en el eje Z (Pauli-Z).
-	er = QRegistry([q0, q1, qbit]) # Se crea el registro para testeo mencionado anteriormente.
-	# Y aplicamos las mismas operaciones para ver que es lo que se debe recibir, en este caso Hadamard y PhaseShift.
-	er.applyGate(I(2), H(1))
-	er.applyGate(I(2), PhaseShift(np.pi/2))
-	print ("\nExpected result:\n", er.state, "\nResult:\n", r.state) # Se muestra el contenido de los registros, tanto el del resultado esperado como el obtenido.
-	print ("Assert: " + str(r.state == er.state))
-	return r # Se devuelve el registro obtenido tras aplicar el algoritmo.
+    rnd.seed(kwargs.get('seed', None)) # Se fija la semilla antes de comenzar el experimento. En este caso la tomamos por parametro.
+    r = qjQSystem(3) # Se crea un registro con el qubit que debe ser enviado a Alice, el qubit de Bob y el de Alice, en adelante Q, B y A. B y A estan inicializados a |0>.
+    if qbit == 1:
+        r.applyGate("X")
+    print ("Original registry:\n", r.getState()) # Se muestra el estado del registro de qubits.
+    r.applyGate("H", qubit=1) # Se aplica la puerta Hadamard a B, ahora en una superposicion de los estados |0> y |1>, ambos exactamente con la misma probabilidad.
+    r.applyGate("X", qubit=2, control=1) # Se aplica una puerta C-NOT sobre B (control) y A (objetivo).
+    print ("With Bell+ state:\n", r.getState()) # Tras la aplicacion de las anteriores dos puertas tenemos un estado de Bell +, B y A estan entrelazados. Se muestra el valor del registro.
+    # Aqui es donde trabajamos con el qubit Q que queremos enviar posteriormente. En este caso de ejemplo le vamos a aplicar Hadamard y despues un cambio de fase de pi/2
+    r.applyGate("H")
+    r.applyGate("PhaseShift(" + str(np.pi/2) + ")")
+    # Una vez terminado todo lo que queremos hacerle al QuBit, procedemos a preparar el envio
+    r.applyGate("X", qubit=1, control=0) # Se aplica una puerta C-NOT sobre Q (control) y B (objetivo).
+    r.applyGate("H") # Se aplica una puerta Hadamard sobre Q.
+    print ("\nBefore measurement:\n", r.getState()) # Se muestra el valor del registro antes de la medida.
+    m = r.measure([1,1,0]) # Se miden los qubits Q y B.
+    print ("q0 = ", m[0], "\nq1 = ", m[1]) # Se muestra el resultado de la medida
+    q0 = 0 # Se crean para ver que la teleportacion se realiza con exito dos qubits, q0 y q1.
+    q1 = 0 # Usandolos crearemos un registro con los valores que debe tener si la teleportacion se ha realizado con exito.
+    if (m[1] == 1):
+        q1 = 1
+        r.applyGate("X", qubit=2) # Si al medir B obtuvimos un 1, rotamos A en el eje X (Pauli-X o NOT)
+    if (m[0] == 1):
+        q0 = 1
+        r.applyGate("Z", qubit=2) # Si al medir Q obtuvimos un 1, rotamos A en el eje Z (Pauli-Z).
+    er = qj.QSystem(3) # Se crea el registro para testeo mencionado anteriormente.
+    if q0 == 1:
+        er.applyGate("X")
+    if q1 == 1:
+        er.applyGate("X", qubit=1)
+    if qbit == 1:
+        er.applyGate("X", qubit=2)
+    # Y aplicamos las mismas operaciones para ver que es lo que se debe recibir, en este caso Hadamard y PhaseShift.
+    er.applyGate("H", qubit=2)
+    er.applyGate("PhaseShift(" + str(np.pi/2) + ")", qubit=2)
+    print ("\nExpected result:\n", er.getState(), "\nResult:\n", r.getState()) # Se muestra el contenido de los registros, tanto el del resultado esperado como el obtenido.
+    print ("Assert: " + str(r.getState() == er.getState()))
+    return r # Se devuelve el registro obtenido tras aplicar el algoritmo.
 
 def TeleportationCircuit(gate): # Recibe como argumento lo que se va a ejecutar sobre el primer QuBit despues de hacer el estado de Bell con los dos últimos.
-	qc = QCircuit("Teleportation", ancilla=[0, 0])
-	qc.addLine(I(1), H(1), I(1))
-	qc.addLine(I(1), CNOT())
-	# Aqui es donde trabajamos con el qubit Q que queremos enviar posteriormente. Se le aplica la puerta pasada como parámetro.
-	qc.addLine(gate, I(2))
-	# Una vez terminado todo lo que queremos hacerle al QuBit, procedemos a preparar el envio
-	qc.addLine(CNOT(), I(1)) # Se aplica una puerta C-NOT sobre Q (control) y B (objetivo).
-	qc.addLine(H(1), I(2)) # Se aplica una puerta Hadamard sobre Q.
+    qc = qj.QCircuit("Teleportation", ancilla=[0, 0])
+    qc.addLine(None, "H", None)
+    qc.addLine(None, None, ["X", 1, None])
+    # Aqui es donde trabajamos con el qubit Q que queremos enviar posteriormente. Se le aplica la puerta pasada como parámetro.
+    qc.addLine(gate, None, None)
+    # Una vez terminado todo lo que queremos hacerle al QuBit, procedemos a preparar el envio
+    qc.addLine(None, ["X", 0, None], None) # Se aplica una puerta C-NOT sobre Q (control) y B (objetivo).
+    qc.addLine("H", None, None) # Se aplica una puerta Hadamard sobre Q.
 
-	c1 = Condition([None, 1, None], PauliX(), None, 1, -1)
-	c2 = Condition([1, None, None], PauliZ(), None, 1, -1)
+    c1 = qj.Condition([None, 1, None], PauliX(), None, 1, -1)
+    c2 = qj.Condition([1, None, None], PauliZ(), None, 1, -1)
 
-	m = Measure([1, 1, 0], conds=[c1, c2], remove=True)
+    m = qj.Measure([1, 1, 0], conds=[c1, c2], remove=True)
 
-	qc.addLine(m)
+    qc.addLine(m)
 
-	return qc # Se devuelve el circuito.
+    return qc # Se devuelve el circuito.
 
 def ExampleTC(value, gate, **kwargs): # El valor debe ser 0 o 1, valor inicial del QuBit a teleportar. Gate es la puerta que se va a aplicar sobre el QuBit a teleportar.
-	rnd.seed(kwargs.get('seed', None)) # Para asegurar la repetibilidad fijamos la semilla antes del experimento.
+    rnd.seed(kwargs.get('seed', None)) # Para asegurar la repetibilidad fijamos la semilla antes del experimento.
 
-	c = TeleportationCircuit(gate)
+    c = TeleportationCircuit(gate)
 
-	(r, mess) = c.execute([val]) # Se ejecuta el circuito
-	exr = QRegistry(1)
-	if (value == 1):
-		exr.applyGate(PauliX())
-	exr.applyGate(gate)
-	print ("Expected result:\n", exr.state, "\nResult:\n", r.state)
-	print ("Assert: " + str(all((r.state == exr.state)[0])))
+    (r, mess) = c.execute([val]) # Se ejecuta el circuito
+    exr = qj.QSystem(1)
+    if (value == 1):
+        exr.applyGate("X")
+    exr.applyGate(gate)
+    print ("Expected result:\n", exr.state, "\nResult:\n", r.state)
+    print ("Assert: " + str(all((r.state == exr.state)[0])))
 
+'''
 def TwoBitSubstractor(nums, **kwargs): # Se pasa como parametro los dos numeros binarios a restar como [A0, A1, B0, B1]. Devuelve el resultado en los qubit de mayor peso y en el tercer qubit indica si ha habido overflow
-	rnd.seed(kwargs.get('seed', None)) # Para asegurar la repetibilidad fijamos la semilla antes del experimento.
-	r = QRegistry(nums + [0,0,0,0,0,0,0]) # 7 bits de ancilla a 0 son necesarios en esta implementacion
-	r.applyGate(I(1), SWAP(), SWAP(), I(6))
-	r.applyGate(I(2), SWAP(), SWAP(), I(5))
-	r.applyGate(I(3), SWAP(), SWAP(), I(4))
-	r.applyGate(I(4), SWAP(), I(5))
-	r.applyGate(I(5), Substractor())
-	r.applyGate(I(5), SWAP(), I(4))
-	r.applyGate(I(4), SWAP(), I(5))
-	r.applyGate(I(3), SWAP(), I(6))
-	r.applyGate(I(2), SWAP(), I(7))
-	r.applyGate(Substractor(), I(5))
-	r.applyGate(I(5), SWAP(), I(4))
-	r.applyGate(I(4), SWAP(), I(5))
-	r.applyGate(I(3), SWAP(), I(6))
-	r.applyGate(I(2), SWAP(), I(7))
-	r.applyGate(I(1), SWAP(), I(8))
-	return r.measure([1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0])
+    rnd.seed(kwargs.get('seed', None)) # Para asegurar la repetibilidad fijamos la semilla antes del experimento.
+    r = QRegistry(nums + [0,0,0,0,0,0,0]) # 7 bits de ancilla a 0 son necesarios en esta implementacion
+    r.applyGate(I(1), SWAP(), SWAP(), I(6))
+    r.applyGate(I(2), SWAP(), SWAP(), I(5))
+    r.applyGate(I(3), SWAP(), SWAP(), I(4))
+    r.applyGate(I(4), SWAP(), I(5))
+    r.applyGate(I(5), Substractor())
+    r.applyGate(I(5), SWAP(), I(4))
+    r.applyGate(I(4), SWAP(), I(5))
+    r.applyGate(I(3), SWAP(), I(6))
+    r.applyGate(I(2), SWAP(), I(7))
+    r.applyGate(Substractor(), I(5))
+    r.applyGate(I(5), SWAP(), I(4))
+    r.applyGate(I(4), SWAP(), I(5))
+    r.applyGate(I(3), SWAP(), I(6))
+    r.applyGate(I(2), SWAP(), I(7))
+    r.applyGate(I(1), SWAP(), I(8))
+    return r.measure([1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0])
+'''

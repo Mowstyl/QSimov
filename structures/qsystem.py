@@ -75,7 +75,7 @@ class QSystem:
                     raise ValueError('Apart from the gates, you can only specify "qubit", "control" and/or "anticontrol" (lowercase)')
             gate = args[0]
             if type(gate) == QGate:
-                gate = (gate, gate.getNQubits())
+                gate = (gate, gate.size)
             elif gate == "I" or gate is None:
                 return
             else:
@@ -96,9 +96,9 @@ class QSystem:
                 name = ""
                 if type(gate[0]) != QGate:
                     name, arg1, arg2, arg3, invert = prs.getGateData(gate[0])
-                invstring = ""
-                if invert:
-                    invstring = "-1"
+                    invstring = ""
+                    if invert:
+                        invstring = "-1"
                 qubits = set(control).union(anticontrol) # Todos los participantes
                 if "SWAP" in name:
                     qubit = arg1
@@ -119,7 +119,7 @@ class QSystem:
                 newcontrol = [regmap[qid] for qid in control]
                 newanticontrol = [regmap[qid] for qid in anticontrol]
                 if type(gate[0]) == QGate:
-                    pass
+                    reg.applyGate(gate[0], qubit=newqubit, control=newcontrol, anticontrol=newanticontrol)
                 else:
                     if "SWAP" in name:
                         gate = (name + "(" + str(regmap[arg1]) + "," + str(regmap[arg2]) + ")" + invstring, gate[1])
@@ -186,7 +186,31 @@ class QSystem:
             return state
 
 def joinSystems(a, b): # Este metodo une dos QSystems
-    pass
+    res = QSystem(a.nqubits + b.nqubits)
+
+    for i in range(len(res.regs)):
+        if res.regs[i] != None:
+            del res.regs[i][0]
+    res.regs.clear()
+    res.qubitMap.clear()
+    res.regs = a.regs
+    offset = a.nqubits
+    res.regs += [[reg[0], [id + offset for id in reg[1]]] if reg is not None else None for reg in b.regs]
+    res.qubitMap = a.qubitMap
+    res.qubitMap.update({k + offset: b.qubitMap[k] + offset for k in b.qubitMap})
+    '''
+    print(a.nqubits)
+    print(a.regs)
+    print(a.qubitMap)
+    print(b.nqubits)
+    print(b.regs)
+    print(b.qubitMap)
+    print(res.nqubits)
+    print(res.regs)
+    print(res.qubitMap)
+    '''
+
+    return res
 
 def joinRegs(a, b): # Este metodo une dos registros en uno solo y deja los qubits ordenados SIEMPRE
     newregdata = []

@@ -11,6 +11,7 @@ import gc
 import numpy as np
 
 def _executeOnce(qsystem, lines, ancilla=None, useSystem=True): # You can pass a QRegistry or an array to build a new QRegistry. When the second option is used, the ancilliary qubits will be added to the specified list.
+    #print(qsystem)
     g = []
     r = qsystem
     firstGate = False
@@ -37,6 +38,8 @@ def _executeOnce(qsystem, lines, ancilla=None, useSystem=True): # You can pass a
         if not useSystem:
             del r
             del a
+        else:
+            nomueras = r  # Python automatically destroys r when doing r = aux if this is not executed
         r = raux
     try:
         mres = []

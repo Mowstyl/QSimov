@@ -8,53 +8,36 @@ By following this instructions you will have a working binary.
 
 ### Prerequisites
 
-You only need the source code, either by cloning the project or by downloading it, and a C compiler. The QSimov quantum computing simulator works better when used under a x64 architecture. Expect lower maximum number of QuBits when on a x86 system.
-
- - **Windows**
-To compile the project in Windows (without any changes to the makefile) you'll need a compiler that supports C99. The project has been tested to work with MinGW-64. The lastest version of Cygwin (last checked 20/11/2018) has an older version of GCC that doesn't support C18, but it still works with C99.
-
- - **GNU-Linux**
-To compile the project you'll need a C compiler that supports C99 (again). GCC versions 4 has been tested to work with the provided makefile (last checked 20/11/2018).
-
-### Customizing
-
-You can change the data types used on the calculations performed by QSimov, as well as the print format and some other little customizations. In order to do that, you can edit the *headers/precision.h* file. Read the comments and change the code having them in mind. Choose wisely. Using *long double* precision has some unexpected results in some systems, so be sure to run some tests to check they work in your system.
+You only need the source code, either by cloning the project or by downloading it, and Python >= 3.7. The QSimov quantum computing simulator works better when used under a x64 architecture. Expect lower maximum number of QuBits when on a x86 system.
 
 ### Installing
 
 If you've tried before to build the project, you may want to clean it before trying to build it again.
 If it's the first time you build it, it's safe to skip this step.
 The cleaning can be performed by using
- - **Windows** (with MinGW)
+ - **Windows**
+You don't need to do anything special, just extract the source code in a folder.
+ - **GNU-Linux**
+The lib folder has to be in the LDD search path. You can do that either by running
 ```
-mingw32-make clean
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd)/lib
 ```
- - **GNU-Linux** (with GCC)
-```
-make clean
-```
-After cleaning the project, you can safely build it.
- - **Windows** (with MinGW)
-```
-mingw32-make
-```
- - **GNU-Linux** (with GCC)
-```
-make
-```
-You will have the binary in *bin/QSimovC.exe*.
+before executing the simulator or, if that fails or if you want it to be always available, executing the *addLibraryPath.sh* script as admin.
 
 ## Testing
 
-TBA
+The full test suite can be run with:
+```
+python qtest.py <min> <max> [seed]
+```
+- min: minimum number of qubits to use in the tests involving data structures with a variable number of qubits. min has to be at least 3.
+- max: minimum number of qubits to use in the tests involving data structures with a variable number of qubits. Don't use more than 8 since the simulator tests against operations made in numpy, which is not made for quantum computing simulation and therefore can be very slow with a number of qubits greater than 7.
+- seed (optional): the seed to use in random operations. If none specified, the used seed will be printed in console so you can always repeat a failed test.
 
-## Deployment
+## libqsimov and libfunmant built With
 
-TBA
-
-## Built With
-
-* [MinGW-w64](https://sourceforge.net/projects/mingw-w64/) - Build tools for Windows systems
+* [MSYS2](https://www.msys2.org/) - Software distro and building platform for Windows
+* MinGW-w64 - Build tools for Windows systems. Obtained with MSYS2 to get the latest gcc version.
 * [GCC](https://gcc.gnu.org/) - C compiler for GNU-Linux systems.
 
 ## Contributing
@@ -62,7 +45,6 @@ TBA
 Feel free to create pull requests. Keep in mind that the requests must be synced to the *main* branch. If they have conflicts they'll be rejected.
 Also, the pull requests must have a brief explaination of the work done.
 They must be free of any binary file and the code has to be indented (plain code won't be accepted).
-The code must also follow the GNU C coding style [guideline](https://developer.gnome.org/programming-guidelines/stable/c-coding-style.html.en).
 
 ## Versioning
 
@@ -77,7 +59,7 @@ See also the list of [contributors](https://github.com/your/project/contributors
 ## License
 
 When a project has no LICENSE.md file, it's licensed under the most restrictive license (that means copyright). This is **always** true, so keep it in mind when using someone else's code.
-At the moment, Copyright is being used. In the future the license may change, maybe MIT license, maybe GNU, who knows?
+At the moment, MIT License is being used.
 
 ## Acknowledgments
 
