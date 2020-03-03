@@ -1,5 +1,6 @@
 import qsimov as qj
 import random as rnd
+import numpy as np
 
 def DJAlg(size, U_f, **kwargs): # U_f es el oraculo, que debe tener x1..xn e y como qubits. Tras aplicarlo el qubit y debe valer f(x1..xn) XOR y. El argumento size es n + 1, donde n es el numero de bits de entrada de f.
     rnd.seed(kwargs.get('seed', None)) # Para asegurar la repetibilidad fijamos la semilla antes del experimento.
@@ -82,7 +83,7 @@ El oraculo U_f a su vez se comporta como se indica en el algoritmo, teniendo que
 
 def Teleportation(qbit, **kwargs): # El qubit que va a ser teleportado. Aunque en un computador cuantico real no es posible ver el valor de un qubit sin que colapse, al ser un simulador se puede. Puede especificarse semilla con seed = <seed>.
     rnd.seed(kwargs.get('seed', None)) # Se fija la semilla antes de comenzar el experimento. En este caso la tomamos por parametro.
-    r = qjQSystem(3) # Se crea un registro con el qubit que debe ser enviado a Alice, el qubit de Bob y el de Alice, en adelante Q, B y A. B y A estan inicializados a |0>.
+    r = qj.QSystem(3) # Se crea un registro con el qubit que debe ser enviado a Alice, el qubit de Bob y el de Alice, en adelante Q, B y A. B y A estan inicializados a |0>.
     if qbit == 1:
         r.applyGate("X")
     print ("Original registry:\n", r.getState()) # Se muestra el estado del registro de qubits.
@@ -130,8 +131,8 @@ def TeleportationCircuit(gate): # Recibe como argumento lo que se va a ejecutar 
     qc.addLine(None, ["X", 0, None], None) # Se aplica una puerta C-NOT sobre Q (control) y B (objetivo).
     qc.addLine("H", None, None) # Se aplica una puerta Hadamard sobre Q.
 
-    c1 = qj.Condition([None, 1, None], PauliX(), None, 1, -1)
-    c2 = qj.Condition([1, None, None], PauliZ(), None, 1, -1)
+    c1 = qj.Condition([None, 1, None], "X", None, 1, -1)
+    c2 = qj.Condition([1, None, None], "Z", None, 1, -1)
 
     m = qj.Measure([1, 1, 0], conds=[c1, c2], remove=True)
 
