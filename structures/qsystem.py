@@ -12,9 +12,9 @@ class QSystem:
         self.nqubits = nqbits
 
     def __del__(self):
-        for i in range(len(self.regs)):
-            if self.regs[i] != None:
-                del self.regs[i][0]
+        #for i in range(len(self.regs)):
+        #    if self.regs[i] != None:
+        #        del self.regs[i][0]
         del self.regs
         del self.qubitMap
 
@@ -193,22 +193,11 @@ def joinSystems(a, b): # Este metodo une dos QSystems
             del res.regs[i][0]
     res.regs.clear()
     res.qubitMap.clear()
-    res.regs = a.regs
+    res.regs = [[reg[0], reg[1][:]] if reg is not None else None for reg in a.regs]
     offset = a.nqubits
     res.regs += [[reg[0], [id + offset for id in reg[1]]] if reg is not None else None for reg in b.regs]
-    res.qubitMap = a.qubitMap
+    res.qubitMap = a.qubitMap.copy()
     res.qubitMap.update({k + offset: b.qubitMap[k] + offset for k in b.qubitMap})
-    '''
-    print(a.nqubits)
-    print(a.regs)
-    print(a.qubitMap)
-    print(b.nqubits)
-    print(b.regs)
-    print(b.qubitMap)
-    print(res.nqubits)
-    print(res.regs)
-    print(res.qubitMap)
-    '''
 
     return res
 

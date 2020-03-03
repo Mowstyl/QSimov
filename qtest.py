@@ -338,6 +338,50 @@ def applyCACU(gate, id, controls, anticontrols, nq, reg): # Controlled and Anti-
     #print(reg)
     return reg
 
+def Bal(n, controlId=0):
+    gate = qj.QGate("Balanced")
+    gate.addLine(*[None for i in range(n-1)], ["X", controlId, None])
+    return gate
+
+def Const(n, twice=False):
+    gate = qj.QGate("Constant")
+    gate.addLine(*[None for i in range(n-1)], "X")
+    if twice:
+        gate.addLine(*[None for i in range(n-1)], "X")
+    return gate
+
+def DJAlgCircuit(size, U_f): # U_f es el oraculo, que debe tener x1..xn e y como qubits. Tras aplicarlo el qubit y debe valer f(x1..xn) XOR y. El argumento size es n + 1, donde n es el numero de bits de entrada de f.
+    c = qj.QCircuit("Deutsch-Josza Algorithm", ancilla=[1]) # El ultimo QuBit al ejecutar el algoritmo es de ancilla, con su valor a 1
+    c.addLine(*["H" for i in range(size)]) # Se aplica una compuerta hadamard a todos los qubits
+    c.addLine(U_f) # Se aplica el oraculo
+    c.addLine(*["H" for i in range(size-1)], "I") # Se aplica una puerta Hadamard a todos los qubits excepto al ultimo
+
+    # f = lambda _, l: print(all(i == 0 for i in l[:-1])) # Funcion que imprimira cierto tras realizar la medida si la funcion es constante
+
+    # c.addLine(Measure([1 for i in range(size - 1)] + [0], tasks=[f])) # Se miden los qubit x, si es igual a 0 la funcion es constante. En caso contrario no lo es.
+    c.addLine(qj.Measure([1 for i in range(size - 1)] + [0])) # Se miden los qubit x, si es igual a 0 la funcion es constante. En caso contrario no lo es.
+
+    return c
+
+def TeleportationCircuit(gate): # Recibe como argumento lo que se va a ejecutar sobre el primer QuBit despues de hacer el estado de Bell con los dos últimos.
+    qc = qj.QCircuit("Teleportation", ancilla=[0, 0])
+    qc.addLine(None, "H", None)
+    qc.addLine(None, None, ["X", 1, None])
+    # Aqui es donde trabajamos con el qubit Q que queremos enviar posteriormente. Se le aplica la puerta pasada como parámetro.
+    qc.addLine(gate, None, None)
+    # Una vez terminado todo lo que queremos hacerle al QuBit, procedemos a preparar el envio
+    qc.addLine(None, ["X", 0, None], None) # Se aplica una puerta C-NOT sobre Q (control) y B (objetivo).
+    qc.addLine("H", None, None) # Se aplica una puerta Hadamard sobre Q.
+
+    c1 = qj.Condition([None, 1, None], "X", None, 1, -1)
+    c2 = qj.Condition([1, None, None], "Z", None, 1, -1)
+
+    m = qj.Measure([1, 1, 0], conds=[c1, c2], remove=True)
+
+    qc.addLine(m)
+
+    return qc # Se devuelve el circuito.
+
 def gateTests(gatename, verbose=False, hasInv=False, nArgs=0):
     passed = 0
     if not hasInv:
@@ -948,6 +992,79 @@ def cIsingTests(nq, type, invert, verbose=False, QItem=qj.QRegistry):
     del b
     return (passed, total)
 
+def deutschTests(nq, verbose=False, useSystem=False):
+    passed = 0
+    total = nq - 1 + 2
+    allOk = True
+    if verbose:
+        print(" Deutsch circuit (" + (qj.QSystem.__name__ if useSystem else qj.QRegistry.__name__) + "):")
+    for id in range(nq - 1):
+        gate = Bal(nq, id)
+        circuit = DJAlgCircuit(nq, gate)
+        reg, mes = circuit.execute([0 for i in range(nq - 1)], useSystem=useSystem)
+        mes = mes[0][:-1]
+
+        reg2 = qj.QSystem(nq) # Los qubits se inicializan a cero (x1..xn) excepto el ultimo (y), inicializado a uno
+        reg2.applyGate("X", qubit=nq-1)
+        reg2.applyGate("H") # Se aplica una compuerta hadamard a todos los qubits
+        reg2.applyGate(None, *["H" for i in range(nq-1)]) # Se aplica una compuerta hadamard a todos los qubits
+        reg2.applyGate(gate) # Se aplica el oraculo
+        reg2.applyGate(*["H" for i in range(nq-1)], "I") # Se aplica una puerta Hadamard a todos los qubits excepto al ultimo
+        mes2 = reg2.measure([1 for i in range(nq - 1)] + [0]) # Se miden los qubit x, si es igual a 0 la funcion es constante. En caso contrario no lo es.
+
+        if not all(reg.getState() == reg2.getState()) or not mes == mes2:
+            if verbose:
+                print(reg.getState())
+                print(reg2.getState())
+                print(reg.getState() == reg2.getState())
+                print(mes)
+                print(mes2)
+                print(mes == mes2)
+                allOk = False
+                print("    Michael Bay visited your simulator...")
+            del reg
+            del reg2
+            break
+        passed += 1
+        if verbose:
+            print("    Noice")
+        del reg
+        del reg2
+    if allOk:
+        for id in range(2):
+            gate = Const(nq, twice=id==1)
+            circuit = DJAlgCircuit(nq, gate)
+            reg, mes = circuit.execute([0 for i in range(nq - 1)], useSystem=useSystem)
+            mes = mes[0][:-1]
+
+            reg2 = qj.QSystem(nq) # Los qubits se inicializan a cero (x1..xn) excepto el ultimo (y), inicializado a uno
+            reg2.applyGate("X", qubit=nq-1)
+            reg2.applyGate(*["H" for i in range(nq)]) # Se aplica una compuerta hadamard a todos los qubits
+            reg2.applyGate(gate) # Se aplica el oraculo
+            reg2.applyGate(*["H" for i in range(nq-1)], "I") # Se aplica una puerta Hadamard a todos los qubits excepto al ultimo
+            mes2 = reg2.measure([1 for i in range(nq - 1)] + [0]) # Se miden los qubit x, si es igual a 0 la funcion es constante. En caso contrario no lo es.
+
+            if not all(reg.getState() == reg2.getState()) or not mes == mes2:
+                if verbose:
+                    print(reg.getState())
+                    print(reg2.getState())
+                    print(reg.getState() == reg2.getState())
+                    print(mes)
+                    print(mes2)
+                    print(mes == mes2)
+                    allOk = False
+                    print("    Michael Bay visited your simulator...")
+                del reg
+                del reg2
+                break
+            passed += 1
+            if verbose:
+                print("    Noice")
+            del reg
+            del reg2
+
+    return (passed, total)
+
 def allGateTests(seed=None, verbose=False):
     if not (seed is None):
         qj.setRandomSeed(seed)
@@ -1024,6 +1141,24 @@ def dataStructureTests(minqubits, maxqubits, seed=None, verbose=False, QItem=qj.
 
     return result
 
+def highLevelTests(minqubits, maxqubits, seed=None, verbose=False):
+    if not (seed is None):
+        qj.setRandomSeed(seed)
+        rnd.seed(seed)
+        np.random.seed(seed)
+    result = [(0, 0) for i in range(2)] # We have 2 tests
+
+    for nq in range(minqubits, maxqubits + 1):
+        if verbose:
+            print("Testing with " + str(nq) + " qubit circuits")
+        result[0] = map(add, result[0], deutschTests(4, verbose=verbose, useSystem=False)) # Deutsch-Josza algorithm with QRegistry tests
+        result[1] = map(add, result[1], deutschTests(4, verbose=verbose, useSystem=True)) # Deutsch-Josza algorithm with QSystem tests
+
+    for i in range(len(result)):
+        result[i] = tuple(result[i])
+
+    return result
+
 def main():
     argv = sys.argv[1:]
     if 2 <= len(argv) <= 4 and int(argv[0]) >= 3:
@@ -1037,6 +1172,8 @@ def main():
             results += dataStructureTests(int(argv[0]), int(argv[1]), seed=seed)
             print("\tTesting QSystem...")
             results += dataStructureTests(int(argv[0]), int(argv[1]), seed=seed, QItem=qj.QSystem)
+            print("\tTesting QGate and QCircuit...")
+            results += highLevelTests(int(argv[0]), int(argv[1]), seed=seed)
         elif len(argv) == 3:
             print("Seed: " + str(int(argv[2])))
             print("\tTesting Gates...")
@@ -1045,6 +1182,8 @@ def main():
             results += dataStructureTests(int(argv[0]), int(argv[1]), seed=int(argv[2]))
             print("\tTesting QSystem...")
             results += dataStructureTests(int(argv[0]), int(argv[1]), seed=int(argv[2]), QItem=qj.QSystem)
+            print("\tTesting QGate and QCircuit...")
+            results += highLevelTests(int(argv[0]), int(argv[1]), seed=int(argv[2]))
         else:
             print("Seed: " + str(int(argv[2])))
             print("\tTesting Gates...")
@@ -1053,6 +1192,8 @@ def main():
             results += dataStructureTests(int(argv[0]), int(argv[1]), seed=int(argv[2]), verbose=bool(argv[3]))
             print("\tTesting QSystem...")
             results += dataStructureTests(int(argv[0]), int(argv[1]), seed=int(argv[2]), verbose=bool(argv[3]), QItem=qj.QSystem)
+            print("\tTesting QGate and QCircuit...")
+            results += highLevelTests(int(argv[0]), int(argv[1]), seed=int(argv[2]), verbose=bool(argv[3]))
         passed = [int(result[0] == result[1]) for result in results]
         noice = sum(passed)
         total = len(results)

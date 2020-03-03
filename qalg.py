@@ -54,13 +54,16 @@ def Bal(n):
 
     return customGate("Bal(" + str(n) + ")", mat)
 '''
-def Bal(n):
+def Bal(n, controlId=0):
     gate = qj.QGate("Balanced")
-    gate.addLine(*[None for i in range(n-1)], ["X", [0], None])
+    gate.addLine(*[None for i in range(n-1)], ["X", controlId, None])
     return gate
-def Const(n):
+
+def Const(n, twice=False):
     gate = qj.QGate("Constant")
     gate.addLine(*[None for i in range(n-1)], "X")
+    if twice:
+        gate.addLine(*[None for i in range(n-1)], "X")
     return gate
 '''
 U_f generada con n = 3:

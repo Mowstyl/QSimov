@@ -130,7 +130,7 @@ class QRegistry:
             if int(__cMeasure__(self.reg, int_array(*mask), ct.c_int(nq), result, ct.c_int(rem))) == 0:
                 print("Error measuring!")
             else:
-                return list(result)
+                return list(result)[::-1]
         else:
             return []
 

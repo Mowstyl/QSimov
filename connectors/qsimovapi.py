@@ -29,17 +29,14 @@ def _executeOnce(qsystem, lines, ancilla=None, useSystem=True): # You can pass a
     if ancilla is not None and len(ancilla) > 0:
         joinFunct = joinSystems
         if not useSystem:
-            joinFunct = superposition
+            joinFunct = lambda r1, r2: superposition(r2, r1)
         a = QDataStruct(len(ancilla))
         for i in range(len(ancilla)):
             if ancilla[i] != 0:
                 a.applyGate("X", qubit=i)
         raux = joinFunct(r, a)
-        if not useSystem:
-            del r
-            del a
-        else:
-            nomueras = r  # Python automatically destroys r when doing r = aux if this is not executed
+        del r
+        del a
         r = raux
     try:
         mres = []

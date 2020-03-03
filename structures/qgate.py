@@ -135,11 +135,17 @@ def _rebuildGateName(gate):
     if type(gate) == list:
         gatename = gate[0]
         if (len(gate) > 1):
-            if gate[1] is not None and len(gate[1]) > 0:
-                cons = set(gate[1])
+            if gate[1] is not None:
+                if isinstance(gate[1], Iterable) and len(gate[1]) > 0:
+                    cons = set(gate[1])
+                elif not isinstance(gate[1], Iterable):
+                    cons = set([gate[1]])
         if (len(gate) > 2):
-            if gate[2] is not None and len(gate[2]) > 0:
-                acons = set(gate[2])
+            if gate[2] is not None:
+                if isinstance(gate[2], Iterable) and len(gate[2]) > 0:
+                    cons = set(gate[2])
+                elif not isinstance(gate[2], Iterable):
+                    cons = set([gate[2]])
     if not isinstance(gatename, QGate):
         if gatename is not None and gatename.lower() != "i":
             name, arg1, arg2, arg3, invert = prs.getGateData(gatename)
