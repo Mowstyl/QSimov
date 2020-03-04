@@ -3,8 +3,6 @@ from structures.qregistry import QRegistry, superposition
 from structures.qsystem import QSystem, joinSystems
 from structures.measure import Measure
 from collections.abc import Iterable
-import connectors.parser as prs
-import structures.funmatrix as fm
 import gc
 import numpy as np
 

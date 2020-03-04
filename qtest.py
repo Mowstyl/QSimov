@@ -2,7 +2,7 @@
 
 import sys
 import qsimov as qj
-#import webbrowser as wb
+# import webbrowser as wb
 import random as rnd
 import numpy as np
 from operator import add
@@ -326,7 +326,7 @@ def CU(gate, ncontrols):
     aux = cu.shape[0] - gate.shape[0]
     for i in range(gate.shape[0]):
         for j in range(gate.shape[1]):
-            cu[aux + i, aux + j] = gate[i,j]
+            cu[aux + i, aux + j] = gate[i, j]
 
     return cu
 
@@ -346,7 +346,6 @@ def applyCACU(gate, id, controls, anticontrols, nq, reg):  # Controlled and Anti
     else:
         extended_cuac = [id] + cuac
     qubitIds = [i for i in range(nq)]
-    first = cuac[0]
 
     reg = negateQubits(acset, nq, reg)
     # print("Ids: " + str(qubitIds))
@@ -563,6 +562,7 @@ def oneGateTests(nq, verbose=False, QItem=qj.QRegistry):
         del b
     return (passed, total)
 
+
 def simpleSwapTests(nq, imaginary, sqrt, invert, verbose=False, QItem=qj.QRegistry):
     passed = 0
     total = nq - 1
@@ -611,7 +611,7 @@ def simpleSwapTests(nq, imaginary, sqrt, invert, verbose=False, QItem=qj.QRegist
             print("    QSimov done")
         try:
             allOk = np.allclose(a, b.getState())
-        except:
+        except ValueError:
             allOk = False
         if not allOk:
             if verbose:
@@ -1137,13 +1137,13 @@ def deutschTests(nq, verbose=False, useSystem=False):
         reg, mes = circuit.execute([0 for i in range(nq - 1)], useSystem=useSystem)
         mes = mes[0]
 
-        reg2 = qj.QSystem(nq) # Los qubits se inicializan a cero (x1..xn) excepto el ultimo (y), inicializado a uno
+        reg2 = qj.QSystem(nq)  # Los qubits se inicializan a cero (x1..xn) excepto el ultimo (y), inicializado a uno
         reg2.applyGate("X", qubit=nq-1)
-        reg2.applyGate("H") # Se aplica una compuerta hadamard a todos los qubits
-        reg2.applyGate(None, *["H" for i in range(nq-1)]) # Se aplica una compuerta hadamard a todos los qubits
-        reg2.applyGate(gate) # Se aplica el oraculo
-        reg2.applyGate(*["H" for i in range(nq-1)], "I") # Se aplica una puerta Hadamard a todos los qubits excepto al ultimo
-        mes2 = reg2.measure([1 for i in range(nq - 1)] + [0]) # Se miden los qubit x, si es igual a 0 la funcion es constante. En caso contrario no lo es.
+        reg2.applyGate("H")  # Se aplica una compuerta hadamard a todos los qubits
+        reg2.applyGate(None, *["H" for i in range(nq-1)])  # Se aplica una compuerta hadamard a todos los qubits
+        reg2.applyGate(gate)  # Se aplica el oraculo
+        reg2.applyGate(*["H" for i in range(nq-1)], "I")  # Se aplica una puerta Hadamard a todos los qubits excepto al ultimo
+        mes2 = reg2.measure([1 for i in range(nq - 1)] + [0])  # Se miden los qubit x, si es igual a 0 la funcion es constante. En caso contrario no lo es.
         mes2 += [None]
 
         if not all(reg.getState() == reg2.getState()) or not mes == mes2:
@@ -1166,7 +1166,7 @@ def deutschTests(nq, verbose=False, useSystem=False):
         del reg2
     if allOk:
         for id in range(2):
-            gate = Const(nq, twice=id==1)
+            gate = Const(nq, twice=id == 1)
             circuit = DJAlgCircuit(nq, gate)
             reg, mes = circuit.execute([0 for i in range(nq - 1)], useSystem=useSystem)
             mes = mes[0]
@@ -1204,7 +1204,6 @@ def deutschTests(nq, verbose=False, useSystem=False):
 def teleportationTests(verbose=False, useSystem=False, remove=False):
     passed = 0
     total = 1
-    allOk = True
     gate = "U(" + str(rnd.random()) + "," + str(rnd.random()) + "," + str(rnd.random()) + ")"
     initialValue = rnd.randrange(2)
     if verbose:
@@ -1238,7 +1237,6 @@ def teleportationTests(verbose=False, useSystem=False, remove=False):
             print(reg2.getState())
             print(reg.getState() == reg2.getState())
             print(mes)
-            allOk = False
             print("    Michael Bay visited your simulator...")
     else:
         passed += 1
@@ -1419,7 +1417,7 @@ def main():
         # We assert so the test fails if we failed something
         assert noice == total
     else:
-        print ("Syntax: " + sys.argv[0] + " <minimum number of qubits (min 3)> <maximum number of qubits> <seed (optional)>")
+        print("Syntax: " + sys.argv[0] + " <minimum number of qubits (min 3)> <maximum number of qubits> <seed (optional)>")
 
 
 if __name__ == "__main__":

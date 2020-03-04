@@ -3,6 +3,7 @@ from structures.qregistry import QRegistry, superposition
 from structures.qgate import QGate, getGateData
 from collections.abc import Iterable
 
+
 class QSystem:
     def __init__(self, nqbits):
         # nqbits -> number of QuBits in the registry.

@@ -218,7 +218,7 @@ class QRegistry:
         return state
 
     def setState(self, newState, nqubits):
-        size = 2 << (nqubits - 1) # 2^n_qubits
+        size = 2 << (nqubits - 1)  # 2^n_qubits
         statetype = ct.c_double * (size * 2)
         cstate = statetype(*[newState[i].real if i < size else newState[i - size].imag for i in range(size * 2)])
         result = __cSetState__(self.reg, cstate, ct.c_int(nqubits)) == 1
@@ -273,7 +273,7 @@ class QRegistry:
             # print("You can only use 1 qubit registries!")
             return None
 
-    def bra(self): # Devuelve el vector de estado en forma de fila conjugado. <v|
+    def bra(self):  # Devuelve el vector de estado en forma de fila conjugado. <v|
         k = np.array(self.getState())
         k.shape = (1, k.shape[0])
         return np.conjugate(k)
@@ -301,7 +301,7 @@ __cJoinStates__.restype = ct.c_void_p
 
 
 def superposition(a, b):  # Devuelve el estado compuesto por los dos QuBits.
-    r = QRegistry(1);
+    r = QRegistry(1)
     __cFreeState__(r.reg)
     r.reg = ct.c_void_p(__cJoinStates__(a.reg, b.reg))
     return r
@@ -315,6 +315,7 @@ __cSWAPQubits__.restype = ct.c_int
 def __SWAPQubits__(reg, qubit1, qubit2, imaginary, sqrt, invert, control, clen, anticontrol, aclen):  # Applies a quantum gate to the registry
     if int(__cSWAPQubits__(reg, ct.c_int(qubit1), ct.c_int(qubit2), ct.c_int(int(imaginary)), ct.c_int(int(sqrt)), ct.c_int(int(invert)), control, ct.c_int(clen), anticontrol, ct.c_int(aclen))) == 0:
         print("Error swapping specified QuBits!")
+
 
 __cIsingQubits__ = __qsimov__.IsingQubits
 __cIsingQubits__.argtypes = [ct.c_void_p, ct.c_int, ct.c_double, ct.c_int, ct.c_int, ct.c_int, c_int_p, ct.c_int, c_int_p, ct.c_int]
