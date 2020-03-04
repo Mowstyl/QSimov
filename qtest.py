@@ -2,11 +2,11 @@
 
 import sys
 import qsimov as qj
-import webbrowser as wb
+#import webbrowser as wb
 import random as rnd
 import numpy as np
 from operator import add
-import math as m
+
 
 def gateToId(numpygate, id, nq):
     nqg = int(np.log2(numpygate.shape[0]))
@@ -16,8 +16,9 @@ def gateToId(numpygate, id, nq):
         a = np.kron(np.eye(2**(nq - nqg)), numpygate)
     else:
         a = np.kron(numpygate, np.eye(2**id))
-    #print("    NpGate: " + str(a))
-    return a[:,0]
+    # print("    NpGate: " + str(a))
+    return a[:, 0]
+
 
 def gateToRegId(numpygate, id, nq, reg):
     nqg = int(np.log2(numpygate.shape[0]))
@@ -27,53 +28,60 @@ def gateToRegId(numpygate, id, nq, reg):
         a = np.kron(np.eye(2**(nq - nqg)), numpygate)
     else:
         a = np.kron(numpygate, np.eye(2**id))
-    #print("    NpGate: " + str(a))
+    # print("    NpGate: " + str(a))
     return np.dot(a, reg.reshape(reg.size, 1)).reshape(reg.size)
+
 
 def H():
     gate = np.ones(4, dtype=complex).reshape(2, 2)
     aux = 1/np.sqrt(2)
-    gate[1,1] = -1
+    gate[1, 1] = -1
     return gate * aux
+
 
 def X():
     gate = np.zeros(4, dtype=complex).reshape(2, 2)
-    gate[0,1] = 1
-    gate[1,0] = 1
+    gate[0, 1] = 1
+    gate[1, 0] = 1
     return gate
+
 
 def Y():
     gate = np.zeros(4, dtype=complex).reshape(2, 2)
-    gate[0,1] = -1j
-    gate[1,0] = 1j
+    gate[0, 1] = -1j
+    gate[1, 0] = 1j
     return gate
+
 
 def Z():
     gate = np.eye(2, dtype=complex)
-    gate[1,1] = -1
+    gate[1, 1] = -1
     return gate
+
 
 def SqrtX(invert):
     gate = np.zeros(4, dtype=complex).reshape(2, 2)
     if not invert:
-        gate[0,0] = 0.5 + 0.5j
-        gate[0,1] = 0.5 - 0.5j
-        gate[1,0] = 0.5 - 0.5j
-        gate[1,1] = 0.5 + 0.5j
+        gate[0, 0] = 0.5 + 0.5j
+        gate[0, 1] = 0.5 - 0.5j
+        gate[1, 0] = 0.5 - 0.5j
+        gate[1, 1] = 0.5 + 0.5j
     else:
-        gate[0,0] = 0.5 - 0.5j
-        gate[0,1] = 0.5 + 0.5j
-        gate[1,0] = 0.5 + 0.5j
-        gate[1,1] = 0.5 - 0.5j
+        gate[0, 0] = 0.5 - 0.5j
+        gate[0, 1] = 0.5 + 0.5j
+        gate[1, 0] = 0.5 + 0.5j
+        gate[1, 1] = 0.5 - 0.5j
     return gate
+
 
 def R(angle, invert):
     gate = np.eye(2, dtype=complex)
     if not invert:
-        gate[1,1] = np.cos(angle) + np.sin(angle) * 1j
+        gate[1, 1] = np.cos(angle) + np.sin(angle) * 1j
     else:
-        gate[1,1] = np.cos(angle) - np.sin(angle) * 1j
+        gate[1, 1] = np.cos(angle) - np.sin(angle) * 1j
     return gate
+
 
 def RX(angle, invert):
     gate = np.zeros(4, dtype=complex).reshape(2, 2)
@@ -83,38 +91,42 @@ def RX(angle, invert):
         mult = -1j
     else:
         mult = 1j
-    gate[0,0] = cosan
-    gate[0,1] = mult * sinan
-    gate[1,0] = mult * sinan
-    gate[1,1] = cosan
+    gate[0, 0] = cosan
+    gate[0, 1] = mult * sinan
+    gate[1, 0] = mult * sinan
+    gate[1, 1] = cosan
     return gate
+
 
 def RY(angle, invert):
     gate = np.zeros(4, dtype=complex).reshape(2, 2)
     cosan = np.cos(angle/2)
     sinan = np.sin(angle/2)
-    gate[0,0] = cosan
-    gate[1,1] = cosan
+    gate[0, 0] = cosan
+    gate[1, 1] = cosan
     if not invert:
-        gate[0,1] = -sinan
-        gate[1,0] = sinan
+        gate[0, 1] = -sinan
+        gate[1, 0] = sinan
     else:
-        gate[0,1] = sinan
-        gate[1,0] = -sinan
+        gate[0, 1] = sinan
+        gate[1, 0] = -sinan
     return gate
+
 
 def RZ(angle, invert):
     gate = np.zeros(4, dtype=complex).reshape(2, 2)
     if not invert:
-        gate[0,0] = np.cos(-angle/2) + np.sin(-angle/2) * 1j
-        gate[1,1] = np.cos(angle/2) + np.sin(angle/2) * 1j
+        gate[0, 0] = np.cos(-angle/2) + np.sin(-angle/2) * 1j
+        gate[1, 1] = np.cos(angle/2) + np.sin(angle/2) * 1j
     else:
-        gate[0,0] = np.cos(-angle/2) - np.sin(-angle/2) * 1j
-        gate[1,1] = np.cos(angle/2) - np.sin(angle/2) * 1j
+        gate[0, 0] = np.cos(-angle/2) - np.sin(-angle/2) * 1j
+        gate[1, 1] = np.cos(angle/2) - np.sin(angle/2) * 1j
     return gate
+
 
 def RUnity(n, invert):
     return R(2*np.pi/(2**n), invert)
+
 
 def HalfDeutsch(angle, invert):
     gate = np.zeros(4, dtype=complex).reshape(2, 2)
@@ -122,11 +134,12 @@ def HalfDeutsch(angle, invert):
     sinan = np.sin(angle)
     if invert:
         cosan = -cosan
-    gate[0,0] = cosan
-    gate[0,1] = sinan
-    gate[1,0] = sinan
-    gate[1,1] = cosan
+    gate[0, 0] = cosan
+    gate[0, 1] = sinan
+    gate[1, 0] = sinan
+    gate[1, 1] = cosan
     return gate
+
 
 def U(angle1, angle2, angle3, invert):
     gate = np.zeros(4, dtype=complex).reshape(2, 2)
@@ -135,35 +148,40 @@ def U(angle1, angle2, angle3, invert):
     mult = 1
     if invert:
         mult = -1
-    gate[0,0] = cosan
+    gate[0, 0] = cosan
     if not invert:
-        gate[0,1] = -sinan * np.cos(angle3) - sinan * np.sin(angle3) * 1j
-        gate[1,0] = sinan * np.cos(angle2) + sinan * np.sin(angle2) * 1j
+        gate[0, 1] = -sinan * np.cos(angle3) - sinan * np.sin(angle3) * 1j
+        gate[1, 0] = sinan * np.cos(angle2) + sinan * np.sin(angle2) * 1j
     else:
-        gate[0,1] = sinan * np.cos(angle2) - sinan * np.sin(angle2) * 1j
-        gate[1,0] = -sinan * np.cos(angle3) + sinan * np.sin(angle3) * 1j
-    gate[1,1] = cosan * np.cos(angle2+angle3) + mult * cosan * np.sin(angle2+angle3) * 1j
+        gate[0, 1] = sinan * np.cos(angle2) - sinan * np.sin(angle2) * 1j
+        gate[1, 0] = -sinan * np.cos(angle3) + sinan * np.sin(angle3) * 1j
+    gate[1, 1] = cosan * np.cos(angle2+angle3) + mult * cosan * np.sin(angle2+angle3) * 1j
     return gate
 
-U3 = U
+
+def U3(angle1, angle2, angle3, invert):
+    return U(angle1, angle2, angle3, invert)
+
 
 def U2(angle1, angle2, invert):
     gate = np.zeros(4, dtype=complex).reshape(2, 2)
     mult = 1
     if invert:
         mult = -1
-    gate[0,0] = 1
+    gate[0, 0] = 1
     if not invert:
-        gate[0,1] = -np.cos(angle2) - np.sin(angle2) * 1j
-        gate[1,0] = np.cos(angle1) + np.sin(angle1) * 1j
+        gate[0, 1] = -np.cos(angle2) - np.sin(angle2) * 1j
+        gate[1, 0] = np.cos(angle1) + np.sin(angle1) * 1j
     else:
-        gate[0,1] = -np.cos(angle2) + np.sin(angle2) * 1j
-        gate[1,0] = np.cos(angle1) - np.sin(angle1) * 1j
-    gate[1,1] = np.cos(angle1+angle2) + mult * np.sin(angle1+angle2) * 1j
+        gate[0, 1] = -np.cos(angle2) + np.sin(angle2) * 1j
+        gate[1, 0] = np.cos(angle1) - np.sin(angle1) * 1j
+    gate[1, 1] = np.cos(angle1+angle2) + mult * np.sin(angle1+angle2) * 1j
     return gate * (1/np.sqrt(2))
+
 
 def U1(angle, invert):
     return R(angle, invert)
+
 
 def SWAP():
     gate = np.zeros(4 * 4, dtype=complex)
@@ -175,6 +193,7 @@ def SWAP():
     gate[3][3] = 1
 
     return gate
+
 
 def iSWAP(invert):
     gate = np.zeros(4 * 4, dtype=complex)
@@ -190,6 +209,7 @@ def iSWAP(invert):
     gate[3][3] = 1
 
     return gate
+
 
 def sqrtSWAP(invert):
     gate = np.zeros(4 * 4, dtype=complex)
@@ -210,51 +230,55 @@ def sqrtSWAP(invert):
 
     return gate
 
+
 def xx(angle, invert):
     gate = np.eye(4, dtype=complex)
     if not invert:
-        gate[0,3] = np.sin(angle)-np.cos(angle)*1j
-        gate[1,2] = -1j
-        gate[2,1] = -1j
-        gate[3,0] = np.sin(-angle)-np.cos(-angle)*1j
+        gate[0, 3] = np.sin(angle)-np.cos(angle)*1j
+        gate[1, 2] = -1j
+        gate[2, 1] = -1j
+        gate[3, 0] = np.sin(-angle)-np.cos(-angle)*1j
     else:
-        gate[0,3] = np.sin(-angle)+np.cos(-angle)*1j
-        gate[1,2] = 1j
-        gate[2,1] = 1j
-        gate[3,0] = np.sin(angle)+np.cos(angle)*1j
+        gate[0, 3] = np.sin(-angle)+np.cos(-angle)*1j
+        gate[1, 2] = 1j
+        gate[2, 1] = 1j
+        gate[3, 0] = np.sin(angle)+np.cos(angle)*1j
     return gate*(1/np.sqrt(2))
+
 
 def yy(angle, invert):
     gate = np.eye(4, dtype=complex)
     gate = gate * np.cos(angle)
     ansin = np.sin(angle) * 1j
     if not invert:
-        gate[0,3] = ansin
-        gate[1,2] = -ansin
-        gate[2,1] = -ansin
-        gate[3,0] = ansin
+        gate[0, 3] = ansin
+        gate[1, 2] = -ansin
+        gate[2, 1] = -ansin
+        gate[3, 0] = ansin
     else:
-        gate[0,3] = -ansin
-        gate[1,2] = ansin
-        gate[2,1] = ansin
-        gate[3,0] = -ansin
+        gate[0, 3] = -ansin
+        gate[1, 2] = ansin
+        gate[2, 1] = ansin
+        gate[3, 0] = -ansin
     return gate
+
 
 def zz(angle, invert):
     gate = np.eye(4, dtype=complex)
     gate = gate * np.cos(angle)
     phi2 = angle/2
     if not invert:
-        gate[0,0] = np.cos(phi2) + np.sin(phi2) * 1j
-        gate[1,1] = np.cos(-phi2) + np.sin(-phi2) * 1j
-        gate[2,2] = gate[1,1]
-        gate[3,3] = gate[0,0]
+        gate[0, 0] = np.cos(phi2) + np.sin(phi2) * 1j
+        gate[1, 1] = np.cos(-phi2) + np.sin(-phi2) * 1j
+        gate[2, 2] = gate[1, 1]
+        gate[3, 3] = gate[0, 0]
     else:
-        gate[0,0] = np.cos(phi2) - np.sin(phi2) * 1j
-        gate[1,1] = np.cos(-phi2) - np.sin(-phi2) * 1j
-        gate[2,2] = gate[1,1]
-        gate[3,3] = gate[0,0]
+        gate[0, 0] = np.cos(phi2) - np.sin(phi2) * 1j
+        gate[1, 1] = np.cos(-phi2) - np.sin(-phi2) * 1j
+        gate[2, 2] = gate[1, 1]
+        gate[3, 3] = gate[0, 0]
     return gate
+
 
 def swapDownstairs(id1, id2, nq, reg):
     swap = SWAP()
@@ -262,21 +286,25 @@ def swapDownstairs(id1, id2, nq, reg):
         reg = gateToRegId(swap, i, nq, reg)
     return reg
 
+
 def swapUpstairs(id1, id2, nq, reg):
     swap = SWAP()
     for i in range(id2, id1 - 1, -1):
         reg = gateToRegId(swap, i, nq, reg)
     return reg
 
+
 def swapDownstairsList(id1, id2, li):
     for i in range(id1, id2 + 1):
         li[i], li[i+1] = li[i+1], li[i]
     return li
 
+
 def swapUpstairsList(id1, id2, li):
     for i in range(id2, id1 - 1, -1):
         li[i], li[i+1] = li[i+1], li[i]
     return li
+
 
 def sparseTwoGate(gate, id1, id2, nq, reg):
     if id2 < id1:
@@ -291,6 +319,7 @@ def sparseTwoGate(gate, id1, id2, nq, reg):
             reg = swapUpstairs(id1, id2 - 1, nq, reg)
     return reg
 
+
 def CU(gate, ncontrols):
     nqgate = int(np.log2(gate.shape[0]))
     cu = np.eye(2**(nqgate+ncontrols), dtype=complex)
@@ -301,12 +330,14 @@ def CU(gate, ncontrols):
 
     return cu
 
+
 def negateQubits(qubits, nq, reg):
     for id in qubits:
         reg = gateToRegId(X(), id, nq, reg)
     return reg
 
-def applyCACU(gate, id, controls, anticontrols, nq, reg): # Controlled and Anti-Controlled U
+
+def applyCACU(gate, id, controls, anticontrols, nq, reg):  # Controlled and Anti-Controlled U
     cset = set(controls)
     acset = set(anticontrols)
     cuac = list(cset.union(acset))
@@ -318,30 +349,32 @@ def applyCACU(gate, id, controls, anticontrols, nq, reg): # Controlled and Anti-
     first = cuac[0]
 
     reg = negateQubits(acset, nq, reg)
-    #print("Ids: " + str(qubitIds))
+    # print("Ids: " + str(qubitIds))
     for i in range(len(extended_cuac)):
         if qubitIds[i] != extended_cuac[i]:
             indaux = qubitIds.index(extended_cuac[i])
             reg = swapUpstairs(i, indaux - 1, nq, reg)
             qubitIds = swapUpstairsList(i, indaux - 1, qubitIds)
-            #print("Ids: " + str(qubitIds))
-    #print(reg)
+            # print("Ids: " + str(qubitIds))
+    # print(reg)
     reg = gateToRegId(CU(gate, len(cuac)), 0, nq, reg)
-    #print(reg)
+    # print(reg)
     for i in range(nq):
         if qubitIds[i] != i:
             indaux = qubitIds.index(i)
             reg = swapUpstairs(i, indaux - 1, nq, reg)
             qubitIds = swapUpstairsList(i, indaux - 1, qubitIds)
-            #print("Ids: " + str(qubitIds))
+            # print("Ids: " + str(qubitIds))
     reg = negateQubits(acset, nq, reg)
-    #print(reg)
+    # print(reg)
     return reg
+
 
 def Bal(n, controlId=0):
     gate = qj.QGate("Balanced")
     gate.addLine(*[None for i in range(n-1)], ["X", controlId, None])
     return gate
+
 
 def Const(n, twice=False):
     gate = qj.QGate("Constant")
@@ -350,28 +383,30 @@ def Const(n, twice=False):
         gate.addLine(*[None for i in range(n-1)], "X")
     return gate
 
-def DJAlgCircuit(size, U_f): # U_f es el oraculo, que debe tener x1..xn e y como qubits. Tras aplicarlo el qubit y debe valer f(x1..xn) XOR y. El argumento size es n + 1, donde n es el numero de bits de entrada de f.
-    c = qj.QCircuit("Deutsch-Josza Algorithm", ancilla=[1]) # El ultimo QuBit al ejecutar el algoritmo es de ancilla, con su valor a 1
-    c.addLine(*["H" for i in range(size)]) # Se aplica una compuerta hadamard a todos los qubits
-    c.addLine(U_f) # Se aplica el oraculo
-    c.addLine(*["H" for i in range(size-1)], "I") # Se aplica una puerta Hadamard a todos los qubits excepto al ultimo
 
-    # f = lambda _, l: print(all(i == 0 for i in l[:-1])) # Funcion que imprimira cierto tras realizar la medida si la funcion es constante
+def DJAlgCircuit(size, U_f):  # U_f es el oraculo, que debe tener x1..xn e y como qubits. Tras aplicarlo el qubit y debe valer f(x1..xn) XOR y. El argumento size es n + 1, donde n es el numero de bits de entrada de f.
+    c = qj.QCircuit("Deutsch-Josza Algorithm", ancilla=[1])  # El ultimo QuBit al ejecutar el algoritmo es de ancilla, con su valor a 1
+    c.addLine(*["H" for i in range(size)])  # Se aplica una compuerta hadamard a todos los qubits
+    c.addLine(U_f)  # Se aplica el oraculo
+    c.addLine(*["H" for i in range(size-1)], "I")  # Se aplica una puerta Hadamard a todos los qubits excepto al ultimo
 
-    # c.addLine(Measure([1 for i in range(size - 1)] + [0], tasks=[f])) # Se miden los qubit x, si es igual a 0 la funcion es constante. En caso contrario no lo es.
-    c.addLine(qj.Measure([1 for i in range(size - 1)] + [0])) # Se miden los qubit x, si es igual a 0 la funcion es constante. En caso contrario no lo es.
+    # f = lambda _, l: print(all(i == 0 for i in l[:-1]))  # Funcion que imprimira cierto tras realizar la medida si la funcion es constante
+
+    # c.addLine(Measure([1 for i in range(size - 1)] + [0], tasks=[f]))  # Se miden los qubit x, si es igual a 0 la funcion es constante. En caso contrario no lo es.
+    c.addLine(qj.Measure([1 for i in range(size - 1)] + [0]))  # Se miden los qubit x, si es igual a 0 la funcion es constante. En caso contrario no lo es.
 
     return c
 
-def TeleportationCircuit(gate, remove=True): # Recibe como argumento lo que se va a ejecutar sobre el primer QuBit despues de hacer el estado de Bell con los dos últimos.
+
+def TeleportationCircuit(gate, remove=True):  # Recibe como argumento lo que se va a ejecutar sobre el primer QuBit despues de hacer el estado de Bell con los dos últimos.
     qc = qj.QCircuit("Teleportation", ancilla=[0, 0])
     qc.addLine(None, "H", None)
     qc.addLine(None, None, ["X", 1, None])
     # Aqui es donde trabajamos con el qubit Q que queremos enviar posteriormente. Se le aplica la puerta pasada como parámetro.
     qc.addLine(gate, None, None)
     # Una vez terminado todo lo que queremos hacerle al QuBit, procedemos a preparar el envio
-    qc.addLine(None, ["X", 0, None], None) # Se aplica una puerta C-NOT sobre Q (control) y B (objetivo).
-    qc.addLine("H", None, None) # Se aplica una puerta Hadamard sobre Q.
+    qc.addLine(None, ["X", 0, None], None)  # Se aplica una puerta C-NOT sobre Q (control) y B (objetivo).
+    qc.addLine("H", None, None)  # Se aplica una puerta Hadamard sobre Q.
 
     gate1 = "X"
     gate2 = "Z"
@@ -385,7 +420,8 @@ def TeleportationCircuit(gate, remove=True): # Recibe como argumento lo que se v
 
     qc.addLine(m)
 
-    return qc # Se devuelve el circuito.
+    return qc  # Se devuelve el circuito.
+
 
 def gateTests(gatename, verbose=False, hasInv=False, nArgs=0):
     passed = 0
@@ -491,6 +527,7 @@ def gateTests(gatename, verbose=False, hasInv=False, nArgs=0):
 
     return (passed, total)
 
+
 def oneGateTests(nq, verbose=False, QItem=qj.QRegistry):
     passed = 0
     total = nq
@@ -501,7 +538,7 @@ def oneGateTests(nq, verbose=False, QItem=qj.QRegistry):
         numpygate = qj.getGate(gate)
         if verbose:
             print("  Testing gate " + gate + " to qubit " + str(id) + "...")
-        #print("    Gate: " + str(numpygate))
+        # print("    Gate: " + str(numpygate))
         b = QItem(nq)
         a = gateToId(numpygate, id, nq)
         if verbose:
@@ -593,6 +630,7 @@ def simpleSwapTests(nq, imaginary, sqrt, invert, verbose=False, QItem=qj.QRegist
         del b
     return (passed, total)
 
+
 def sparseSwapTests(nq, imaginary, sqrt, invert, verbose=False, QItem=qj.QRegistry):
     passed = 0
     total = ((nq - 1) * (nq - 2))//2
@@ -661,6 +699,7 @@ def sparseSwapTests(nq, imaginary, sqrt, invert, verbose=False, QItem=qj.QRegist
         del b
     return (passed, total)
 
+
 def simpleIsingTests(nq, type, invert, verbose=False, QItem=qj.QRegistry):
     passed = 0
     total = nq - 1
@@ -711,7 +750,7 @@ def simpleIsingTests(nq, type, invert, verbose=False, QItem=qj.QRegistry):
         numpygate = gatefun(angle, invert)
         if verbose:
             print("   Coupling qubits " + str(id) + " and " + str(id + 1) + " with angle " + str(angle) + "...")
-            #print("    Gate: " + str(numpygate))
+            # print("    Gate: " + str(numpygate))
         a = gateToRegId(numpygate, id, nq, a)
         if verbose:
             print("    Numpy done")
@@ -735,6 +774,7 @@ def simpleIsingTests(nq, type, invert, verbose=False, QItem=qj.QRegistry):
         del a
         del b
     return (passed, total)
+
 
 def sparseIsingTests(nq, type, invert, verbose=False, QItem=qj.QRegistry):
     passed = 0
@@ -812,8 +852,10 @@ def sparseIsingTests(nq, type, invert, verbose=False, QItem=qj.QRegistry):
         del b
     return (passed, total)
 
+
 # def applyCACU(gate, id, controls, anticontrols, nq, reg)
 # cascada aleatoria
+
 def controlledGateTests(nq, verbose=False, QItem=qj.QRegistry):
     total = nq - 1
     passed = 0
@@ -857,6 +899,7 @@ def controlledGateTests(nq, verbose=False, QItem=qj.QRegistry):
     del a
     del b
     return (passed, total)
+
 
 def cSWAPTests(nq, imaginary, sqrt, invert, verbose=False, QItem=qj.QRegistry):
     total = nq - 1
@@ -929,6 +972,7 @@ def cSWAPTests(nq, imaginary, sqrt, invert, verbose=False, QItem=qj.QRegistry):
     del b
     return (passed, total)
 
+
 def cIsingTests(nq, type, invert, verbose=False, QItem=qj.QRegistry):
     total = nq - 1
     passed = 0
@@ -1000,6 +1044,7 @@ def cIsingTests(nq, type, invert, verbose=False, QItem=qj.QRegistry):
     del b
     return (passed, total)
 
+
 def measureRegTests(nq, remove=False, verbose=False):
     passed = 0
     total = nq
@@ -1041,6 +1086,7 @@ def measureRegTests(nq, remove=False, verbose=False):
 
     return (passed, total)
 
+
 def measureSysTests(nq, entangle=False, remove=False, verbose=False):
     passed = 0
     total = nq
@@ -1077,6 +1123,7 @@ def measureSysTests(nq, entangle=False, remove=False, verbose=False):
         del reg
 
     return (passed, total)
+
 
 def deutschTests(nq, verbose=False, useSystem=False):
     passed = 0
@@ -1124,12 +1171,12 @@ def deutschTests(nq, verbose=False, useSystem=False):
             reg, mes = circuit.execute([0 for i in range(nq - 1)], useSystem=useSystem)
             mes = mes[0]
 
-            reg2 = qj.QSystem(nq) # Los qubits se inicializan a cero (x1..xn) excepto el ultimo (y), inicializado a uno
+            reg2 = qj.QSystem(nq)  # Los qubits se inicializan a cero (x1..xn) excepto el ultimo (y), inicializado a uno
             reg2.applyGate("X", qubit=nq-1)
-            reg2.applyGate(*["H" for i in range(nq)]) # Se aplica una compuerta hadamard a todos los qubits
-            reg2.applyGate(gate) # Se aplica el oraculo
-            reg2.applyGate(*["H" for i in range(nq-1)], "I") # Se aplica una puerta Hadamard a todos los qubits excepto al ultimo
-            mes2 = reg2.measure([1 for i in range(nq - 1)] + [0]) # Se miden los qubit x, si es igual a 0 la funcion es constante. En caso contrario no lo es.
+            reg2.applyGate(*["H" for i in range(nq)])  # Se aplica una compuerta hadamard a todos los qubits
+            reg2.applyGate(gate)  # Se aplica el oraculo
+            reg2.applyGate(*["H" for i in range(nq-1)], "I")  # Se aplica una puerta Hadamard a todos los qubits excepto al ultimo
+            mes2 = reg2.measure([1 for i in range(nq - 1)] + [0])  # Se miden los qubit x, si es igual a 0 la funcion es constante. En caso contrario no lo es.
             mes2 += [None]
 
             if not all(reg.getState() == reg2.getState()) or not mes == mes2:
@@ -1202,113 +1249,117 @@ def teleportationTests(verbose=False, useSystem=False, remove=False):
 
     return (passed, total)
 
+
 def allGateTests(seed=None, verbose=False):
     if not (seed is None):
         qj.setRandomSeed(seed)
         rnd.seed(seed)
         np.random.seed(seed)
-    result = [(0, 0) for i in range(15)] # We have 15 tests
+    result = [(0, 0) for i in range(15)]  # We have 15 tests
 
-    result[0] = gateTests("H", verbose=verbose, hasInv=False, nArgs=0) # H gate tests
-    result[1] = gateTests("X", verbose=verbose, hasInv=False, nArgs=0) # X gate tests
-    result[2] = gateTests("Y", verbose=verbose, hasInv=False, nArgs=0) # Y gate tests
-    result[3] = gateTests("Z", verbose=verbose, hasInv=False, nArgs=0) # Z gate tests
-    result[4] = gateTests("SqrtX", verbose=verbose, hasInv=True, nArgs=0) # SqrtX gate tests
-    result[5] = gateTests("RX", verbose=verbose, hasInv=True, nArgs=1) # RX gate tests
-    result[6] = gateTests("RY", verbose=verbose, hasInv=True, nArgs=1) # RY gate tests
-    result[7] = gateTests("RZ", verbose=verbose, hasInv=True, nArgs=1) # RZ gate tests
-    result[8] = gateTests("R", verbose=verbose, hasInv=True, nArgs=1) # Phase shift gate tests
-    result[9] = gateTests("RUnity", verbose=verbose, hasInv=True, nArgs=1) # Roots of unity gate tests
-    result[10] = gateTests("HalfDeutsch", verbose=verbose, hasInv=True, nArgs=1) # Partial Deutsch gate tests
-    result[11] = gateTests("U", verbose=verbose, hasInv=True, nArgs=3) # U gate tests
-    result[12] = gateTests("U3", verbose=verbose, hasInv=True, nArgs=3) # U3 gate tests
-    result[13] = gateTests("U2", verbose=verbose, hasInv=True, nArgs=2) # U2 gate tests
-    result[14] = gateTests("U1", verbose=verbose, hasInv=True, nArgs=1) # U1 gate tests
+    result[0] = gateTests("H", verbose=verbose, hasInv=False, nArgs=0)  # H gate tests
+    result[1] = gateTests("X", verbose=verbose, hasInv=False, nArgs=0)  # X gate tests
+    result[2] = gateTests("Y", verbose=verbose, hasInv=False, nArgs=0)  # Y gate tests
+    result[3] = gateTests("Z", verbose=verbose, hasInv=False, nArgs=0)  # Z gate tests
+    result[4] = gateTests("SqrtX", verbose=verbose, hasInv=True, nArgs=0)  # SqrtX gate tests
+    result[5] = gateTests("RX", verbose=verbose, hasInv=True, nArgs=1)  # RX gate tests
+    result[6] = gateTests("RY", verbose=verbose, hasInv=True, nArgs=1)  # RY gate tests
+    result[7] = gateTests("RZ", verbose=verbose, hasInv=True, nArgs=1)  # RZ gate tests
+    result[8] = gateTests("R", verbose=verbose, hasInv=True, nArgs=1)  # Phase shift gate tests
+    result[9] = gateTests("RUnity", verbose=verbose, hasInv=True, nArgs=1)  # Roots of unity gate tests
+    result[10] = gateTests("HalfDeutsch", verbose=verbose, hasInv=True, nArgs=1)  # Partial Deutsch gate tests
+    result[11] = gateTests("U", verbose=verbose, hasInv=True, nArgs=3)  # U gate tests
+    result[12] = gateTests("U3", verbose=verbose, hasInv=True, nArgs=3)  # U3 gate tests
+    result[13] = gateTests("U2", verbose=verbose, hasInv=True, nArgs=2)  # U2 gate tests
+    result[14] = gateTests("U1", verbose=verbose, hasInv=True, nArgs=1)  # U1 gate tests
 
     return result
+
 
 def dataStructureTests(minqubits, maxqubits, seed=None, verbose=False, QItem=qj.QRegistry):
     if not (seed is None):
         qj.setRandomSeed(seed)
         rnd.seed(seed)
         np.random.seed(seed)
-    result = [(0, 0) for i in range(37)] # We have 37 tests with QRegistry
+    result = [(0, 0) for i in range(37)]  # We have 37 tests with QRegistry
     if QItem == qj.QSystem:
-        result += [(0, 0), (0, 0)] # We have 39 tests with QSystem
+        result += [(0, 0), (0, 0)]  # We have 39 tests with QSystem
 
     for nq in range(minqubits, maxqubits + 1):
         if verbose:
             print("Testing with " + str(nq) + " qubit registries")
-        result[0] = map(add, result[0], oneGateTests(nq, verbose=verbose, QItem=QItem)) # Apply U gate tests
-        result[1] = map(add, result[1], simpleSwapTests(nq, False, False, False, verbose=verbose, QItem=QItem)) # Simple SWAP gate tests
-        result[2] = map(add, result[2], simpleSwapTests(nq, True, False, False, verbose=verbose, QItem=QItem)) # Simple iSWAP gate tests
-        result[3] = map(add, result[3], simpleSwapTests(nq, False, True, False, verbose=verbose, QItem=QItem)) # Simple sqrtSWAP gate tests
-        result[4] = map(add, result[4], simpleSwapTests(nq, True, False, True, verbose=verbose, QItem=QItem)) # Simple iSWAP-1 gate tests
-        result[5] = map(add, result[5], simpleSwapTests(nq, False, True, True, verbose=verbose, QItem=QItem)) # Simple sqrtSWAP-1 gate tests
-        result[6] = map(add, result[6], sparseSwapTests(nq, False, False, False, verbose=verbose, QItem=QItem)) # Sparse SWAP gate tests
-        result[7] = map(add, result[7], sparseSwapTests(nq, True, False, False, verbose=verbose, QItem=QItem)) # Sparse iSWAP gate tests
-        result[8] = map(add, result[8], sparseSwapTests(nq, False, True, False, verbose=verbose, QItem=QItem)) # Sparse sqrtSWAP gate tests
-        result[9] = map(add, result[9], sparseSwapTests(nq, True, False, True, verbose=verbose, QItem=QItem)) # Sparse iSWAP-1 gate tests
-        result[10] = map(add, result[10], sparseSwapTests(nq, False, True, True, verbose=verbose, QItem=QItem)) # Sparse sqrtSWAP-1 gate tests
-        result[11] = map(add, result[11], simpleIsingTests(nq, 0, False, verbose=verbose, QItem=QItem)) # Simple XX gate tests
-        result[12] = map(add, result[12], simpleIsingTests(nq, 1, False, verbose=verbose, QItem=QItem)) # Simple YY gate tests
-        result[13] = map(add, result[13], simpleIsingTests(nq, 2, False, verbose=verbose, QItem=QItem)) # Simple ZZ gate tests
-        result[14] = map(add, result[14], simpleIsingTests(nq, 0, True, verbose=verbose, QItem=QItem)) # Simple XX-1 gate tests
-        result[15] = map(add, result[15], simpleIsingTests(nq, 1, True, verbose=verbose, QItem=QItem)) # Simple YY-1 gate tests
-        result[16] = map(add, result[16], simpleIsingTests(nq, 2, True, verbose=verbose, QItem=QItem)) # Simple ZZ-1 gate tests
-        result[17] = map(add, result[17], sparseIsingTests(nq, 0, False, verbose=verbose, QItem=QItem)) # Sparse XX gate tests
-        result[18] = map(add, result[18], sparseIsingTests(nq, 1, False, verbose=verbose, QItem=QItem)) # Sparse YY gate tests
-        result[19] = map(add, result[19], sparseIsingTests(nq, 2, False, verbose=verbose, QItem=QItem)) # Sparse ZZ gate tests
-        result[20] = map(add, result[20], sparseIsingTests(nq, 0, True, verbose=verbose, QItem=QItem)) # Sparse XX-1 gate tests
-        result[21] = map(add, result[21], sparseIsingTests(nq, 1, True, verbose=verbose, QItem=QItem)) # Sparse YY-1 gate tests
-        result[22] = map(add, result[22], sparseIsingTests(nq, 2, True, verbose=verbose, QItem=QItem)) # Sparse ZZ-1 gate tests
-        result[23] = map(add, result[23], controlledGateTests(nq, verbose=verbose, QItem=QItem)) # Controlled U gate tests
-        result[24] = map(add, result[24], cSWAPTests(nq, False, False, False, verbose=verbose, QItem=QItem)) # Controlled SWAP gate tests
-        result[25] = map(add, result[25], cSWAPTests(nq, True, False, False, verbose=verbose, QItem=QItem)) # Controlled iSWAP gate tests
-        result[26] = map(add, result[26], cSWAPTests(nq, False, True, False, verbose=verbose, QItem=QItem)) # Controlled sqrtSWAP gate tests
-        result[27] = map(add, result[27], cSWAPTests(nq, True, False, True, verbose=verbose, QItem=QItem)) # Controlled iSWAP-1 gate tests
-        result[28] = map(add, result[28], cSWAPTests(nq, False, True, True, verbose=verbose, QItem=QItem)) # Controlled sqrtSWAP-1 gate tests
-        result[29] = map(add, result[29], cIsingTests(nq, 0, False, verbose=verbose, QItem=QItem)) # Controlled XX gate tests
-        result[30] = map(add, result[30], cIsingTests(nq, 1, False, verbose=verbose, QItem=QItem)) # Controlled YY gate tests
-        result[31] = map(add, result[31], cIsingTests(nq, 2, False, verbose=verbose, QItem=QItem)) # Controlled ZZ gate tests
-        result[32] = map(add, result[32], cIsingTests(nq, 0, True, verbose=verbose, QItem=QItem)) # Controlled XX-1 gate tests
-        result[33] = map(add, result[33], cIsingTests(nq, 1, True, verbose=verbose, QItem=QItem)) # Controlled YY-1 gate tests
-        result[34] = map(add, result[34], cIsingTests(nq, 2, True, verbose=verbose, QItem=QItem)) # Controlled ZZ-1 gate tests
+        result[0] = map(add, result[0], oneGateTests(nq, verbose=verbose, QItem=QItem))  # Apply U gate tests
+        result[1] = map(add, result[1], simpleSwapTests(nq, False, False, False, verbose=verbose, QItem=QItem))  # Simple SWAP gate tests
+        result[2] = map(add, result[2], simpleSwapTests(nq, True, False, False, verbose=verbose, QItem=QItem))  # Simple iSWAP gate tests
+        result[3] = map(add, result[3], simpleSwapTests(nq, False, True, False, verbose=verbose, QItem=QItem))  # Simple sqrtSWAP gate tests
+        result[4] = map(add, result[4], simpleSwapTests(nq, True, False, True, verbose=verbose, QItem=QItem))  # Simple iSWAP-1 gate tests
+        result[5] = map(add, result[5], simpleSwapTests(nq, False, True, True, verbose=verbose, QItem=QItem))  # Simple sqrtSWAP-1 gate tests
+        result[6] = map(add, result[6], sparseSwapTests(nq, False, False, False, verbose=verbose, QItem=QItem))  # Sparse SWAP gate tests
+        result[7] = map(add, result[7], sparseSwapTests(nq, True, False, False, verbose=verbose, QItem=QItem))  # Sparse iSWAP gate tests
+        result[8] = map(add, result[8], sparseSwapTests(nq, False, True, False, verbose=verbose, QItem=QItem))  # Sparse sqrtSWAP gate tests
+        result[9] = map(add, result[9], sparseSwapTests(nq, True, False, True, verbose=verbose, QItem=QItem))  # Sparse iSWAP-1 gate tests
+        result[10] = map(add, result[10], sparseSwapTests(nq, False, True, True, verbose=verbose, QItem=QItem))  # Sparse sqrtSWAP-1 gate tests
+        result[11] = map(add, result[11], simpleIsingTests(nq, 0, False, verbose=verbose, QItem=QItem))  # Simple XX gate tests
+        result[12] = map(add, result[12], simpleIsingTests(nq, 1, False, verbose=verbose, QItem=QItem))  # Simple YY gate tests
+        result[13] = map(add, result[13], simpleIsingTests(nq, 2, False, verbose=verbose, QItem=QItem))  # Simple ZZ gate tests
+        result[14] = map(add, result[14], simpleIsingTests(nq, 0, True, verbose=verbose, QItem=QItem))  # Simple XX-1 gate tests
+        result[15] = map(add, result[15], simpleIsingTests(nq, 1, True, verbose=verbose, QItem=QItem))  # Simple YY-1 gate tests
+        result[16] = map(add, result[16], simpleIsingTests(nq, 2, True, verbose=verbose, QItem=QItem))  # Simple ZZ-1 gate tests
+        result[17] = map(add, result[17], sparseIsingTests(nq, 0, False, verbose=verbose, QItem=QItem))  # Sparse XX gate tests
+        result[18] = map(add, result[18], sparseIsingTests(nq, 1, False, verbose=verbose, QItem=QItem))  # Sparse YY gate tests
+        result[19] = map(add, result[19], sparseIsingTests(nq, 2, False, verbose=verbose, QItem=QItem))  # Sparse ZZ gate tests
+        result[20] = map(add, result[20], sparseIsingTests(nq, 0, True, verbose=verbose, QItem=QItem))  # Sparse XX-1 gate tests
+        result[21] = map(add, result[21], sparseIsingTests(nq, 1, True, verbose=verbose, QItem=QItem))  # Sparse YY-1 gate tests
+        result[22] = map(add, result[22], sparseIsingTests(nq, 2, True, verbose=verbose, QItem=QItem))  # Sparse ZZ-1 gate tests
+        result[23] = map(add, result[23], controlledGateTests(nq, verbose=verbose, QItem=QItem))  # Controlled U gate tests
+        result[24] = map(add, result[24], cSWAPTests(nq, False, False, False, verbose=verbose, QItem=QItem))  # Controlled SWAP gate tests
+        result[25] = map(add, result[25], cSWAPTests(nq, True, False, False, verbose=verbose, QItem=QItem))  # Controlled iSWAP gate tests
+        result[26] = map(add, result[26], cSWAPTests(nq, False, True, False, verbose=verbose, QItem=QItem))  # Controlled sqrtSWAP gate tests
+        result[27] = map(add, result[27], cSWAPTests(nq, True, False, True, verbose=verbose, QItem=QItem))  # Controlled iSWAP-1 gate tests
+        result[28] = map(add, result[28], cSWAPTests(nq, False, True, True, verbose=verbose, QItem=QItem))  # Controlled sqrtSWAP-1 gate tests
+        result[29] = map(add, result[29], cIsingTests(nq, 0, False, verbose=verbose, QItem=QItem))  # Controlled XX gate tests
+        result[30] = map(add, result[30], cIsingTests(nq, 1, False, verbose=verbose, QItem=QItem))  # Controlled YY gate tests
+        result[31] = map(add, result[31], cIsingTests(nq, 2, False, verbose=verbose, QItem=QItem))  # Controlled ZZ gate tests
+        result[32] = map(add, result[32], cIsingTests(nq, 0, True, verbose=verbose, QItem=QItem))  # Controlled XX-1 gate tests
+        result[33] = map(add, result[33], cIsingTests(nq, 1, True, verbose=verbose, QItem=QItem))  # Controlled YY-1 gate tests
+        result[34] = map(add, result[34], cIsingTests(nq, 2, True, verbose=verbose, QItem=QItem))  # Controlled ZZ-1 gate tests
         if QItem == qj.QRegistry:
-            result[35] = map(add, result[35], measureRegTests(nq, remove=False, verbose=verbose)) # Registry measurement tests
-            result[36] = map(add, result[36], measureRegTests(nq, remove=True, verbose=verbose)) # Registry measurement tests
+            result[35] = map(add, result[35], measureRegTests(nq, remove=False, verbose=verbose))  # Registry measurement tests
+            result[36] = map(add, result[36], measureRegTests(nq, remove=True, verbose=verbose))  # Registry measurement tests
         else:
-            result[35] = map(add, result[35], measureSysTests(nq, remove=False, entangle=False, verbose=verbose)) # QSystem measurement tests without entanglement
-            result[36] = map(add, result[36], measureSysTests(nq, remove=False, entangle=True, verbose=verbose)) # QSystem measurement tests with entanglement
-            result[37] = map(add, result[37], measureSysTests(nq, remove=True, entangle=False, verbose=verbose)) # QSystem measurement tests without entanglement
-            result[38] = map(add, result[38], measureSysTests(nq, remove=True, entangle=True, verbose=verbose)) # QSystem measurement tests with entanglement
+            result[35] = map(add, result[35], measureSysTests(nq, remove=False, entangle=False, verbose=verbose))  # QSystem measurement tests without entanglement
+            result[36] = map(add, result[36], measureSysTests(nq, remove=False, entangle=True, verbose=verbose))  # QSystem measurement tests with entanglement
+            result[37] = map(add, result[37], measureSysTests(nq, remove=True, entangle=False, verbose=verbose))  # QSystem measurement tests without entanglement
+            result[38] = map(add, result[38], measureSysTests(nq, remove=True, entangle=True, verbose=verbose))  # QSystem measurement tests with entanglement
 
     for i in range(len(result)):
         result[i] = tuple(result[i])
 
     return result
 
+
 def highLevelTests(minqubits, maxqubits, seed=None, verbose=False):
     if not (seed is None):
         qj.setRandomSeed(seed)
         rnd.seed(seed)
         np.random.seed(seed)
-    result = [(0, 0) for i in range(6)] # We have 6 tests
+    result = [(0, 0) for i in range(6)]  # We have 6 tests
 
     for nq in range(minqubits, maxqubits + 1):
         if verbose:
             print("Testing with " + str(nq) + " qubit circuits")
-        result[0] = map(add, result[0], deutschTests(4, verbose=verbose, useSystem=False)) # Deutsch-Josza algorithm with QRegistry tests
-        result[1] = map(add, result[1], deutschTests(4, verbose=verbose, useSystem=True)) # Deutsch-Josza algorithm with QSystem tests
-    result[2] = teleportationTests(verbose=verbose, useSystem=False, remove=False) # Teleportation algorithm with QRegistry tests
-    result[3] = teleportationTests(verbose=verbose, useSystem=False, remove=True) # Teleportation algorithm with QRegistry tests and remove option
-    result[4] = teleportationTests(verbose=verbose, useSystem=True, remove=False) # Teleportation algorithm with QSystem tests
-    result[5] = teleportationTests(verbose=verbose, useSystem=True, remove=True) # Teleportation algorithm with QSystem tests and remove option
+        result[0] = map(add, result[0], deutschTests(4, verbose=verbose, useSystem=False))  # Deutsch-Josza algorithm with QRegistry tests
+        result[1] = map(add, result[1], deutschTests(4, verbose=verbose, useSystem=True))  # Deutsch-Josza algorithm with QSystem tests
+    result[2] = teleportationTests(verbose=verbose, useSystem=False, remove=False)  # Teleportation algorithm with QRegistry tests
+    result[3] = teleportationTests(verbose=verbose, useSystem=False, remove=True)  # Teleportation algorithm with QRegistry tests and remove option
+    result[4] = teleportationTests(verbose=verbose, useSystem=True, remove=False)  # Teleportation algorithm with QSystem tests
+    result[5] = teleportationTests(verbose=verbose, useSystem=True, remove=True)  # Teleportation algorithm with QSystem tests and remove option
 
     for i in range(2):
         result[i] = tuple(result[i])
 
     return result
+
 
 def main():
     argv = sys.argv[1:]
@@ -1351,7 +1402,7 @@ def main():
         print("Passed: " + str(noice) + "/" + str(total))
         if noice == total:
             print("PEACE AND TRANQUILITY")
-            #wb.open_new_tab("https://youtu.be/SHvhps47Lmc")
+            # wb.open_new_tab("https://youtu.be/SHvhps47Lmc")
         else:
             for testid in range(total):
                 if passed[testid] == 0:
@@ -1364,11 +1415,12 @@ def main():
                     else:
                         print("High level Test " + str(testid - (15 + 37 + 39)) + " failed!")
             print("SORROW")
-            #wb.open_new_tab("https://youtu.be/4Js-XbNj6Tk?t=37")
+            # wb.open_new_tab("https://youtu.be/4Js-XbNj6Tk?t=37")
         # We assert so the test fails if we failed something
         assert noice == total
     else:
         print ("Syntax: " + sys.argv[0] + " <minimum number of qubits (min 3)> <maximum number of qubits> <seed (optional)>")
+
 
 if __name__ == "__main__":
     main()

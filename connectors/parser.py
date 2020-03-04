@@ -3,6 +3,7 @@ import re
 
 __rep__ = re.compile("^([a-zA-Z0-9]+)(\((?:(?:(?:[a-zA-Z]+)|(?:[0-9]+(?:\.[0-9]+)?(?:e[\+\-][0-9]+)?))\,\s*)*(?:(?:(?:[a-zA-Z]+)|(?:[0-9]+(?:\.[0-9]+)?(?:e[\+\-][0-9]+)?)))\))?(\-1)?$")
 
+
 def parseGroups(groups):
     errored = False
     g1 = groups[0]
@@ -24,7 +25,7 @@ def parseGroups(groups):
             elif attr.lower() == "e":
                 attr = np.e
             else:
-                print (attr)
+                print(attr)
                 errored = True
                 break
             g3.append(attr)
@@ -37,9 +38,11 @@ def parseGroups(groups):
     else:
         return None
 
+
 def getGroups(str_gate):
     res = __rep__.match(str_gate)
     return parseGroups(res.groups()) if res is not None else None
+
 
 __gateDict__ = {}
 __gateDict__["x"] = ("X", 0, 0)
@@ -79,6 +82,7 @@ __gateDict__["swap"] = ("SWAP", 2, 2)
 __gateDict__["iswap"] = ("ISWAP", 2, 2)
 __gateDict__["sqrtswap"] = ("SqrtSWAP", 2, 2)
 
+
 def getGateData(gateraw):
     gate = None
     if type(gateraw) == str:
@@ -99,7 +103,7 @@ def getGateData(gateraw):
                         gatemet = "U1"
                         minargs, maxargs = 1, 1
 
-                if minargs <= nargs <= maxargs: # Adoro Python
+                if minargs <= nargs <= maxargs:  # Adoro Python
                     if nargs == 0:
                         gate = (gatemet, None, None, None, invert)
                     elif nargs == 1:

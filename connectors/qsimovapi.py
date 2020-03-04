@@ -2,19 +2,17 @@ from structures.qgate import QGate, getGateSize
 from structures.qregistry import QRegistry, superposition
 from structures.qsystem import QSystem, joinSystems
 from structures.measure import Measure
-from structures.funmatrix import Funmatrix
 from collections.abc import Iterable
-import ctypes as ct
 import connectors.parser as prs
 import structures.funmatrix as fm
 import gc
 import numpy as np
 
-def _executeOnce(qsystem, lines, ancilla=None, useSystem=True): # You can pass a QRegistry or an array to build a new QRegistry. When the second option is used, the ancilliary qubits will be added to the specified list.
-    #print(qsystem)
+
+def _executeOnce(qsystem, lines, ancilla=None, useSystem=True):  # You can pass a QRegistry or an array to build a new QRegistry. When the second option is used, the ancilliary qubits will be added to the specified list.
+    # print(qsystem)
     g = []
     r = qsystem
-    firstGate = False
     QDataStruct = QSystem if useSystem else QRegistry
     if np.issubdtype(type(qsystem), np.integer):
         r = QDataStruct(qsystem)
@@ -29,7 +27,8 @@ def _executeOnce(qsystem, lines, ancilla=None, useSystem=True): # You can pass a
     if ancilla is not None and len(ancilla) > 0:
         joinFunct = joinSystems
         if not useSystem:
-            joinFunct = lambda r1, r2: superposition(r2, r1)
+            def joinFunct(r1, r2):
+                return superposition(r2, r1)
         a = QDataStruct(len(ancilla))
         for i in range(len(ancilla)):
             if ancilla[i] != 0:
@@ -63,6 +62,7 @@ def _executeOnce(qsystem, lines, ancilla=None, useSystem=True): # You can pass a
     finally:
         gc.collect()
     return (r, mres)
+
 
 def execute(qregistry, iterations=1, lines=[], ancilla=None, useSystem=True):
     sol = [_executeOnce(qregistry, lines, ancilla, useSystem) for i in range(iterations)]

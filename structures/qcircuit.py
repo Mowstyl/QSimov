@@ -1,11 +1,10 @@
 from structures.qregistry import QRegistry
 from structures.qsystem import QSystem
-from structures.qgate import QGate, getGateSize, _rebuildGateName, _getQuBitArg, _getParties
+from structures.qgate import _rebuildGateName, _getParties
 from structures.measure import Measure
-from collections.abc import Iterable
 import connectors.qsimovapi as qapi
-import numpy as np
 import gc
+
 
 class QCircuit(object):
     def __init__(self, name="UNNAMED", size=None, ancilla=[]):
@@ -51,7 +50,7 @@ class QCircuit(object):
     def execute(self, qregistry, iterations=1, qmachine=None, args=None, useSystem=True):
         if (isinstance(qregistry, QRegistry) or isinstance(qregistry, QSystem)) and iterations > 1:
             raise ValueError("Can not do more than one iteration with a precreated registry or system!")
-        elif (qmachine == None or qmachine == "local"):
+        elif (qmachine is None or qmachine == "local"):
             return qapi.execute(qregistry, iterations, self.lines, self.ancilla, useSystem)
         else:
             raise ValueError("Unsupported qmachine!")

@@ -1,7 +1,6 @@
 import numpy as np
 import ctypes as ct
 import ctypes.util
-import cmath as cm
 import platform as plat
 from os.path import dirname, abspath, sep
 from structures.funmatrix import Funmatrix
@@ -89,6 +88,7 @@ __partialTrace__ = __funmat__.partial_trace
 __partialTrace__.argtypes = [ct.c_void_p, ct.c_int]
 __partialTrace__.restype = ct.c_void_p
 
+
 class QRegistry:
     def __init__(self, nqbits):
         # nqbits -> number of QuBits in the registry.
@@ -108,10 +108,10 @@ class QRegistry:
     def toString(self):
         return __cToString__(self.reg).decode("ascii")
 
-    def measure(self, msk, remove = False): # List of numbers with the QuBits that should be measured. 0 means not measuring that qubit, 1 otherwise. remove = True if you want to remove a QuBit from the registry after measuring
+    def measure(self, msk, remove=False):  # List of numbers with the QuBits that should be measured. 0 means not measuring that qubit, 1 otherwise. remove = True if you want to remove a QuBit from the registry after measuring
         nqubits = self.getNQubits()
-        if (type(msk) != list or len(msk) != nqubits or \
-            not all(type(num) == int and (num == 0 or num == 1) for num in msk)):
+        if (type(msk) != list or len(msk) != nqubits or
+                not all(type(num) == int and (num == 0 or num == 1) for num in msk)):
             raise ValueError('Not valid mask')
         mask = []
         for i in range(nqubits):
@@ -150,7 +150,7 @@ class QRegistry:
                     int_array = ct.c_int * 1
                     control = int_array(control)
                     clen = 1
-                elif control == None or len(control) == 0:
+                elif control is None or len(control) == 0:
                     control = c_int_p()
                     clen = 0
                 else:
@@ -165,7 +165,7 @@ class QRegistry:
                     int_array = ct.c_int * 1
                     anticontrol = int_array(control)
                     aclen = 1
-                elif anticontrol == None or len(anticontrol) == 0:
+                elif anticontrol is None or len(anticontrol) == 0:
                     anticontrol = c_int_p()
                     aclen = 0
                 else:
@@ -243,12 +243,12 @@ class QRegistry:
 
     def vnEntropy(self, **kwargs):
         base = kwargs.get('base', 2)
-        #dm = self.densityMatrix()
-        #evalues, m = np.linalg.eig(dm)
+        # dm = self.densityMatrix()
+        # evalues, m = np.linalg.eig(dm)
         entropy = 0
-        #for e in evalues:
-        #    if e != 0:
-        #        entropy += e * np.log(e)
+        # for e in evalues:
+        #     if e != 0:
+        #         entropy += e * np.log(e)
         size = self.getSize()
         for i in range(size):
             p = self.prob(i)
@@ -263,14 +263,14 @@ class QRegistry:
         if self.getNQubits() == 1:
             return __cHopfCoords__(self.reg)[:3]
         else:
-            #print("You can only use 1 qubit registries!")
+            # print("You can only use 1 qubit registries!")
             return None
 
     def blochCoords(self):
         if self.getNQubits() == 1:
             return __cBlochCoords__(self.reg)[:2]
         else:
-            #print("You can only use 1 qubit registries!")
+            # print("You can only use 1 qubit registries!")
             return None
 
     def bra(self): # Devuelve el vector de estado en forma de fila conjugado. <v|
@@ -278,40 +278,49 @@ class QRegistry:
         k.shape = (1, k.shape[0])
         return np.conjugate(k)
 
-    def ket(self): # Devuelve el vector de estado en forma de columna. |v>
+    def ket(self):  # Devuelve el vector de estado en forma de columna. |v>
         k = np.array(self.getState())
         k.shape = (k.shape[0], 1)
         return k
 
-    def prob(self, x): # Devuelve la probabilidad de obtener x al medir el registro
+    def prob(self, x):  # Devuelve la probabilidad de obtener x al medir el registro
         p = 0
         if (x < self.getSize()):
             p = self.densityMatrix()[x, x].real
         return p
 
+
 def _calculateState(tnum, cnum, size, fun):
     indexes = [i for i in range(cnum, size, tnum)]
     return [(index, fun(index, 0)) for index in indexes]
 
+
 __cJoinStates__ = __qsimov__.joinStates
 __cJoinStates__.argtypes = [ct.c_void_p, ct.c_void_p]
 __cJoinStates__.restype = ct.c_void_p
-def superposition(a, b): # Devuelve el estado compuesto por los dos QuBits.
+
+
+def superposition(a, b):  # Devuelve el estado compuesto por los dos QuBits.
     r = QRegistry(1);
     __cFreeState__(r.reg)
     r.reg = ct.c_void_p(__cJoinStates__(a.reg, b.reg))
     return r
 
+
 __cSWAPQubits__ = __qsimov__.SWAPQubits
 __cSWAPQubits__.argtypes = [ct.c_void_p, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_int, c_int_p, ct.c_int, c_int_p, ct.c_int]
 __cSWAPQubits__.restype = ct.c_int
-def __SWAPQubits__(reg, qubit1, qubit2, imaginary, sqrt, invert, control, clen, anticontrol, aclen): # Applies a quantum gate to the registry
+
+
+def __SWAPQubits__(reg, qubit1, qubit2, imaginary, sqrt, invert, control, clen, anticontrol, aclen):  # Applies a quantum gate to the registry
     if int(__cSWAPQubits__(reg, ct.c_int(qubit1), ct.c_int(qubit2), ct.c_int(int(imaginary)), ct.c_int(int(sqrt)), ct.c_int(int(invert)), control, ct.c_int(clen), anticontrol, ct.c_int(aclen))) == 0:
         print("Error swapping specified QuBits!")
 
 __cIsingQubits__ = __qsimov__.IsingQubits
 __cIsingQubits__.argtypes = [ct.c_void_p, ct.c_int, ct.c_double, ct.c_int, ct.c_int, ct.c_int, c_int_p, ct.c_int, c_int_p, ct.c_int]
 __cIsingQubits__.restype = ct.c_int
-def __IsingQubits__(reg, type, angle, qubit1, qubit2, invert, control, clen, anticontrol, aclen): # Applies a quantum gate to the registry
+
+
+def __IsingQubits__(reg, type, angle, qubit1, qubit2, invert, control, clen, anticontrol, aclen):  # Applies a quantum gate to the registry
     if int(__cIsingQubits__(reg, ct.c_int(type), ct.c_double(angle), ct.c_int(qubit1), ct.c_int(qubit2), ct.c_int(int(invert)), control, ct.c_int(clen), anticontrol, ct.c_int(aclen))) == 0:
         print("Error coupling specified QuBits!")

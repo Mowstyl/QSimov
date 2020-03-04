@@ -3,9 +3,7 @@ import ctypes as ct
 import platform as plat
 import connectors.parser as prs
 from collections.abc import Iterable
-from structures.funmatrix import Funmatrix
 from structures.measure import Measure
-from functools import reduce
 from os.path import dirname, abspath, sep
 
 # DLL Load
@@ -19,6 +17,7 @@ __qsimovpath__ = __libfolder__ + sep + "libqsimov" + extension
 __qsimov__ = ct.CDLL(__qsimovpath__)
 
 c_double_p = ct.POINTER(ct.c_double)
+
 
 class QGate(object):
     def __init__(self, name="UNNAMED", size=None):
@@ -40,7 +39,7 @@ class QGate(object):
 
     def addLine(self, *args):
         args = [_rebuildGateName(gate) for gate in args]
-        #size = sum([getGateSize(gate) for gate in args])
+        # size = sum([getGateSize(gate) for gate in args])
         parties = _getParties(args)
         size = len(parties)
         if size > 0:
@@ -52,12 +51,12 @@ class QGate(object):
 
             self.lines += [args]
         else:
-            print ("No gates. Just Monika.")
+            print("No gates. Just Monika.")
 
     def setName(self, name):
         self.name = name
 
-    def dagger(self): # Returns the Hermitian Conjugate or Conjugate Transpose of the given matrix
+    def dagger(self):  # Returns the Hermitian Conjugate or Conjugate Transpose of the given matrix
         invgate = QGate(self.name + "-1")
         for line in self.lines[::-1]:
             invgate.addLine(*[[_invertStrGate(gate[0]), gate[1], gate[2]] if type(gate) == list else gate.dagger() for gate in line])
@@ -89,6 +88,7 @@ class QGate(object):
                 else:
                     currbit += 1
 
+
 __cGetQGate__ = __qsimov__.getQGate
 __cGetQGate__.argtypes = [ct.c_char_p, ct.c_double, ct.c_double, ct.c_double, ct.c_int]
 __cGetQGate__.restype = ct.c_void_p
@@ -104,6 +104,8 @@ __cGetQGateSize__.restype = ct.c_uint
 __cGet2dGate__ = __qsimov__.get2dGate
 __cGet2dGate__.argtypes = [ct.c_void_p]
 __cGet2dGate__.restype = c_double_p
+
+
 def getGate(gatename):
     name, arg1, arg2, arg3, invert = prs.getGateData(gatename)
     if arg1 is None:
@@ -113,8 +115,8 @@ def getGate(gatename):
     if arg3 is None:
         arg3 = 0
     qgate = ct.c_void_p(__cGetQGate__(ct.c_char_p(name.encode()), ct.c_double(arg1), ct.c_double(arg2), ct.c_double(arg3), ct.c_int(int(invert))))
-    if (qgate or False) == qgate: # NOTNULLPTR and True returns True, NOTNULLPTR or False returns NOTNULLPTR
-        nqubits = int(__cGetQGateQubits__(qgate))
+    if (qgate or False) == qgate:  # NOTNULLPTR and True returns True, NOTNULLPTR or False returns NOTNULLPTR
+        # nqubits = int(__cGetQGateQubits__(qgate))
         size = int(__cGetQGateSize__(qgate))
         plainmatrix2d = __cGet2dGate__(qgate)[:size*size*2]
         rematrix2d = plainmatrix2d[:size*size]
@@ -127,6 +129,7 @@ def getGate(gatename):
         print("Error while getting the specified gate!")
 
     return matrix
+
 
 def _rebuildGateName(gate):
     cons = set()
@@ -165,6 +168,7 @@ def _rebuildGateName(gate):
         name = gatename
     return [name, cons, acons] if name is not None else None
 
+
 def _getQuBitArg(gatename):
     args = None
     if isinstance(gatename, str):
@@ -176,6 +180,7 @@ def _getQuBitArg(gatename):
             else:
                 args = set([arg1, arg2])
     return args
+
 
 def _addQubitOffset(gatename, offset):
     qubitargs = ["XX", "YY", "ZZ"]
@@ -208,6 +213,7 @@ def _invertStrGate(gatename):
             gatename += "-1"
     return gatename
 
+
 def _getParties(args):
     parties = set()
     empties = set()
@@ -237,6 +243,7 @@ def _getParties(args):
             currbit += 1
     return parties.union(empties)
 
+
 def getGateData(gatename):
     if isinstance(gatename, QGate):
         shape = (gatename.size, 2**gatename.size)
@@ -262,6 +269,7 @@ def getGateData(gatename):
 
     return shape
 
+
 def joinGates(gates):
     maxgatelen = max(map(getLines, gates))
     newlines = []
@@ -280,6 +288,7 @@ def joinGates(gates):
                     newline += [None for i in range(getGateSize(gate))]
         newlines += [newline]
     return newlines
+
 
 def getGateSize(gate):
     size = 0
@@ -303,6 +312,7 @@ def getGateSize(gate):
     else:
         raise ValueError(str(gate) + " is not a gate!")
     return size
+
 
 def getLines(gate):
     if type(gate) == Measure:

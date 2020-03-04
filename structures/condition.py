@@ -1,5 +1,3 @@
-from collections.abc import Iterable
-
 def _specialCompare(a, b):
     same = len(a) == len(b)
     if (same):
@@ -8,6 +6,7 @@ def _specialCompare(a, b):
                 same = False
                 break
     return same
+
 
 class Condition(object):
     def __init__(self, cond, ifcase, elcase, typeif, typeel):
@@ -30,9 +29,9 @@ class Condition(object):
         if _specialCompare(self.cond, mresults):
             case = self.ifcase
             t = self.typeif
-        if t == 0: # Condition
+        if t == 0:  # Condition
             r = case.evaluate(qregistry, mresults)
-        elif t == 1: # QGate
+        elif t == 1:  # QGate
             r = qregistry
             gate = case
             id = None
@@ -50,8 +49,8 @@ class Condition(object):
                 r.applyGate(gate, control=ctrl, anticontrol=actl)
             else:
                 r.applyGate(gate, qubit=id, control=ctrl, anticontrol=actl)
-        elif t == 2: # QCircuit
+        elif t == 2:  # QCircuit
             r = case._executeOnce(qregistry)
-        else: # Do nothing
+        else:  # Do nothing
             r = qregistry
         return r
