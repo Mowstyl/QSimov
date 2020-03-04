@@ -1,3 +1,5 @@
+from collections.abc import Iterable
+
 def _specialCompare(a, b):
     same = len(a) == len(b)
     if (same):
@@ -14,7 +16,7 @@ class Condition(object):
         # typeif and typeel are integers from -1 to 2.
         # -1 means that nothing has to be done in that case.
         # 0 means that ifcase/elcase is another Condition.
-        # 1 means that ifcase/elcase is a QGate to be applied.
+        # 1 means that ifcase/elcase is a gate to be applied.
         # 2 means that ifcase/elcase is a QCircuit.
         self.cond = cond
         self.ifcase = ifcase
@@ -32,7 +34,22 @@ class Condition(object):
             r = case.evaluate(qregistry, mresults)
         elif t == 1: # QGate
             r = qregistry
-            r.applyGate(case)
+            gate = case
+            id = None
+            ctrl = None
+            actl = None
+            if isinstance(case, dict):
+                gate = case["gate"]
+                if "qubit" in case:
+                    id = case["qubit"]
+                if "control" in case:
+                    ctrl = case["control"]
+                if "anticontrol" in case:
+                    actl = case["anticontrol"]
+            if id is None:
+                r.applyGate(gate, control=ctrl, anticontrol=actl)
+            else:
+                r.applyGate(gate, qubit=id, control=ctrl, anticontrol=actl)
         elif t == 2: # QCircuit
             r = case._executeOnce(qregistry)
         else: # Do nothing

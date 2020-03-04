@@ -9,6 +9,7 @@ class QSystem:
         # nqbits -> number of QuBits in the registry.
         self.regs = [[QRegistry(1), [id]] for id in range(nqbits)]
         self.qubitMap = {id: id for id in range(nqbits)}
+        self.usable = [id for id in range(nqbits)]
         self.nqubits = nqbits
 
     def __del__(self):
@@ -17,6 +18,7 @@ class QSystem:
         #        del self.regs[i][0]
         del self.regs
         del self.qubitMap
+        del self.usable
 
     def getRegSize(self):
         return ((reg[0].getSize(), reg[1]) if type(reg[0]) == QRegistry else (1, reg[1]) for reg in self.regs)
@@ -52,10 +54,14 @@ class QSystem:
                     result += self.regs[regid][0].measure([0 if self.regs[regid][1][i] != qubit else 1 for i in range(len(self.regs[regid][1]))], remove=True)
                     self.regs[regid][1].remove(qubit)
                     newid = self.regs.index(None)
-                    self.regs[newid] = [QRegistry(1), [qubit]]
                     self.qubitMap[qubit] = newid
-                    if result[-1] == 1:
-                        self.regs[newid][0].applyGate("X")
+                    if not remove:
+                        self.regs[newid] = [QRegistry(1), [qubit]]
+                        if result[-1] == 1:
+                            self.regs[newid][0].applyGate("X")
+                    else:
+                        self.regs[newid] = [result[-1], [qubit]]
+                        self.usable.remove(qubit)
                 else:
                     if not remove:
                         result += self.regs[regid][0].measure([1], remove=False)
@@ -63,9 +69,10 @@ class QSystem:
                         if type(self.regs[regid][0]) == QRegistry:
                             result += self.regs[regid][0].measure([1], remove=False)
                             del self.regs[regid][0]
-                            self.regs[regid] = [result[qubit], self.regs[regid][0][0]]
+                            self.regs[regid] = [result[-1], self.regs[regid][0][0]]
                         else:
                             result.append(self.regs[regid])
+                        self.usable.remove(qubit)
         return result
 
     def applyGate(self, *args, **kwargs): # gate, qubit=0, control=None, anticontrol=None):
@@ -80,13 +87,17 @@ class QSystem:
                 return
             else:
                 gate = (gate, getGateData(gate)[0])
-            qubit = kwargs.get("qubit", 0)
+            qubit = kwargs.get("qubit", self.usable[0])
             if len(args) == 2:
                 qubit = args[1]
             control = kwargs.get("control", [])
+            if control is None:
+                control = []
             if not isinstance(control, Iterable):
                 control = [control]
             anticontrol = kwargs.get("anticontrol", [])
+            if anticontrol is None:
+                anticontrol = []
             if not isinstance(anticontrol, Iterable):
                 anticontrol = [anticontrol]
             if isinstance(qubit, Iterable):
@@ -171,7 +182,7 @@ class QSystem:
             del b[0]
 
     def getState(self):
-        regs = list(filter(None, self.regs))
+        regs = list(filter(lambda reg: reg is not None and type(reg[0]) == QRegistry, self.regs))
         if len(regs) == 1:
             return regs[0][0].getState()
         else:
