@@ -47,10 +47,10 @@ class QCircuit(object):
         finally:
             gc.collect()
 
-    def execute(self, qregistry, iterations=1, qmachine=None, args=None, useSystem=True):
-        if (isinstance(qregistry, QRegistry) or isinstance(qregistry, QSystem)) and iterations > 1:
+    def execute(self, qubits, iterations=1, qmachine=None, args={"useSystem": True}):
+        if (isinstance(qubits, QRegistry) or isinstance(qubits, QSystem)) and iterations > 1:
             raise ValueError("Can not do more than one iteration with a precreated registry or system!")
         elif (qmachine is None or qmachine == "local"):
-            return qapi.execute(qregistry, iterations, self.lines, self.ancilla, useSystem)
+            return qapi.execute(qubits, iterations, self.lines, self.ancilla, args["useSystem"])
         else:
             raise ValueError("Unsupported qmachine!")

@@ -1134,7 +1134,7 @@ def deutschTests(nq, verbose=False, useSystem=False):
     for id in range(nq - 1):
         gate = Bal(nq, id)
         circuit = DJAlgCircuit(nq, gate)
-        reg, mes = circuit.execute([0 for i in range(nq - 1)], useSystem=useSystem)
+        reg, mes = circuit.execute([0 for i in range(nq - 1)], args={"useSystem": useSystem})
         mes = mes[0]
 
         reg2 = qj.QSystem(nq)  # Los qubits se inicializan a cero (x1..xn) excepto el ultimo (y), inicializado a uno
@@ -1168,7 +1168,7 @@ def deutschTests(nq, verbose=False, useSystem=False):
         for id in range(2):
             gate = Const(nq, twice=id == 1)
             circuit = DJAlgCircuit(nq, gate)
-            reg, mes = circuit.execute([0 for i in range(nq - 1)], useSystem=useSystem)
+            reg, mes = circuit.execute([0 for i in range(nq - 1)], args={"useSystem": useSystem})
             mes = mes[0]
 
             reg2 = qj.QSystem(nq)  # Los qubits se inicializan a cero (x1..xn) excepto el ultimo (y), inicializado a uno
@@ -1213,7 +1213,7 @@ def teleportationTests(verbose=False, useSystem=False, remove=False):
     gate = "U(" + str(rnd.random()) + "," + str(rnd.random()) + "," + str(rnd.random()) + ")"
     initialValue = rnd.randrange(2)
     circuit = TeleportationCircuit(gate, remove=remove)
-    reg, mes = circuit.execute([initialValue], useSystem=useSystem)
+    reg, mes = circuit.execute([initialValue], args={"useSystem": useSystem})
     mes = mes[0]
 
     if remove:
