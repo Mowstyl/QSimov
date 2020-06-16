@@ -16,7 +16,7 @@ else:
     __libc__ = ct.cdll.LoadLibrary(ctypes.util.find_library("c"))
     extension = ".so"
 __rootfolder__ = dirname(dirname(abspath(__file__)))
-__libfolder__ = __rootfolder__ + sep + "lib"
+__libfolder__ = __rootfolder__ + sep + "qsimov" + sep + "lib"
 __funmatpath__ = __libfolder__ + sep + "libfunmat" + extension
 __qsimovpath__ = __libfolder__ + sep + "libqsimov" + extension
 __funmat__ = ct.CDLL(__funmatpath__)

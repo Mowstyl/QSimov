@@ -12,7 +12,7 @@ if plat.system() == "Windows":
 else:
     extension = ".so"
 __rootfolder__ = dirname(dirname(abspath(__file__)))
-__libfolder__ = __rootfolder__ + sep + "lib"
+__libfolder__ = __rootfolder__ + sep + "qsimov" + sep + "lib"
 __qsimovpath__ = __libfolder__ + sep + "libqsimov" + extension
 __qsimov__ = ct.CDLL(__qsimovpath__)
 
