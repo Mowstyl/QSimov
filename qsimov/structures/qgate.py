@@ -2,6 +2,7 @@ import numpy as np
 import ctypes as ct
 import platform as plat
 import qsimov.connectors.parser as prs
+import os
 from collections.abc import Iterable
 from qsimov.structures.measure import Measure
 from os.path import dirname, abspath, sep
