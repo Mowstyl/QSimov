@@ -1,7 +1,7 @@
-import connectors.parser as prs
+import qsimov.connectors.parser as prs
 import numpy as np
-from structures.qregistry import QRegistry, superposition
-from structures.qgate import QGate, getGateData
+from qsimov.structures.qregistry import QRegistry, superposition
+from qsimov.structures.qgate import QGate, getGateData
 from collections.abc import Iterable
 
 

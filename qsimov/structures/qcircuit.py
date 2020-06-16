@@ -1,8 +1,8 @@
-from structures.qregistry import QRegistry
-from structures.qsystem import QSystem
-from structures.qgate import _rebuildGateName, _getParties
-from structures.measure import Measure
-import connectors.qsimovapi as qapi
+from qsimov.structures.qregistry import QRegistry
+from qsimov.structures.qsystem import QSystem
+from qsimov.structures.qgate import _rebuildGateName, _getParties
+from qsimov.structures.measure import Measure
+import qsimov.connectors.qsimovapi as qapi
 import gc
 
 

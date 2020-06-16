@@ -1,7 +1,7 @@
-from structures.qgate import QGate, getGateSize
-from structures.qregistry import QRegistry, superposition
-from structures.qsystem import QSystem, joinSystems
-from structures.measure import Measure
+from qsimov.structures.qgate import QGate, getGateSize
+from qsimov.structures.qregistry import QRegistry, superposition
+from qsimov.structures.qsystem import QSystem, joinSystems
+from qsimov.structures.measure import Measure
 from collections.abc import Iterable
 import gc
 import numpy as np

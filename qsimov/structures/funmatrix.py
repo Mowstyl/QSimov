@@ -1,5 +1,5 @@
 import ctypes as ct
-import connectors.parser as prs
+import qsimov.connectors.parser as prs
 import platform as plat
 import os
 import numpy as np
@@ -10,10 +10,10 @@ if plat.system() == "Windows":
     extension = ".dll"
 else:
     extension = ".so"
-__libfolder__ = os.getcwd() + sep + "lib"
+__libfolder__ = os.getcwd() + sep + "qsimov" + sep + "lib"
 __funmatpath__ = __libfolder__ + sep + "libfunmat" + extension
 if hasattr(os, "add_dll_directory"):
-    os.add_dll_directory(os.getcwd())
+    os.add_dll_directory(os.getcwd() + sep + "qsimov")
     os.add_dll_directory(__libfolder__)
     __funmatpath__ = "libfunmat" + extension
 __funmat__ = ct.CDLL(__funmatpath__)

@@ -5,13 +5,13 @@ import ctypes as ct
 import ctypes.util
 import time as t
 import platform as plat
-from structures.funmatrix import Funmatrix
-from structures.qregistry import QRegistry
-from structures.qsystem import QSystem
-from structures.qgate import QGate, getGate
-from structures.qcircuit import QCircuit
-from structures.measure import Measure
-from structures.condition import Condition
+from qsimov.structures.funmatrix import Funmatrix
+from qsimov.structures.qregistry import QRegistry
+from qsimov.structures.qsystem import QSystem
+from qsimov.structures.qgate import QGate, getGate
+from qsimov.structures.qcircuit import QCircuit
+from qsimov.structures.measure import Measure
+from qsimov.structures.condition import Condition
 
 # np.zeros((h,w), dtype=complex) Inicializa una matriz de numeros complejos con alto h y ancho w
 # La suma de matrices se realiza con +. A + B

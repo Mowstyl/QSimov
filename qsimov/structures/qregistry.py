@@ -3,9 +3,9 @@ import ctypes as ct
 import ctypes.util
 import platform as plat
 from os.path import dirname, abspath, sep
-from structures.funmatrix import Funmatrix
-from structures.qgate import QGate
-from connectors.parser import getGateData
+from qsimov.structures.funmatrix import Funmatrix
+from qsimov.structures.qgate import QGate
+from qsimov.connectors.parser import getGateData
 from collections.abc import Iterable
 
 # DLL Load

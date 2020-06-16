@@ -1,9 +1,9 @@
 import numpy as np
 import ctypes as ct
 import platform as plat
-import connectors.parser as prs
+import qsimov.connectors.parser as prs
 from collections.abc import Iterable
-from structures.measure import Measure
+from qsimov.structures.measure import Measure
 from os.path import dirname, abspath, sep
 
 # DLL Load
