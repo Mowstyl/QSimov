@@ -5,14 +5,13 @@ import qsimov.connectors.parser as prs
 import os
 from collections.abc import Iterable
 from qsimov.structures.measure import Measure
-from os.path import dirname, abspath, sep
+from os.path import sep
 
 # DLL Load
 if plat.system() == "Windows":
     extension = ".dll"
 else:
     extension = ".so"
-#__rootfolder__ = dirname(dirname(abspath(__file__)))
 __rootfolder__ = os.getcwd() + sep + "qsimov"
 __libfolder__ = __rootfolder__ + sep + "lib"
 __qsimovpath__ = __libfolder__ + sep + "libqsimov" + extension

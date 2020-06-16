@@ -2,7 +2,8 @@ import numpy as np
 import ctypes as ct
 import ctypes.util
 import platform as plat
-from os.path import dirname, abspath, sep
+import os
+from os.path import sep
 from qsimov.structures.funmatrix import Funmatrix
 from qsimov.structures.qgate import QGate
 from qsimov.connectors.parser import getGateData
@@ -15,8 +16,8 @@ if plat.system() == "Windows":
 else:
     __libc__ = ct.cdll.LoadLibrary(ctypes.util.find_library("c"))
     extension = ".so"
-__rootfolder__ = dirname(dirname(abspath(__file__)))
-__libfolder__ = __rootfolder__ + sep + "qsimov" + sep + "lib"
+__rootfolder__ = os.getcwd() + sep + "qsimov"
+__libfolder__ = __rootfolder__ + sep + "lib"
 __funmatpath__ = __libfolder__ + sep + "libfunmat" + extension
 __qsimovpath__ = __libfolder__ + sep + "libqsimov" + extension
 __funmat__ = ct.CDLL(__funmatpath__)
