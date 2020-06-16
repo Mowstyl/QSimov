@@ -59,7 +59,7 @@ class QGate(object):
     def dagger(self):  # Returns the Hermitian Conjugate or Conjugate Transpose of the given matrix
         invgate = QGate(self.name + "-1")
         for line in self.lines[::-1]:
-            invgate.addLine(*[[_invertStrGate(gate[0]), gate[1], gate[2]] if type(gate) == list else gate.dagger() for gate in line])
+            invgate.addLine(*[[_invertStrGate(gate[0]), gate[1], gate[2]] if isinstance(gate, Iterable) else gate.dagger() if isinstance(gate, Iterable) else gate for gate in line])
         return invgate
 
     def invert(self):
@@ -68,22 +68,29 @@ class QGate(object):
     def _applyGate(self, registry, qubit, controls, anticontrols):
         for line in self.lines:
             currbit = 0
+            #print(line)
             for i in range(len(line)):
+                #print(line[i])
+                #print(currbit)
                 if line[i] is not None and line[i][0] is not None and (isinstance(line[i][0], QGate) or line[i][0].lower() != "i"):
                     if line[i][1] is not None:
                         if controls is None:
-                            controls = set([qubit + c for c in line[i][1]])
+                            ctrls = set([qubit + c for c in line[i][1]])
                         else:
-                            controls = set([qubit + c for c in line[i][1]]).union(controls)
+                            ctrls = set([qubit + c for c in line[i][1]]).union(controls)
                     if line[i][2] is not None:
                         if anticontrols is None:
-                            anticontrols = set([qubit + ac for ac in line[i][2]])
+                            actrls = set([qubit + ac for ac in line[i][2]])
                         else:
-                            anticontrols = set([qubit + ac for ac in line[i][2]]).union(anticontrols)
+                            actrls = set([qubit + ac for ac in line[i][2]]).union(anticontrols)
+                    #print("Qubit: " + str(currbit+qubit))
+                    #print("Controls: " + str(ctrls))
+                    #print("Anticontrols: " + str(actrls))
                     if type(line[i][0]) == str:
-                        registry.applyGate(_addQubitOffset(line[i][0], qubit), qubit=currbit+qubit, control=controls, anticontrol=anticontrols)
+                        #print("Gate: " + _addQubitOffset(line[i][0], qubit))
+                        registry.applyGate(_addQubitOffset(line[i][0], qubit), qubit=currbit+qubit, control=ctrls, anticontrol=actrls)
                     else:
-                        line[i][0]._applyGate(registry, qubit+currbit, controls, anticontrols)
+                        line[i][0]._applyGate(registry, qubit+currbit, ctrls, actrls)
                     currbit += getGateSize(line[i][0])
                 else:
                     currbit += 1
@@ -135,7 +142,8 @@ def _rebuildGateName(gate):
     cons = set()
     acons = set()
     gatename = gate
-    if type(gate) == list:
+    #print("Original: " + str(gate))
+    if not isinstance(gate, str) and isinstance(gate, Iterable):
         gatename = gate[0]
         if (len(gate) > 1):
             if gate[1] is not None:
@@ -149,6 +157,9 @@ def _rebuildGateName(gate):
                     cons = set(gate[2])
                 elif not isinstance(gate[2], Iterable):
                     cons = set([gate[2]])
+    #print("Fixed: " + str(gatename))
+    #print("Controls: " + str(cons))
+    #print("Anticontrols: " + str(acons))
     if not isinstance(gatename, QGate):
         if gatename is not None and gatename.lower() != "i":
             name, arg1, arg2, arg3, invert = prs.getGateData(gatename)

@@ -113,6 +113,8 @@ def getGateData(gateraw):
                     else:
                         gate = (gatemet, args[0], args[1], args[2], invert)
                 else:
+                    #print("Received: " + gateraw)
+                    #print("Parsed: " + gate)
                     raise ValueError(gatename + " gate number of args must be between " + str(minargs) + " and " + str(maxargs))
             else:
                 raise ValueError(gatename + " can't be used with QSimovAPI")

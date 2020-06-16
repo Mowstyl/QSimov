@@ -110,7 +110,7 @@ class QRegistry:
 
     def measure(self, msk, remove=False):  # List of numbers with the QuBits that should be measured. 0 means not measuring that qubit, 1 otherwise. remove = True if you want to remove a QuBit from the registry after measuring
         nqubits = self.getNQubits()
-        if (type(msk) != list or len(msk) != nqubits or
+        if (not isinstance(msk, Iterable) or len(msk) != nqubits or
                 not all(type(num) == int and (num == 0 or num == 1) for num in msk)):
             raise ValueError('Not valid mask')
         mask = []

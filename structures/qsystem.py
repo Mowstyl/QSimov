@@ -1,4 +1,5 @@
 import connectors.parser as prs
+import numpy as np
 from structures.qregistry import QRegistry, superposition
 from structures.qgate import QGate, getGateData
 from collections.abc import Iterable
@@ -43,7 +44,7 @@ class QSystem:
 
     def measure(self, msk, remove=False):  # List of numbers with the QuBits that should be measured. 0 means not measuring that qubit, 1 otherwise. remove = True if you want to remove a QuBit from the registry after measuring
         nqubits = self.getNQubits()
-        if (type(msk) != list or len(msk) != nqubits or
+        if (not isinstance(msk, Iterable) or len(msk) != nqubits or
                 not all(type(num) == int and (num == 0 or num == 1) for num in msk)):
             raise ValueError('Not valid mask')
         result = []
@@ -76,7 +77,7 @@ class QSystem:
         return result
 
     def applyGate(self, *args, **kwargs):  # gate, qubit=0, control=None, anticontrol=None):
-        if len(args) == 1 or (len(args) == 2 and "qubit" not in kwargs):
+        if len(args) == 1 or (len(args) == 2 and np.issubdtype(type(args[1]), np.integer) and "qubit" not in kwargs):
             for key in kwargs:
                 if key != "qubit" and key != "control" and key != "anticontrol":
                     raise ValueError('Apart from the gates, you can only specify "qubit", "control" and/or "anticontrol" (lowercase)')
@@ -143,13 +144,14 @@ class QSystem:
             gates = []
             for arg in args:
                 if type(arg) == QGate:
-                    gatenq = (arg, arg.getNQubits())
+                    gatenq = (arg, arg.size)
                 elif arg == "I" or arg is None:
                     gatenq = (None, 1)
                 else:
                     gatenq = (arg, getGateData(arg)[0])
                 nq += gatenq[1]
                 gates.append(gatenq)
+            #print(gates)
             if nq == self.getNQubits():
                 qid = 0
                 for gate in gates:

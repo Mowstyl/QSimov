@@ -2,7 +2,7 @@
 
 import sys
 import qsimov as qj
-# import webbrowser as wb
+import webbrowser as wb
 import random as rnd
 import numpy as np
 from operator import add
@@ -371,13 +371,13 @@ def applyCACU(gate, id, controls, anticontrols, nq, reg):  # Controlled and Anti
 
 def Bal(n, controlId=0):
     gate = qj.QGate("Balanced")
-    gate.addLine(*[None for i in range(n-1)], ["X", controlId, None])
+    gate.addLine(*[None for i in range(n-1)], ("X", controlId, None))
     return gate
 
 
 def Const(n, twice=False):
     gate = qj.QGate("Constant")
-    gate.addLine(*[None for i in range(n-1)], "X")
+    gate.addLine(*(None for i in range(n-1)), "X")
     if twice:
         gate.addLine(*[None for i in range(n-1)], "X")
     return gate
@@ -387,7 +387,7 @@ def DJAlgCircuit(size, U_f):  # U_f es el oraculo, que debe tener x1..xn e y com
     c = qj.QCircuit("Deutsch-Josza Algorithm", ancilla=[1])  # El ultimo QuBit al ejecutar el algoritmo es de ancilla, con su valor a 1
     c.addLine(*["H" for i in range(size)])  # Se aplica una compuerta hadamard a todos los qubits
     c.addLine(U_f)  # Se aplica el oraculo
-    c.addLine(*["H" for i in range(size-1)], "I")  # Se aplica una puerta Hadamard a todos los qubits excepto al ultimo
+    c.addLine(*("H" for i in range(size-1)), "I")  # Se aplica una puerta Hadamard a todos los qubits excepto al ultimo
 
     # f = lambda _, l: print(all(i == 0 for i in l[:-1]))  # Funcion que imprimira cierto tras realizar la medida si la funcion es constante
 
@@ -398,9 +398,9 @@ def DJAlgCircuit(size, U_f):  # U_f es el oraculo, que debe tener x1..xn e y com
 
 
 def TeleportationCircuit(gate, remove=True):  # Recibe como argumento lo que se va a ejecutar sobre el primer QuBit despues de hacer el estado de Bell con los dos últimos.
-    qc = qj.QCircuit("Teleportation", ancilla=[0, 0])
+    qc = qj.QCircuit("Teleportation", ancilla=(0, 0))
     qc.addLine(None, "H", None)
-    qc.addLine(None, None, ["X", 1, None])
+    qc.addLine(None, None, ("X", 1, None))
     # Aqui es donde trabajamos con el qubit Q que queremos enviar posteriormente. Se le aplica la puerta pasada como parámetro.
     qc.addLine(gate, None, None)
     # Una vez terminado todo lo que queremos hacerle al QuBit, procedemos a preparar el envio
@@ -413,14 +413,155 @@ def TeleportationCircuit(gate, remove=True):  # Recibe como argumento lo que se 
         gate1 = {"gate": "X", "qubit": 2}
         gate2 = {"gate": "Z", "qubit": 2}
     c1 = qj.Condition([None, 1, None], gate1, None, 1, -1)
-    c2 = qj.Condition([1, None, None], gate2, None, 1, -1)
+    c2 = qj.Condition((1, None, None), gate2, None, 1, -1)
 
-    m = qj.Measure([1, 1, 0], conds=[c1, c2], remove=remove)
+    m = qj.Measure((1, 1, 0), conds=[c1, c2], remove=remove)
 
     qc.addLine(m)
 
     return qc  # Se devuelve el circuito.
 
+def entangleGate():
+    e = qj.QGate("Entangle")
+
+    e.addLine("H", "I")
+    e.addLine(None, ("X", 0))
+
+    return e
+
+def entangleSystem(s, id, id2):
+    s.applyGate("H", qubit=id)
+    s.applyGate("X", qubit=id2, control=id)
+
+def inversionTests(verbose=False):
+    passed = 0
+    total = 3
+    if verbose:
+        print("  Testing gate inversion...")
+
+    e = entangleGate() # TODO: Intensive inversion test
+    ei = e.invert()
+
+    if e.lines != ei.lines[::-1]:
+        if verbose:
+            print(e.lines)
+            print(ei.lines)
+            print("    Michael Bay visited your simulator...")
+        return (passed, total)
+
+    passed += 1
+    if verbose:
+        print("    Noice")
+
+    ed = e.dagger()
+
+    if e.lines != ed.lines[::-1]:
+        if verbose:
+            print(e.lines)
+            print(ed.lines)
+            print("    Michael Bay visited your simulator...")
+        return (passed, total)
+
+    passed += 1
+    if verbose:
+        print("    Noice")
+
+    r = qj.QRegistry(2)
+    er = qj.QRegistry(2)
+    s = qj.QSystem(2)
+    es = qj.QSystem(2)
+
+    r.applyGate(e)
+    r.applyGate(ed)
+    s.applyGate(e)
+    s.applyGate(ed)
+    if any(r.getState() != er.getState()) or any(s.getState() != es.getState()):
+        if verbose:
+            print(r.getState())
+            print(er.getState())
+            print(s.getState())
+            print(es.getState())
+            print(r.getState() == er.getState())
+            print(s.getState() == es.getState())
+            print("    Michael Bay visited your simulator...")
+        del r
+        del er
+        del s
+        del es
+        return (passed, total)
+
+    passed += 1
+    if verbose:
+        print("    Noice")
+
+    return (passed, total)
+
+def entangleTests(verbose=False, useSystem=False):
+    passed = 0
+    total = 2
+    if verbose:
+        print("  Testing entanglement gate...")
+
+    if useSystem:
+        QItem = qj.QSystem
+    else:
+        QItem = qj.QRegistry
+
+    e = entangleGate()
+
+    r = QItem(3)
+    rg = QItem(3)
+    entangleSystem(r, 0, 1)
+    rg.applyGate(e)
+
+    if any(r.getState() != rg.getState()):
+        if verbose:
+            print(r.getState())
+            print(rg.getState())
+            print(r.getState() == rg.getState())
+            print("    Michael Bay visited your simulator...")
+        del r
+        del rg
+        return (passed, total)
+
+    passed += 1
+    del r
+    del rg
+    if verbose:
+        print("    Noice")
+
+    r = qj.QRegistry(3)
+    rg1 = QItem(3)
+    entangleSystem(r, 1, 2)
+    rg1.applyGate(e, qubit=1)
+    if useSystem:
+        rg2 = QItem(3)
+        rg2.applyGate("I", e)
+
+    if any(r.getState() != rg1.getState()) or (useSystem and any(r.getState() != rg2.getState())):
+        if verbose:
+            print(r.getState())
+            print(rg1.getState())
+            print(r.getState() == rg1.getState())
+            if useSystem:
+                print(rg2.getState())
+                print(r.getState() == rg2.getState())
+            print("    Michael Bay visited your simulator...")
+        del r
+        del rg1
+        if useSystem:
+            del rg2
+        return (passed, total)
+
+    passed += 1
+    del r
+    del rg1
+    if useSystem:
+        del rg2
+    if verbose:
+        print("    Noice")
+
+    return (passed, total)
 
 def gateTests(gatename, verbose=False, hasInv=False, nArgs=0):
     passed = 0
@@ -1341,19 +1482,24 @@ def highLevelTests(minqubits, maxqubits, seed=None, verbose=False):
         qj.setRandomSeed(seed)
         rnd.seed(seed)
         np.random.seed(seed)
-    result = [(0, 0) for i in range(6)]  # We have 6 tests
+    result = [(0, 0) for i in range(9)]  # We have 9 tests
 
+    if verbose:
+        print("Testing QGate inversion and application")
+    result[0] = inversionTests(verbose=verbose) # Dagger/Inversion QGate tests
+    result[1] = entangleTests(verbose=verbose, useSystem=False) # Entanglement QGate with QRegistry tests
+    result[2] = entangleTests(verbose=verbose, useSystem=True) # Entanglement QGate with QSystem tests
     for nq in range(minqubits, maxqubits + 1):
         if verbose:
             print("Testing with " + str(nq) + " qubit circuits")
-        result[0] = map(add, result[0], deutschTests(4, verbose=verbose, useSystem=False))  # Deutsch-Josza algorithm with QRegistry tests
-        result[1] = map(add, result[1], deutschTests(4, verbose=verbose, useSystem=True))  # Deutsch-Josza algorithm with QSystem tests
-    result[2] = teleportationTests(verbose=verbose, useSystem=False, remove=False)  # Teleportation algorithm with QRegistry tests
-    result[3] = teleportationTests(verbose=verbose, useSystem=False, remove=True)  # Teleportation algorithm with QRegistry tests and remove option
-    result[4] = teleportationTests(verbose=verbose, useSystem=True, remove=False)  # Teleportation algorithm with QSystem tests
-    result[5] = teleportationTests(verbose=verbose, useSystem=True, remove=True)  # Teleportation algorithm with QSystem tests and remove option
+        result[3] = map(add, result[3], deutschTests(4, verbose=verbose, useSystem=False))  # Deutsch-Josza algorithm with QRegistry tests
+        result[4] = map(add, result[4], deutschTests(4, verbose=verbose, useSystem=True))  # Deutsch-Josza algorithm with QSystem tests
+    result[5] = teleportationTests(verbose=verbose, useSystem=False, remove=False)  # Teleportation algorithm with QRegistry tests
+    result[6] = teleportationTests(verbose=verbose, useSystem=False, remove=True)  # Teleportation algorithm with QRegistry tests and remove option
+    result[7] = teleportationTests(verbose=verbose, useSystem=True, remove=False)  # Teleportation algorithm with QSystem tests
+    result[8] = teleportationTests(verbose=verbose, useSystem=True, remove=True)  # Teleportation algorithm with QSystem tests and remove option
 
-    for i in range(2):
+    for i in range(3, 5):
         result[i] = tuple(result[i])
 
     return result
@@ -1400,7 +1546,7 @@ def main():
         print("Passed: " + str(noice) + "/" + str(total))
         if noice == total:
             print("PEACE AND TRANQUILITY")
-            # wb.open_new_tab("https://youtu.be/SHvhps47Lmc")
+            #wb.open_new_tab("https://youtu.be/SHvhps47Lmc")
         else:
             for testid in range(total):
                 if passed[testid] == 0:
@@ -1413,7 +1559,7 @@ def main():
                     else:
                         print("High level Test " + str(testid - (15 + 37 + 39)) + " failed!")
             print("SORROW")
-            # wb.open_new_tab("https://youtu.be/4Js-XbNj6Tk?t=37")
+            #wb.open_new_tab("https://youtu.be/4Js-XbNj6Tk?t=37")
         # We assert so the test fails if we failed something
         assert noice == total
     else:
