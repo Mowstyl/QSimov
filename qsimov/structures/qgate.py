@@ -15,7 +15,6 @@ else:
 __rootfolder__ = os.getcwd() + sep + "qsimov"
 __libfolder__ = __rootfolder__ + sep + "lib"
 __qsimovpath__ = __libfolder__ + sep + "libqsimov" + extension
-print(__qsimovpath__)
 __qsimov__ = ct.CDLL(__qsimovpath__)
 
 c_double_p = ct.POINTER(ct.c_double)
@@ -70,10 +69,7 @@ class QGate(object):
     def _applyGate(self, registry, qubit, controls, anticontrols):
         for line in self.lines:
             currbit = 0
-            #print(line)
             for i in range(len(line)):
-                #print(line[i])
-                #print(currbit)
                 if line[i] is not None and line[i][0] is not None and (isinstance(line[i][0], QGate) or line[i][0].lower() != "i"):
                     if line[i][1] is not None:
                         if controls is None:
@@ -85,11 +81,7 @@ class QGate(object):
                             actrls = set([qubit + ac for ac in line[i][2]])
                         else:
                             actrls = set([qubit + ac for ac in line[i][2]]).union(anticontrols)
-                    #print("Qubit: " + str(currbit+qubit))
-                    #print("Controls: " + str(ctrls))
-                    #print("Anticontrols: " + str(actrls))
                     if type(line[i][0]) == str:
-                        #print("Gate: " + _addQubitOffset(line[i][0], qubit))
                         registry.applyGate(_addQubitOffset(line[i][0], qubit), qubit=currbit+qubit, control=ctrls, anticontrol=actrls)
                     else:
                         line[i][0]._applyGate(registry, qubit+currbit, ctrls, actrls)
@@ -144,7 +136,6 @@ def _rebuildGateName(gate):
     cons = set()
     acons = set()
     gatename = gate
-    #print("Original: " + str(gate))
     if not isinstance(gate, str) and isinstance(gate, Iterable):
         gatename = gate[0]
         if (len(gate) > 1):
@@ -159,9 +150,6 @@ def _rebuildGateName(gate):
                     cons = set(gate[2])
                 elif not isinstance(gate[2], Iterable):
                     cons = set([gate[2]])
-    #print("Fixed: " + str(gatename))
-    #print("Controls: " + str(cons))
-    #print("Anticontrols: " + str(acons))
     if not isinstance(gatename, QGate):
         if gatename is not None and gatename.lower() != "i":
             name, arg1, arg2, arg3, invert = prs.getGateData(gatename)

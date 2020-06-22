@@ -68,11 +68,16 @@ __cDagger__ = __funmat__.dagger
 __cDagger__.argtypes = [ct.c_void_p]
 __cDagger__.restype = ct.c_void_p
 
+__cGetMemory__ = __funmat__.getMemory
+__cGetMemory__.argtypes = [ct.c_void_p]
+__cGetMemory__.restype = ct.c_int
+
 
 class Funmatrix(object):
     def __init__(self, fmatrix, name="Lazy Matrix"):
         self.m = fmatrix
         self.name = name
+        self._shape = (int(__cGetRows__(fmatrix)), int(__cGetCols__(fmatrix)))
 
     def __repr__(self):
         return self.name
@@ -95,14 +100,14 @@ class Funmatrix(object):
         return res
 
     def __getitem__(self, key):
-        rows, cols = self.shape()
+        rows, cols = self.shape
 
         if (type(key) == int):
             if (key >= rows):
                 raise IndexError("index " + str(key) + " is out of bounds for axis 0 with shape " + str(rows))
             if (key < 0):
                 key = rows + key
-            return [self.__getSingleItem__(key, j) for j in range(cols)]
+            return np.array([self.__getSingleItem__(key, j) for j in range(cols)])
         elif (type(key) == slice):
             start = key.start if key.start is not None else 0
             if (start < 0):
@@ -111,7 +116,7 @@ class Funmatrix(object):
             if (stop < 0):
                 stop = rows + stop
             step = key.step if key.step is not None else 1
-            return [self.__getitem__(i) for i in range(start, stop, step)]
+            return np.array([self.__getitem__(i) for i in range(start, stop, step)])
         elif (type(key) == tuple):
             if (type(key[1]) is None):
                 return self.__getitem__(key[0])
@@ -121,7 +126,7 @@ class Funmatrix(object):
                         raise IndexError("index " + str(key[1]) + " is out of bounds for axis 1 with shape " + str(cols))
                     if (key[1] < 0):
                         key = (key[0], cols + key[1])
-                    return [np.around(self.__getSingleItem__(i, key[1]), decimals=self.dec) for i in range(rows)]
+                    return np.array([np.around(self.__getSingleItem__(i, key[1]), decimals=self.dec) for i in range(rows)])
                 elif (type(key[1]) == slice):
                     start = key[1].start if key[1].start is not None else 0
                     if (start < 0):
@@ -130,7 +135,7 @@ class Funmatrix(object):
                     if (stop < 0):
                         stop = cols + stop
                     step = key[1].step if key[1].step is not None else 1
-                    return [self.__getitem__(None, i) for i in range(start, stop, step)]
+                    return np.array([self.__getitem__(None, i) for i in range(start, stop, step)])
             elif (type(key[0]) == int and type(key[1]) == int):
                 if (key[0] >= rows):
                     raise IndexError("index " + str(key[0]) + " is out of bounds for axis 0 with shape " + str(rows))
@@ -153,7 +158,7 @@ class Funmatrix(object):
                 step = key[0].step if key[0].step is not None else 1
                 if (key[1] < 0):
                     key = (key[0], cols + key[1])
-                return [self.__getSingleItem__(i, key[1]) for i in range(start, stop, step)]
+                return np.array([self.__getSingleItem__(i, key[1]) for i in range(start, stop, step)])
             elif (type(key[0]) == int and type(key[1]) == slice):
                 if (key[0] >= rows):
                     raise IndexError("index " + str(key[0]) + " is out of bounds for axis 0 with shape " + str(rows))
@@ -166,7 +171,7 @@ class Funmatrix(object):
                 step = key[1].step if key[1].step is not None else 1
                 if (key[0] < 0):
                     key = (rows + key[0], key[1])
-                return [self.__getSingleItem__(key[0], i) for i in range(start, stop, step)]
+                return np.array([self.__getSingleItem__(key[0], i) for i in range(start, stop, step)])
             elif (type(key[0]) == slice and type(key[1]) == slice):
                 start0 = key[0].start if key[0].start is not None else 0
                 if (start0 < 0):
@@ -182,7 +187,7 @@ class Funmatrix(object):
                 if (stop1 < 0):
                     stop1 = cols + stop1
                 step1 = key[1].step if key[1].step is not None else 1
-                return [[self.__getSingleItem__(i, j) for i in range(start0, stop0, step0)] for j in range(start1, stop1, step1)]
+                return np.array([[self.__getSingleItem__(i, j) for i in range(start0, stop0, step0)] for j in range(start1, stop1, step1)])
 
     def __add__(self, other):
         if type(other) != Funmatrix:
@@ -315,5 +320,9 @@ class Funmatrix(object):
     def getMatrix(self):
         return self
 
+    def getsizeof(self):
+        return int(__cGetMemory__(self.m))
+
+    @property
     def shape(self):
-        return (int(__cGetRows__(self.m)), int(__cGetCols__(self.m)))
+        return self._shape

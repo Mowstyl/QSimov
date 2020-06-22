@@ -2,7 +2,7 @@
 
 import sys
 import qsimov as qj
-import webbrowser as wb
+# import webbrowser as wb
 import random as rnd
 import numpy as np
 from operator import add
@@ -421,6 +421,7 @@ def TeleportationCircuit(gate, remove=True):  # Recibe como argumento lo que se 
 
     return qc  # Se devuelve el circuito.
 
+
 def entangleGate():
     e = qj.QGate("Entangle")
 
@@ -429,9 +430,11 @@ def entangleGate():
 
     return e
 
+
 def entangleSystem(s, id, id2):
     s.applyGate("H", qubit=id)
     s.applyGate("X", qubit=id2, control=id)
+
 
 def inversionTests(verbose=False):
     passed = 0
@@ -439,7 +442,7 @@ def inversionTests(verbose=False):
     if verbose:
         print("  Testing gate inversion...")
 
-    e = entangleGate() # TODO: Intensive inversion test
+    e = entangleGate()  # TODO: Intensive inversion test
     ei = e.invert()
 
     if e.lines != ei.lines[::-1]:
@@ -495,6 +498,7 @@ def inversionTests(verbose=False):
         print("    Noice")
 
     return (passed, total)
+
 
 def entangleTests(verbose=False, useSystem=False):
     passed = 0
@@ -562,6 +566,7 @@ def entangleTests(verbose=False, useSystem=False):
         print("    Noice")
 
     return (passed, total)
+
 
 def gateTests(gatename, verbose=False, hasInv=False, nArgs=0):
     passed = 0
@@ -1227,6 +1232,108 @@ def measureRegTests(nq, remove=False, verbose=False):
 
     return (passed, total)
 
+def compareState(r, state, rdm0, rdm1, rt0=1, rt1=1, verbose=False):
+    if not np.allclose(r.getState(), state):
+        if verbose:
+            print(r.getState())
+            print(state)
+            print(r.getState() == state)
+            print("    Michael Bay visited your simulator...")
+        return False
+
+    dm = state * state.reshape((4,1))
+    if not np.allclose(r.densityMatrix()[:], dm):
+        if verbose:
+            print(r.densityMatrix()[:])
+            print(dm)
+            print(r.densityMatrix()[:] == dm)
+            print("    Michael Bay visited your simulator...")
+        return False
+
+    if not np.allclose(r.reducedDensityMatrix(0)[:], rdm0):
+        if verbose:
+            print("RDM0")
+            print(r.reducedDensityMatrix(0)[:])
+            print(rdm0)
+            print(r.reducedDensityMatrix(0)[:] == rdm0)
+            print("    Michael Bay visited your simulator...")
+        return False
+
+    if not np.allclose(r.reducedDensityMatrix(1)[:], rdm1):
+        if verbose:
+            print("RDM1")
+            print(r.reducedDensityMatrix(1)[:])
+            print(rdm1)
+            print(r.reducedDensityMatrix(1)[:] == rdm1)
+            print("    Michael Bay visited your simulator...")
+        return False
+
+    if not np.allclose(r.reducedTrace(0), rt0):
+        if verbose:
+            print("RT0")
+            print(r.reducedTrace(0))
+            print(rt0)
+            print(r.reducedTrace(0) == rt0)
+            print("    Michael Bay visited your simulator...")
+        return False
+
+    if not np.allclose(r.reducedTrace(1), rt1):
+        if verbose:
+            print("RT1")
+            print(r.reducedTrace(1))
+            print(rt1)
+            print(r.reducedTrace(1) == rt1)
+            print("    Michael Bay visited your simulator...")
+        return False
+
+    return True
+
+
+def toolTest(verbose=False):
+    passed = 0
+    total = 3
+    if verbose:
+        print(" Tools for QRegistry:")
+    reg = qj.QRegistry(2)
+    state = np.array([1,0,0,0])
+    rdm0 = np.array([1,0,0,0]).reshape((2,2))
+    rdm1 = rdm0[:]
+    if not compareState(reg, state, rdm0, rdm1, verbose=verbose):
+        del reg
+        return (passed, total)
+    passed += 1
+
+    del state
+    del rdm0
+    del rdm1
+
+    reg.applyGate("H")
+    state = np.array([1/np.sqrt(2),1/np.sqrt(2),0,0])
+    rdm0 = np.array([1,0,0,0]).reshape((2,2))
+    rdm1 = np.array([0.5,0.5,0.5,0.5]).reshape((2,2))
+    if not compareState(reg, state, rdm0, rdm1, verbose=verbose):
+        del reg
+        return (passed, total)
+    passed += 1
+
+    del state
+    del rdm0
+    del rdm1
+
+    reg.applyGate("X", qubit=1, control=0)
+    state = np.array([1/np.sqrt(2),0,0,1/np.sqrt(2)])
+    rdm0 = np.eye(2) * 0.5
+    rdm1 = rdm0[:]
+    if not compareState(reg, state, rdm0, rdm1, rt0=0.5, rt1=0.5, verbose=verbose):
+        del reg
+        return (passed, total)
+    passed += 1
+
+    if verbose:
+        print("    Noice")
+    del reg
+
+    return (passed, total)
 
 def measureSysTests(nq, entangle=False, remove=False, verbose=False):
     passed = 0
@@ -1420,7 +1527,7 @@ def dataStructureTests(minqubits, maxqubits, seed=None, verbose=False, QItem=qj.
         qj.setRandomSeed(seed)
         rnd.seed(seed)
         np.random.seed(seed)
-    result = [(0, 0) for i in range(37)]  # We have 37 tests with QRegistry
+    result = [(0, 0) for i in range(38)]  # We have 37 tests with QRegistry
     if QItem == qj.QSystem:
         result += [(0, 0), (0, 0)]  # We have 39 tests with QSystem
 
@@ -1471,6 +1578,9 @@ def dataStructureTests(minqubits, maxqubits, seed=None, verbose=False, QItem=qj.
             result[37] = map(add, result[37], measureSysTests(nq, remove=True, entangle=False, verbose=verbose))  # QSystem measurement tests without entanglement
             result[38] = map(add, result[38], measureSysTests(nq, remove=True, entangle=True, verbose=verbose))  # QSystem measurement tests with entanglement
 
+    if QItem == qj.QRegistry:
+        result[37] = toolTest(verbose=verbose) # getState, densityMatrix, reducedDensityMatrix and reducedTrace tests
+
     for i in range(len(result)):
         result[i] = tuple(result[i])
 
@@ -1486,9 +1596,9 @@ def highLevelTests(minqubits, maxqubits, seed=None, verbose=False):
 
     if verbose:
         print("Testing QGate inversion and application")
-    result[0] = inversionTests(verbose=verbose) # Dagger/Inversion QGate tests
-    result[1] = entangleTests(verbose=verbose, useSystem=False) # Entanglement QGate with QRegistry tests
-    result[2] = entangleTests(verbose=verbose, useSystem=True) # Entanglement QGate with QSystem tests
+    result[0] = inversionTests(verbose=verbose)  # Dagger/Inversion QGate tests
+    result[1] = entangleTests(verbose=verbose, useSystem=False)  # Entanglement QGate with QRegistry tests
+    result[2] = entangleTests(verbose=verbose, useSystem=True)  # Entanglement QGate with QSystem tests
     for nq in range(minqubits, maxqubits + 1):
         if verbose:
             print("Testing with " + str(nq) + " qubit circuits")
@@ -1546,7 +1656,7 @@ def main():
         print("Passed: " + str(noice) + "/" + str(total))
         if noice == total:
             print("PEACE AND TRANQUILITY")
-            #wb.open_new_tab("https://youtu.be/SHvhps47Lmc")
+            # wb.open_new_tab("https://youtu.be/SHvhps47Lmc")
         else:
             for testid in range(total):
                 if passed[testid] == 0:
@@ -1559,7 +1669,7 @@ def main():
                     else:
                         print("High level Test " + str(testid - (15 + 37 + 39)) + " failed!")
             print("SORROW")
-            #wb.open_new_tab("https://youtu.be/4Js-XbNj6Tk?t=37")
+            # wb.open_new_tab("https://youtu.be/4Js-XbNj6Tk?t=37")
         # We assert so the test fails if we failed something
         assert noice == total
     else:
