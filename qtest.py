@@ -999,9 +999,6 @@ def sparseIsingTests(nq, type, invert, verbose=False, QItem=qj.QRegistry):
     return (passed, total)
 
 
-# def applyCACU(gate, id, controls, anticontrols, nq, reg)
-# cascada aleatoria
-
 def controlledGateTests(nq, verbose=False, QItem=qj.QRegistry):
     total = nq - 1
     passed = 0
@@ -1373,6 +1370,32 @@ def measureSysTests(nq, entangle=False, remove=False, verbose=False):
     return (passed, total)
 
 
+def addLineTests(qstruct, verbose=False):
+    passed = 0
+    total = 1
+    if verbose:
+        print(" addLine tests with " + qstruct.__name__ + ":")
+    qstr = qstruct()
+    cons = set([1, 3])
+    acons = set([2, 4])
+    qstr.addLine(["X", cons, acons])
+    auxg, auxc, auxa = qstr.lines[0][0]
+
+    if auxg != "X" or auxc != cons or auxa != acons:
+        if verbose:
+            print(auxg)
+            print(auxc)
+            print(auxa)
+            print("    Michael Bay visited your simulator...")
+    else:
+        passed += 1
+
+    if verbose:
+        print("    Noice")
+
+    return (passed, total)
+
+
 def deutschTests(nq, verbose=False, useSystem=False):
     passed = 0
     total = nq - 1 + 2
@@ -1592,7 +1615,7 @@ def highLevelTests(minqubits, maxqubits, seed=None, verbose=False):
         qj.setRandomSeed(seed)
         rnd.seed(seed)
         np.random.seed(seed)
-    result = [(0, 0) for i in range(9)]  # We have 9 tests
+    result = [(0, 0) for i in range(11)]  # We have 11 tests
 
     if verbose:
         print("Testing QGate inversion and application")
@@ -1608,6 +1631,8 @@ def highLevelTests(minqubits, maxqubits, seed=None, verbose=False):
     result[6] = teleportationTests(verbose=verbose, useSystem=False, remove=True)  # Teleportation algorithm with QRegistry tests and remove option
     result[7] = teleportationTests(verbose=verbose, useSystem=True, remove=False)  # Teleportation algorithm with QSystem tests
     result[8] = teleportationTests(verbose=verbose, useSystem=True, remove=True)  # Teleportation algorithm with QSystem tests and remove option
+    result[9] = addLineTests(qstruct=qj.QGate, verbose=verbose)  # Control and anticontrol check for QGate
+    result[10] = addLineTests(qstruct=qj.QCircuit, verbose=verbose)  # Control and anticontrol check for QCircuit
 
     for i in range(3, 5):
         result[i] = tuple(result[i])

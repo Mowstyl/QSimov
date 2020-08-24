@@ -147,9 +147,9 @@ def _rebuildGateName(gate):
         if (len(gate) > 2):
             if gate[2] is not None:
                 if isinstance(gate[2], Iterable) and len(gate[2]) > 0:
-                    cons = set(gate[2])
+                    acons = set(gate[2])
                 elif not isinstance(gate[2], Iterable):
-                    cons = set([gate[2]])
+                    acons = set([gate[2]])
     if not isinstance(gatename, QGate):
         if gatename is not None and gatename.lower() != "i":
             name, arg1, arg2, arg3, invert = prs.getGateData(gatename)
@@ -229,7 +229,6 @@ def _getParties(args):
                     myparty = myparty.union(args[i][1])
                 else:
                     raise ValueError("You can't apply a gate to a qubit and use it as a control: " + str(myparty.intersection(args[i][1])))
-            if args[i][0] is not None:
                 if len(myparty.intersection(args[i][2])) == 0:
                     myparty = myparty.union(args[i][2])
                 else:
