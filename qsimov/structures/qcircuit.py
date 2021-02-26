@@ -82,17 +82,31 @@ class QCircuit(object):
                                                      anticontrols=arg[2])
                                 else:
                                     parties = _getParties([arg if j == i else None for j in range(len(args))], ignore_empty=True)
-                                    freeindex = max([self.freeindexes[party] for party in parties])
-                                    for party in parties:
-                                        self.freeindexes[party] = freeindex + 1
-                                    if freeindex > self.lastindex:
-                                        self.oplines.append([None for i in range(self.size)])
-                                        self.lastindex += 1
-                                    self.oplines[freeindex][i] = arg
                                     num_targets = len(parties) - len(arg[1]) - len(arg[2])
-                                    while num_targets > 1:
-                                        del self.oplines[freeindex][i+1]
-                                        num_targets -= 1
+                                    freeindex = max([self.freeindexes[party] for party in parties])
+                                    skip = False
+                                    if freeindex > 0:
+                                        previousGate = self.oplines[freeindex-1][i]
+                                        if previousGate is not None and \
+                                           arg[0] == _invertStrGate(previousGate[0]) and \
+                                           arg[1] == previousGate[1] and arg[2] == previousGate[2]:
+                                            self.oplines[freeindex-1] = self.oplines[freeindex-1][:i] + [None for j in range(num_targets)] + self.oplines[freeindex-1][i+1:]
+                                            if len(self.oplines[freeindex-1]) == 0 or \
+                                               all([elem is None or elem == "I"
+                                                    for elem in self.oplines[freeindex-1]]):
+                                                del self.oplines[freeindex-1]
+                                            self.recalculate_free()
+                                            skip = True
+                                    if not skip:
+                                        for party in parties:
+                                            self.freeindexes[party] = freeindex + 1
+                                        if freeindex > self.lastindex:
+                                            self.oplines.append([None for i in range(self.size)])
+                                            self.lastindex += 1
+                                        self.oplines[freeindex][i] = arg
+                                        while num_targets > 1:
+                                            del self.oplines[freeindex][i+1]
+                                            num_targets -= 1
                     else:
                         print("No gates. Just Monika.")
             else:
@@ -148,6 +162,23 @@ class QCircuit(object):
         # print("mi")
         return olines
     '''
+
+    def recalculate_free(self):
+        for party in range(self.size):
+            self.freeindexes[party] = 0
+        self.lastindex = -1
+        for i in range(len(self.oplines)):
+            line = self.oplines[i]
+            if isinstance(line[0], Measure):
+                self.lastindex = i
+                for party in range(self.size):
+                    self.freeindexes[party] = i+1
+            else:
+                parties = _getParties(line)
+                if len(parties) > 0:
+                    self.lastindex = i
+                for party in parties:
+                    self.freeindexes[party] = i + 1
 
     def execute(self, qubits, iterations=1, qmachine=None, args={"useSystem": True}, optimize=True):
         result = None
