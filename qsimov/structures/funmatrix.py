@@ -10,7 +10,8 @@ if plat.system() == "Windows":
     extension = ".dll"
 else:
     extension = ".so"
-__libfolder__ = os.getcwd() + sep + "qsimov" + sep + "lib"
+__rootfolder__ = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+__libfolder__ = __rootfolder__ + sep + "lib"
 __funmatpath__ = __libfolder__ + sep + "libfunmat" + extension
 if hasattr(os, "add_dll_directory"):
     os.add_dll_directory(os.getcwd() + sep + "qsimov")

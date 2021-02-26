@@ -16,7 +16,7 @@ if plat.system() == "Windows":
 else:
     __libc__ = ct.cdll.LoadLibrary(ctypes.util.find_library("c"))
     extension = ".so"
-__rootfolder__ = os.getcwd() + sep + "qsimov"
+__rootfolder__ = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 __libfolder__ = __rootfolder__ + sep + "lib"
 __funmatpath__ = __libfolder__ + sep + "libfunmat" + extension
 __qsimovpath__ = __libfolder__ + sep + "libqsimov" + extension
