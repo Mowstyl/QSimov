@@ -7,7 +7,7 @@ import gc
 import numpy as np
 
 
-def _executeOnce(qsystem, lines, ancilla=None, useSystem=True):  # You can pass a QRegistry or an array to build a new QRegistry. When the second option is used, the ancilliary qubits will be added to the specified list.
+def _executeOnce(qsystem, lines, ancilla=None, useSystem=True, optimize=True):  # You can pass a QRegistry or an array to build a new QRegistry. When the second option is used, the ancilliary qubits will be added to the specified list.
     # print(qsystem)
     g = []
     r = qsystem
@@ -48,12 +48,12 @@ def _executeOnce(qsystem, lines, ancilla=None, useSystem=True):  # You can pass 
                         if type(line[i][0]) == str:
                             r.applyGate(line[i][0], qubit=currbit, control=controls, anticontrol=anticontrols)
                         else:
-                            line[i][0]._applyGate(r, currbit, controls, anticontrols)
+                            line[i][0]._applyGate(r, currbit, controls, anticontrols, optimize=optimize)
                         currbit += getGateSize(line[i][0])
                     else:
                         currbit += 1
             else:
-                r = g.check(r)
+                r = g.check(r, optimize=optimize)
                 mres += r[1]
                 r = r[0]
             gc.collect()
@@ -62,8 +62,8 @@ def _executeOnce(qsystem, lines, ancilla=None, useSystem=True):  # You can pass 
     return (r, mres)
 
 
-def execute(qregistry, iterations=1, lines=[], ancilla=None, useSystem=True):
-    sol = [_executeOnce(qregistry, lines, ancilla, useSystem) for i in range(iterations)]
+def execute(qregistry, iterations=1, lines=[], ancilla=None, useSystem=True, optimize=True):
+    sol = [_executeOnce(qregistry, lines, ancilla, useSystem, optimize) for i in range(iterations)]
     if iterations == 1:
         sol = sol[0]
     return sol

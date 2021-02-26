@@ -6,7 +6,7 @@ class Measure(object):
         self.remove = remove
 
     def __repr__(self):
-        return str(["Measure" if i == 1 else "I" for i in self.mask])
+        return str(["Measure" if i == 1 else None for i in self.mask])
 
     def __str__(self):
         return self.__repr__()
@@ -22,13 +22,13 @@ class Measure(object):
             mres.append(tap)
         return mres
 
-    def check(self, qregistry):
+    def check(self, qregistry, optimize=True):
         res = qregistry.measure(self.mask, remove=self.remove)
         res = self._mesToList(res)
         # print ("Measure result: " + str(res))
         r = (qregistry, [res])
         for cond in self.conds:
-            aux = cond.evaluate(r[0], res)
+            aux = cond.evaluate(r[0], res, optimize=optimize)
             if type(aux) == tuple:
                 r = (aux[0], r[1] + aux[1])
             else:

@@ -26,6 +26,9 @@ class QGate(object):
     def __init__(self, name="UNNAMED", size=None):
         self.empty = True
         self.lines = []
+        self.oplines = []
+        self.freeindexes = None
+        self.lastindex = -1
         self.name = name
         self.size = size
 
@@ -40,7 +43,17 @@ class QGate(object):
     def __str__(self):
         return self.name
 
-    def addLine(self, *args):
+    def addLine(self, *args, **kwargs):
+        add_line = True
+        offset = 0
+        if "add_line" in kwargs:
+            add_line = kwargs["add_line"]
+        if "offset" in kwargs:
+            offset = kwargs["offset"]
+        if "controls" in kwargs:
+            controls = kwargs["controls"]
+        if "anticontrols" in kwargs:
+            anticontrols = kwargs["anticontrols"]
         args = [_rebuildGateName(gate) for gate in args]
         # size = sum([getGateSize(gate) for gate in args])
         parties = _getParties(args)
@@ -49,10 +62,42 @@ class QGate(object):
             if (self.empty):
                 self.size = size
                 self.empty = False
+                self.freeindexes = [0 for i in range(size)]
             if (self.size != size):
                 raise ValueError("This gate requires a " + str(self.size) + " QuBit gate. Received " + str(size) + " QuBit gate.")
 
-            self.lines += [args]
+            if add_line:
+                self.lines += [args]
+            for i in range(len(args)):
+                arg = args[i]
+                if arg is not None:
+                    if offset > 0:
+                        arg[1] = controls.union({control + offset for control in arg[1]})
+                        arg[2] = anticontrols.union({acontrol + offset for acontrol in arg[2]})
+                    if isinstance(arg[0], QGate):
+                        for line in arg[0].oplines:
+                            self.addLine(*[None for j in range(i)],
+                                         *line,
+                                         *[None for j in range(self.size - arg[0].size - i)],
+                                         add_line=False, offset=i,
+                                         controls=arg[1],
+                                         anticontrols=arg[2])
+                    else:
+                        # print(arg)
+                        parties = _getParties([arg if j == i else None for j in range(len(args))], ignore_empty=True)
+                        # print("Parties:", parties)
+                        # print("Target:", i)
+                        freeindex = max([self.freeindexes[party] for party in parties])
+                        for party in parties:
+                            self.freeindexes[party] = freeindex + 1
+                        if freeindex > self.lastindex:
+                            self.oplines.append([None for i in range(self.size)])
+                            self.lastindex += 1
+                        self.oplines[freeindex][i] = arg
+                        num_targets = len(parties) - len(arg[1]) - len(arg[2])
+                        while num_targets > 1:
+                            del self.oplines[freeindex][i+1]
+                            num_targets -= 1
         else:
             print("No gates. Just Monika.")
 
@@ -68,8 +113,51 @@ class QGate(object):
     def invert(self):
         return self.dagger()
 
-    def _applyGate(self, registry, qubit, controls, anticontrols):
+    '''
+    def _flatten(self, controls=set(), anticontrols=set()):
+        flines = []
         for line in self.lines:
+            newLines = [[]]
+            qbs = 0
+            for op in line:
+                if op is None:
+                    for i in range(len(newLines)):
+                        newLines[i].append(None)
+                    qbs += 1
+                elif type(op) is Measure:
+                    newLines[0].append(op)
+                else:
+                    gate, cons, acons = op
+                    cons = cons.union(controls)
+                    acons = acons.union(anticontrols)
+                    if type(gate) is not QGate:
+                        newLines[0].append(op)
+                        for i in range(1, len(newLines)):
+                            newLines[i].append(None)
+                        qbs += 1 + len(cons) + len(acons)
+                    else:
+                        auxLines = gate._flatten(cons, acons)
+                        if len(auxLines) > len(newLines):
+                            newLines += [[None for j in range(qbs)] for i in range(len(auxLines) - len(newLines))]
+                        for i in range(len(auxLines)):
+                            auxLine = auxLines[i]
+                            for j in range(len(auxLine)):
+                                if auxLine[j] is not None:
+                                    auxgate, auxcons, auxacons = auxLine[j]
+                                    auxcons = set([c + qbs for c in auxcons])
+                                    auxacons = set([ac + qbs for ac in auxacons])
+                                    auxLine[j] = [auxgate, cons.union(auxcons), acons.union(auxacons)]
+                            newLines[i] += auxLine
+                        qbs += gate.size + len(cons) + len(acons)
+            flines += newLines
+        return flines
+    '''
+
+    def _applyGate(self, registry, qubit, controls, anticontrols, optimize=False):
+        lines = self.lines
+        if optimize:
+            lines = self.oplines
+        for line in lines:
             currbit = 0
             for i in range(len(line)):
                 if line[i] is not None and line[i][0] is not None and (isinstance(line[i][0], QGate) or line[i][0].lower() != "i"):
@@ -217,7 +305,7 @@ def _invertStrGate(gatename):
     return gatename
 
 
-def _getParties(args):
+def _getParties(args, ignore_empty=False):
     parties = set()
     empties = set()
     currbit = 0
@@ -243,6 +331,8 @@ def _getParties(args):
         else:
             empties.add(currbit)
             currbit += 1
+    if ignore_empty:
+        return parties
     return parties.union(empties)
 
 

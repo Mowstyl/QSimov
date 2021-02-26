@@ -46,7 +46,7 @@ class QSystem:
         nqubits = self.getNQubits()
         if (not isinstance(msk, Iterable) or len(msk) != nqubits or
                 not all(type(num) == int and (num == 0 or num == 1) for num in msk)):
-            raise ValueError('Not valid mask')
+            raise ValueError('Not valid mask: ' + str(msk))
         result = []
         for qubit in range(self.nqubits):
             if msk[qubit] == 1:
@@ -77,10 +77,13 @@ class QSystem:
         return result
 
     def applyGate(self, *args, **kwargs):  # gate, qubit=0, control=None, anticontrol=None):
+        optimize = True
+        if "optimize" in kwargs:
+            optimize = kwargs["optimize"]
         if len(args) == 1 or (len(args) == 2 and np.issubdtype(type(args[1]), np.integer) and "qubit" not in kwargs):
             for key in kwargs:
-                if key != "qubit" and key != "control" and key != "anticontrol":
-                    raise ValueError('Apart from the gates, you can only specify "qubit", "control" and/or "anticontrol" (lowercase)')
+                if key != "qubit" and key != "control" and key != "anticontrol" and key != "optimize":
+                    raise ValueError('Apart from the gates, you can only specify "qubit", "control", "anticontrol" (lowercase) and/or optimize')
             gate = args[0]
             if type(gate) == QGate:
                 gate = (gate, gate.size)
@@ -103,7 +106,7 @@ class QSystem:
                 anticontrol = [anticontrol]
             if isinstance(qubit, Iterable):
                 for qid in qubit:
-                    self.applyGate(gate[0], qubit=qid, control=control, anticontrol=anticontrol)
+                    self.applyGate(gate[0], qubit=qid, control=control, anticontrol=anticontrol, optimize=optimize)
             else:
                 name = ""
                 if type(gate[0]) != QGate:
@@ -131,14 +134,14 @@ class QSystem:
                 newcontrol = [regmap[qid] for qid in control]
                 newanticontrol = [regmap[qid] for qid in anticontrol]
                 if type(gate[0]) == QGate:
-                    reg.applyGate(gate[0], qubit=newqubit, control=newcontrol, anticontrol=newanticontrol)
+                    reg.applyGate(gate[0], qubit=newqubit, control=newcontrol, anticontrol=newanticontrol, optimize=optimize)
                 else:
                     if "SWAP" in name:
                         gate = (name + "(" + str(regmap[arg1]) + "," + str(regmap[arg2]) + ")" + invstring, gate[1])
                     if name == "XX" or name == "YY" or name == "ZZ":
                         gate = (name + "(" + str(arg1) + "," + str(regmap[arg2]) + "," + str(regmap[arg3]) + ")" + invstring, gate[1])
                     # print(gate[0])
-                    reg.applyGate(gate[0], qubit=newqubit, control=newcontrol, anticontrol=newanticontrol)
+                    reg.applyGate(gate[0], qubit=newqubit, control=newcontrol, anticontrol=newanticontrol, optimize=optimize)
         elif len(kwargs) == 0 and len(args) > 0:
             nq = 0
             gates = []
@@ -156,7 +159,7 @@ class QSystem:
                 qid = 0
                 for gate in gates:
                     if gate[0] is not None:
-                        self.applyGate(gate[0], qubit=qid)
+                        self.applyGate(gate[0], qubit=qid, optimize=optimize)
                     qid += gate[1]
             else:
                 print("You have to specify a gate for each QuBit (or None if you don't want to operate with it)")

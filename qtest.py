@@ -1396,7 +1396,7 @@ def addLineTests(qstruct, verbose=False):
     return (passed, total)
 
 
-def deutschTests(nq, verbose=False, useSystem=False):
+def deutschTests(nq, verbose=False, useSystem=False, optimize=False):
     passed = 0
     total = nq - 1 + 2
     allOk = True
@@ -1405,7 +1405,7 @@ def deutschTests(nq, verbose=False, useSystem=False):
     for id in range(nq - 1):
         gate = Bal(nq, id)
         circuit = DJAlgCircuit(nq, gate)
-        reg, mes = circuit.execute([0 for i in range(nq - 1)], args={"useSystem": useSystem})
+        reg, mes = circuit.execute([0 for i in range(nq - 1)], args={"useSystem": useSystem}, optimize=optimize)
         mes = mes[0]
 
         reg2 = qj.QSystem(nq)  # Los qubits se inicializan a cero (x1..xn) excepto el ultimo (y), inicializado a uno
@@ -1439,7 +1439,7 @@ def deutschTests(nq, verbose=False, useSystem=False):
         for id in range(2):
             gate = Const(nq, twice=id == 1)
             circuit = DJAlgCircuit(nq, gate)
-            reg, mes = circuit.execute([0 for i in range(nq - 1)], args={"useSystem": useSystem})
+            reg, mes = circuit.execute([0 for i in range(nq - 1)], args={"useSystem": useSystem}, optimize=optimize)
             mes = mes[0]
 
             reg2 = qj.QSystem(nq)  # Los qubits se inicializan a cero (x1..xn) excepto el ultimo (y), inicializado a uno
@@ -1472,7 +1472,7 @@ def deutschTests(nq, verbose=False, useSystem=False):
     return (passed, total)
 
 
-def teleportationTests(verbose=False, useSystem=False, remove=False):
+def teleportationTests(verbose=False, useSystem=False, remove=False, optimize=False):
     passed = 0
     total = 1
     gate = "U(" + str(rnd.random()) + "," + str(rnd.random()) + "," + str(rnd.random()) + ")"
@@ -1484,7 +1484,7 @@ def teleportationTests(verbose=False, useSystem=False, remove=False):
     gate = "U(" + str(rnd.random()) + "," + str(rnd.random()) + "," + str(rnd.random()) + ")"
     initialValue = rnd.randrange(2)
     circuit = TeleportationCircuit(gate, remove=remove)
-    reg, mes = circuit.execute([initialValue], args={"useSystem": useSystem})
+    reg, mes = circuit.execute([initialValue], args={"useSystem": useSystem}, optimize=optimize)
     mes = mes[0]
 
     if remove:
@@ -1615,7 +1615,7 @@ def highLevelTests(minqubits, maxqubits, seed=None, verbose=False):
         qj.setRandomSeed(seed)
         rnd.seed(seed)
         np.random.seed(seed)
-    result = [(0, 0) for i in range(11)]  # We have 11 tests
+    result = [(0, 0) for i in range(17)]  # We have 11 tests
 
     if verbose:
         print("Testing QGate inversion and application")
@@ -1625,16 +1625,22 @@ def highLevelTests(minqubits, maxqubits, seed=None, verbose=False):
     for nq in range(minqubits, maxqubits + 1):
         if verbose:
             print("Testing with " + str(nq) + " qubit circuits")
-        result[3] = map(add, result[3], deutschTests(4, verbose=verbose, useSystem=False))  # Deutsch-Josza algorithm with QRegistry tests
-        result[4] = map(add, result[4], deutschTests(4, verbose=verbose, useSystem=True))  # Deutsch-Josza algorithm with QSystem tests
-    result[5] = teleportationTests(verbose=verbose, useSystem=False, remove=False)  # Teleportation algorithm with QRegistry tests
-    result[6] = teleportationTests(verbose=verbose, useSystem=False, remove=True)  # Teleportation algorithm with QRegistry tests and remove option
-    result[7] = teleportationTests(verbose=verbose, useSystem=True, remove=False)  # Teleportation algorithm with QSystem tests
-    result[8] = teleportationTests(verbose=verbose, useSystem=True, remove=True)  # Teleportation algorithm with QSystem tests and remove option
-    result[9] = addLineTests(qstruct=qj.QGate, verbose=verbose)  # Control and anticontrol check for QGate
-    result[10] = addLineTests(qstruct=qj.QCircuit, verbose=verbose)  # Control and anticontrol check for QCircuit
+        result[3] = map(add, result[3], deutschTests(4, verbose=verbose, useSystem=False, optimize=False))  # Deutsch-Josza algorithm with QRegistry tests
+        result[4] = map(add, result[4], deutschTests(4, verbose=verbose, useSystem=True, optimize=False))  # Deutsch-Josza algorithm with QSystem tests
+        result[5] = map(add, result[5], deutschTests(4, verbose=verbose, useSystem=False, optimize=True))  # Deutsch-Josza algorithm with QRegistry tests
+        result[6] = map(add, result[6], deutschTests(4, verbose=verbose, useSystem=True, optimize=True))  # Deutsch-Josza algorithm with QSystem tests
+    result[7] = teleportationTests(verbose=verbose, useSystem=False, remove=False, optimize=False)  # Teleportation algorithm with QRegistry tests
+    result[8] = teleportationTests(verbose=verbose, useSystem=False, remove=True, optimize=False)  # Teleportation algorithm with QRegistry tests and remove option
+    result[9] = teleportationTests(verbose=verbose, useSystem=True, remove=False, optimize=False)  # Teleportation algorithm with QSystem tests
+    result[10] = teleportationTests(verbose=verbose, useSystem=True, remove=True, optimize=False)  # Teleportation algorithm with QSystem tests and remove option
+    result[11] = teleportationTests(verbose=verbose, useSystem=False, remove=False, optimize=True)  # Teleportation algorithm with QRegistry tests
+    result[12] = teleportationTests(verbose=verbose, useSystem=False, remove=True, optimize=True)  # Teleportation algorithm with QRegistry tests and remove option
+    result[13] = teleportationTests(verbose=verbose, useSystem=True, remove=False, optimize=True)  # Teleportation algorithm with QSystem tests
+    result[14] = teleportationTests(verbose=verbose, useSystem=True, remove=True, optimize=True)  # Teleportation algorithm with QSystem tests and remove option
+    result[15] = addLineTests(qstruct=qj.QGate, verbose=verbose)  # Control and anticontrol check for QGate
+    result[16] = addLineTests(qstruct=qj.QCircuit, verbose=verbose)  # Control and anticontrol check for QCircuit
 
-    for i in range(3, 5):
+    for i in range(3, 7):
         result[i] = tuple(result[i])
 
     return result

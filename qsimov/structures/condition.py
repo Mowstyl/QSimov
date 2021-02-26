@@ -1,3 +1,6 @@
+import qsimov.connectors.qsimovapi as qapi
+
+
 def _specialCompare(a, b):
     same = len(a) == len(b)
     if (same):
@@ -23,7 +26,7 @@ class Condition(object):
         self.typeif = typeif
         self.typeel = typeel
 
-    def evaluate(self, qregistry, mresults):
+    def evaluate(self, qregistry, mresults, optimize=True):
         case = self.elcase
         t = self.typeel
         if _specialCompare(self.cond, mresults):
@@ -50,7 +53,10 @@ class Condition(object):
             else:
                 r.applyGate(gate, qubit=id, control=ctrl, anticontrol=actl)
         elif t == 2:  # QCircuit
-            r = case._executeOnce(qregistry)
+            lines = case.lines
+            if optimize:
+                lines = case.oplines
+            r = qapi._executeOnce(qregistry, lines)
         else:  # Do nothing
             r = qregistry
         return r

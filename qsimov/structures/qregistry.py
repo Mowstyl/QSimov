@@ -138,8 +138,14 @@ class QRegistry:
         else:
             return []
 
-    def applyGate(self, gate, qubit=0, control=None, anticontrol=None):
+    def applyGate(self, gate, qubit=0, control=None, anticontrol=None, optimize=True):
         if np.issubdtype(type(qubit), np.integer) and qubit < self.getNQubits() and qubit >= 0:
+            '''
+            print("Gate:", gate)
+            print("Target:", qubit)
+            print("Control:", control)
+            print("Anticontrol:", anticontrol)
+            '''
             if not isinstance(control, Iterable) and type(control) != int and not (control is None):
                 raise ValueError("Control must be an int, a list of ints or None!")
             elif not isinstance(anticontrol, Iterable) and type(anticontrol) != int and not (anticontrol is None):
@@ -204,7 +210,7 @@ class QRegistry:
                             if int(__cApplyGate__(self.reg, ct.c_char_p(name.encode()), ct.c_double(arg1), ct.c_double(arg2), ct.c_double(arg3), ct.c_int(int(invert)), ct.c_int(qubit), control, ct.c_int(clen), anticontrol, ct.c_int(aclen))) == 0:
                                 print("Error applying gate to specified QuBit!")
                     elif type(gate) == QGate:
-                        gate._applyGate(self, qubit, control[:clen], anticontrol[:aclen])
+                        gate._applyGate(self, qubit, control[:clen], anticontrol[:aclen], optimize=optimize)
                 else:
                     print("The ids must be between 0 and " + str(self.getNQubits))
         else:
