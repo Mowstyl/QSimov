@@ -1,6 +1,6 @@
 from qsimov.structures.qregistry import QRegistry
 from qsimov.structures.qsystem import QSystem
-from qsimov.structures.qgate import _rebuildGateName, _getParties, QGate
+from qsimov.structures.qgate import _rebuildGateName, _getParties, _invertStrGate, QGate
 from qsimov.structures.measure import Measure
 import qsimov.connectors.qsimovapi as qapi
 import gc
