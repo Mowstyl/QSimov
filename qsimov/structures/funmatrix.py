@@ -14,7 +14,7 @@ __rootfolder__ = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 __libfolder__ = __rootfolder__ + sep + "lib"
 __funmatpath__ = __libfolder__ + sep + "libfunmat" + extension
 if hasattr(os, "add_dll_directory"):
-    os.add_dll_directory(os.getcwd() + sep + "qsimov")
+    os.add_dll_directory(__rootfolder__)
     os.add_dll_directory(__libfolder__)
     __funmatpath__ = "libfunmat" + extension
 __funmat__ = ct.CDLL(__funmatpath__)

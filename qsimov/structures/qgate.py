@@ -15,6 +15,8 @@ else:
 __rootfolder__ = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 __libfolder__ = __rootfolder__ + sep + "lib"
 __qsimovpath__ = __libfolder__ + sep + "libqsimov" + extension
+if hasattr(os, "add_dll_directory"):
+    __qsimovpath__ = "libqsimov" + extension
 __qsimov__ = ct.CDLL(__qsimovpath__)
 
 c_double_p = ct.POINTER(ct.c_double)
