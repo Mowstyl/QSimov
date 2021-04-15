@@ -1,10 +1,20 @@
+"""Module with gate name parsing stuff.
+
+This module has all name parsing stuff
+"""
+
 import numpy as np
 import re
 
-__rep__ = re.compile("^([a-zA-Z0-9]+)(\\((?:(?:(?:[a-zA-Z]+)|(?:[0-9]+(?:\\.[0-9]+)?(?:e[\\+\\-][0-9]+)?))\\,\\s*)*(?:(?:(?:[a-zA-Z]+)|(?:[0-9]+(?:\\.[0-9]+)?(?:e[\\+\\-][0-9]+)?)))\\))?(\\-1)?$")
+__rep__ = re.compile("^([a-zA-Z0-9]+)" +
+                     "(\\((?:(?:(?:[a-zA-Z]+)|" +
+                     "(?:[0-9]+(?:\\.[0-9]+)?(?:e[\\+\\-][0-9]+)?))\\,\\s*)*" +
+                     "(?:(?:(?:[a-zA-Z]+)|(?:[0-9]+(?:\\.[0-9]+)?" +
+                     "(?:e[\\+\\-][0-9]+)?)))\\))?(\\-1)?$")
 
 
 def parseGroups(groups):
+    """Parse the result of getGroups function, passed as parameter."""
     errored = False
     g1 = groups[0]
     g4 = groups[2] is not None
@@ -40,6 +50,7 @@ def parseGroups(groups):
 
 
 def getGroups(str_gate):
+    """Get matching groups using __rep__ regular expression."""
     res = __rep__.match(str_gate)
     return parseGroups(res.groups()) if res is not None else None
 
@@ -84,6 +95,7 @@ __gateDict__["sqrtswap"] = ("SqrtSWAP", 2, 2)
 
 
 def getGateData(gateraw):
+    """Get the data of the gate associated with the given string."""
     gate = None
     if type(gateraw) == str:
         groups = getGroups(gateraw)
@@ -113,9 +125,11 @@ def getGateData(gateraw):
                     else:
                         gate = (gatemet, args[0], args[1], args[2], invert)
                 else:
-                    #print("Received: " + gateraw)
-                    #print("Parsed: " + gate)
-                    raise ValueError(gatename + " gate number of args must be between " + str(minargs) + " and " + str(maxargs))
+                    # print("Received: " + gateraw)
+                    # print("Parsed: " + gate)
+                    raise ValueError(gatename + " gate number of args must " +
+                                     "be between " + str(minargs) +
+                                     " and " + str(maxargs))
             else:
                 raise ValueError(gatename + " can't be used with QSimovAPI")
         else:

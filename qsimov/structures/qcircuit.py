@@ -58,12 +58,12 @@ class QCircuit(object):
                     parties = _getParties(args)
                     size = len(parties)
                     if size > 0:
+                        if (self.size is not None) and (self.size != size):
+                            raise ValueError("This circuit requires gates for " + str(self.size) + " QuBits. Received gates for " + str(size) + " QuBits.")
                         if (self.empty):
                             self.size = size
                             self.empty = False
                             self.freeindexes = [0 for i in range(size)]
-                        if (self.size != size):
-                            raise ValueError("This circuit requires gates for " + str(self.size) + " QuBits. Received gates for " + str(size) + " QuBits.")
                         if add_line:
                             self.lines += [args]
                         for i in range(len(args)):

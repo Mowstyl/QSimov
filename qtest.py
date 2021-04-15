@@ -383,16 +383,26 @@ def Const(n, twice=False):
     return gate
 
 
-def DJAlgCircuit(size, U_f):  # U_f es el oraculo, que debe tener x1..xn e y como qubits. Tras aplicarlo el qubit y debe valer f(x1..xn) XOR y. El argumento size es n + 1, donde n es el numero de bits de entrada de f.
-    c = qj.QCircuit("Deutsch-Josza Algorithm", ancilla=[1])  # El ultimo QuBit al ejecutar el algoritmo es de ancilla, con su valor a 1
-    c.addLine(*["H" for i in range(size)])  # Se aplica una compuerta hadamard a todos los qubits
+def DJAlgCircuit(size, U_f):
+    """Devuelve el circuito del algoritmo de Deutsch-Josza.
+
+    U_f es el oraculo, que debe tener x1..xn e y como qubits.
+    Tras aplicarlo el qubit y debe valer f(x1..xn) XOR y.
+    El argumento size es n + 1, donde n es el numero de bits de entrada de f.
+    """
+    # El ultimo QuBit al ejecutar el algoritmo es de ancilla, con su valor a 1
+    c = qj.QCircuit("Deutsch-Josza Algorithm", ancilla=[1])
+
+    # Se aplica una compuerta hadamard a todos los qubits
+    c.addLine(*["H" for i in range(size)])
     c.addLine(U_f)  # Se aplica el oraculo
-    c.addLine(*("H" for i in range(size-1)), "I")  # Se aplica una puerta Hadamard a todos los qubits excepto al ultimo
 
-    # f = lambda _, l: print(all(i == 0 for i in l[:-1]))  # Funcion que imprimira cierto tras realizar la medida si la funcion es constante
+    # Se aplica una puerta Hadamard a todos los qubits excepto al ultimo
+    c.addLine(*("H" for i in range(size-1)), "I")
 
-    # c.addLine(Measure([1 for i in range(size - 1)] + [0], tasks=[f]))  # Se miden los qubit x, si es igual a 0 la funcion es constante. En caso contrario no lo es.
-    c.addLine(qj.Measure([1 for i in range(size - 1)] + [0]))  # Se miden los qubit x, si es igual a 0 la funcion es constante. En caso contrario no lo es.
+    # Se miden los qubit x, si es igual a 0 la funcion es constante.
+    # En caso contrario no lo es.
+    c.addLine(qj.Measure([1 for i in range(size - 1)] + [0]))
 
     return c
 

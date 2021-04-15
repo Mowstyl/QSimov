@@ -1,3 +1,5 @@
+"""Module with Condition related stuff."""
+
 import qsimov.connectors.qsimovapi as qapi
 
 
@@ -12,14 +14,23 @@ def _specialCompare(a, b):
 
 
 class Condition(object):
+    """Condition to be checked and executed after a Measure takes place."""
+
     def __init__(self, cond, ifcase, elcase, typeif, typeel):
-        # cond is an array of what we expect to have measured in each QuBit. None if we don't care about a certain value. Example: [0, 1, None, None, 1].
-        # ifcase and elcase can be Conditions or QCircuits to be applied to the registry. They can also be functions that take the registry and the result as a parameter.
-        # typeif and typeel are integers from -1 to 2.
-        # -1 means that nothing has to be done in that case.
-        # 0 means that ifcase/elcase is another Condition.
-        # 1 means that ifcase/elcase is a gate to be applied.
-        # 2 means that ifcase/elcase is a QCircuit.
+        """Initialize the Condition instance.
+
+        cond is an array of what we expect to have measured in each QuBit.
+            None if we don't care about a certain value.
+            Example: [0, 1, None, None, 1]
+        ifcase and elcase can be Conditions or QCircuits to be applied to
+            the registry. They can also be functions that take the registry
+            and the result as a parameter.
+        typeif and typeel are integers from -1 to 2.
+            -1 means that nothing has to be done in that case.
+            0 means that ifcase/elcase is another Condition.
+            1 means that ifcase/elcase is a gate to be applied.
+            2 means that ifcase/elcase is a QCircuit.
+        """
         self.cond = cond
         self.ifcase = ifcase
         self.elcase = elcase
@@ -27,6 +38,7 @@ class Condition(object):
         self.typeel = typeel
 
     def evaluate(self, qregistry, mresults, optimize=True):
+        """Evaluate the condition using given results. Execute the cases."""
         case = self.elcase
         t = self.typeel
         if _specialCompare(self.cond, mresults):

@@ -1,3 +1,10 @@
+"""Module that executes a circuit using Doki (QSimov core).
+
+This module provides functions that execute a given set of quantum gates
+on a given quantum system, using Doki (the QSimov core written in C) to
+perform the simulation.
+"""
+
 from qsimov.structures.qgate import QGate, getGateSize
 from qsimov.structures.qregistry import QRegistry, superposition
 from qsimov.structures.qsystem import QSystem, joinSystems
@@ -7,7 +14,13 @@ import gc
 import numpy as np
 
 
-def _executeOnce(qsystem, lines, ancilla=None, useSystem=True, optimize=True):  # You can pass a QRegistry or an array to build a new QRegistry. When the second option is used, the ancilliary qubits will be added to the specified list.
+def _executeOnce(qsystem, lines, ancilla=None, useSystem=True, optimize=True):
+    """Execute the gates in lines on a qsystem once.
+
+    You can pass a QRegistry or an array to build a new QRegistry.
+    When the second option is used,
+    the ancilliary qubits will be added to the specified list.
+    """
     # print(qsystem)
     g = []
     r = qsystem
@@ -42,13 +55,21 @@ def _executeOnce(qsystem, lines, ancilla=None, useSystem=True, optimize=True):  
             if type(g) != Measure:
                 currbit = 0
                 for i in range(len(line)):
-                    if line[i] is not None and line[i][0] is not None and (isinstance(line[i][0], QGate) or line[i][0].lower() != "i"):
+                    if line[i] is not None and line[i][0] is not None and \
+                            (isinstance(line[i][0], QGate) or
+                             line[i][0].lower() != "i"):
                         controls = line[i][1]
                         anticontrols = line[i][2]
                         if type(line[i][0]) == str:
-                            r.applyGate(line[i][0], qubit=currbit, control=controls, anticontrol=anticontrols)
+                            r.applyGate(line[i][0],
+                                        qubit=currbit,
+                                        control=controls,
+                                        anticontrol=anticontrols)
                         else:
-                            line[i][0]._applyGate(r, currbit, controls, anticontrols, optimize=optimize)
+                            line[i][0]._applyGate(r, currbit,
+                                                  controls,
+                                                  anticontrols,
+                                                  optimize=optimize)
                         currbit += getGateSize(line[i][0])
                     else:
                         currbit += 1
@@ -62,8 +83,15 @@ def _executeOnce(qsystem, lines, ancilla=None, useSystem=True, optimize=True):  
     return (r, mres)
 
 
-def execute(qregistry, iterations=1, lines=[], ancilla=None, useSystem=True, optimize=True):
-    sol = [_executeOnce(qregistry, lines, ancilla, useSystem, optimize) for i in range(iterations)]
+def execute(qregistry, iterations=1, lines=[], ancilla=None,
+            useSystem=True, optimize=True):
+    """Execute the gates in lines on a qsystem.
+
+    Gets repeated the specified number of iterations.
+    Returns the result of each iteration.
+    """
+    sol = [_executeOnce(qregistry, lines, ancilla, useSystem, optimize)
+           for i in range(iterations)]
     if iterations == 1:
         sol = sol[0]
     return sol

@@ -1,4 +1,25 @@
 # -*- coding: utf-8 -*-
+"""Base module for the Quantum Computing Simulator named QSimov.
+
+Data Structures:
+    Funmatrix: Functional Matrices related stuff in python
+    QRegistry: Quantum Registry, base of all quantum related operations
+    QSystem: Quantum System, preferred over QRegistry (can save a lot of space)
+    QGate: Quantum Gate, build from elemental gates or other QGates
+    QCircuit: Quantum Circuit, build from gates and measurements
+    Measure: Data structure that represents a measurement in a circuit
+    Condition: A condition to be evaluated after a measurement
+
+Functions:
+    setRandomSeed: sets the seed for measurements.
+        Automatically called when this module is imported
+    getGate: returns data about an elemental gate (not QGate)
+    QEq: UNSTABLE. Compares two items
+    getTruthTable: UNSTABLE. Returns the truth table of a gate
+
+Data structures and functions marked as UNSTABLE might not work
+Avoid using them as they might be removed in future versions
+"""
 
 import numpy as np
 import ctypes as ct
@@ -13,7 +34,8 @@ from qsimov.structures.qcircuit import QCircuit
 from qsimov.structures.measure import Measure
 from qsimov.structures.condition import Condition
 
-# np.zeros((h,w), dtype=complex) Inicializa una matriz de numeros complejos con alto h y ancho w
+# np.zeros((h,w), dtype=complex) Inicializa una matriz de numeros complejos
+# con alto h y ancho w
 # La suma de matrices se realiza con +. A + B
 # La multiplicacion por un escalar se hace con *. n * A
 # Para multiplicar las matrices A y B se usa np.dot(A,B)
@@ -29,6 +51,11 @@ __cSrand__.argtypes = [ct.c_uint]
 
 
 def setRandomSeed(seed, debug=False):
+    """Set the seed used in measurements.
+
+    seed: The seed to use
+    debug: Whether to print the seed or not (default: False)
+    """
     if seed is None:
         seed = ct.c_uint(int(t.time()))
     else:
@@ -38,12 +65,19 @@ def setRandomSeed(seed, debug=False):
     __cSrand__(seed)
 
 
-def getTruthTable(gate, ancilla=None, garbage=0, iterations=1):  # Prints the truth table of the given gate.
-    # You can set the ancilla bits to not include them in the table, with the list of values they must have.
-    # For example, if you have two 0s and one 1 as ancilla bits, ancilla[0,0,1]. It always takes the last bits as the ancilla ones!
-    # The garbage=n removes the last n bits from the truth table, considering them garbage.
-    # For example, if you have 6 outputs and the last 4 outputs are garbage, only the value of the first two would be printed.
-    # Always removes the last n bits!
+def getTruthTable(gate, ancilla=None, garbage=0, iterations=1):
+    """Print the truth table of the given gate.
+
+    You can set the ancilla bits to not include them in the table,
+    with the list of values they must have.
+    For example, if you have two 0s and one 1 as ancilla bits, ancilla[0,0,1].
+    It always takes the last bits as the ancilla ones!
+    The garbage=n removes the last n bits from the truth table,
+    considering them garbage.
+    For example, if you have 6 outputs and the last 4 outputs are garbage,
+    only the value of the first two would be printed.
+    Always removes the last n bits!
+    """
     if (type(gate) == QGate):
         gate = gate.m
     num = int(np.log2(gate.getRows()))
@@ -70,12 +104,16 @@ def getTruthTable(gate, ancilla=None, garbage=0, iterations=1):  # Prints the tr
             mesd[k][i] /= iterations
             if (mesd[k][i] == 1.0 or mesd[k][i] == 0.0):
                 mesd[k][i] = int(mesd[k][i])
-        print(k + " -> " + str(["P(1)=" + str(v) if type(v) != int and type(v) != int else v for v in mesd[k]]))
+        print(k + " -> " + str(["P(1)=" + str(v)
+                                if type(v) != int and type(v) != int
+                                else v
+                                for v in mesd[k]]))
     return mesd
 
 
 def QEq(q1, q2):
+    """Return if q1 and q2 are equal and represented the same."""
     return np.array_equal(q1, q2) and str(q1) == str(q2)
 
 
-setRandomSeed(None)
+setRandomSeed(None, debug=True)
