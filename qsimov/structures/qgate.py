@@ -339,7 +339,10 @@ def _getParties(args, ignore_empty=False):
         if args[i] is not None:
             myparty = _getQuBitArg(args[i][0])
             if myparty is None:
-                myparty = set([currbit + j for j in range(getGateSize(args[i][0]))])
+                gateSize = getGateSize(args[i][0])
+                if gateSize is None:
+                    continue
+                myparty = set([currbit + j for j in range(gateSize)])
             if args[i][0] is not None:
                 if len(myparty.intersection(args[i][1])) == 0:
                     myparty = myparty.union(args[i][1])
