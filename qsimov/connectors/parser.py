@@ -25,6 +25,16 @@ def parseGroups(groups):
         g3 = []
         for attr in aux:
             attr = attr.strip()
+            if len(attr) == 0:
+                errored = True
+                break
+            is_neg = attr[0] == '-'
+            is_pos = attr[0] == '+'
+            if is_neg or is_pos:
+                attr = attr[1:]
+            if len(attr) == 0:
+                errored = True
+                break
             if "." in attr:
                 attr = float(attr)
             elif attr[0] in "0123456789":
@@ -39,6 +49,8 @@ def parseGroups(groups):
                 print(attr)
                 errored = True
                 break
+            if is_neg:
+                attr = -attr
             g3.append(attr)
     else:
         g2 = 0
