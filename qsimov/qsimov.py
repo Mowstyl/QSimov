@@ -49,6 +49,14 @@ else:
 __cSrand__ = __libc__.srand
 __cSrand__.argtypes = [ct.c_uint]
 
+_seed = None
+
+
+def get_seed():
+    """Return the current seed."""
+    global _seed
+    return _seed
+
 
 def setRandomSeed(seed, debug=False):
     """Set the seed used in measurements.
@@ -63,6 +71,8 @@ def setRandomSeed(seed, debug=False):
     if debug:
         print("Seed: " + str(seed.value))
     __cSrand__(seed)
+    global _seed
+    _seed = seed.value
 
 
 def getTruthTable(gate, ancilla=None, garbage=0, iterations=1):
@@ -116,4 +126,4 @@ def QEq(q1, q2):
     return np.array_equal(q1, q2) and str(q1) == str(q2)
 
 
-setRandomSeed(None, debug=True)
+setRandomSeed(None, debug=False)
