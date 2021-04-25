@@ -43,16 +43,13 @@ class QCircuit(object):
                             raise ValueError("This circuit requires a measurement mask for " + str(self.size) + " QuBits. Received mask for " + str(size) + " QuBits.")
                         if add_line:
                             self.lines += [args]
-                        for i in range(len(args)):
-                            arg = args[i]
-                            if arg is not None:
-                                freeindex = max([self.freeindexes[i] for i in range(self.size)])
-                                for i in range(self.size):
-                                    self.freeindexes[i] = freeindex + 1
-                                if freeindex > self.lastindex:
-                                    self.oplines.append([])
-                                    self.lastindex += 1
-                                self.oplines[freeindex].append(arg)
+                        freeindex = max([self.freeindexes[i] for i in range(len(args[0].mask))])
+                        for i in range(len(args[0].mask)):
+                            self.freeindexes[i] = freeindex + 1
+                            if freeindex > self.lastindex:
+                                self.oplines.append([])
+                                self.lastindex += 1
+                            self.oplines[freeindex].append(args[0])
                 else:
                     args = [_rebuildGateName(gate) for gate in args]
                     parties = _getParties(args)
@@ -88,6 +85,7 @@ class QCircuit(object):
                                     if freeindex > 0:
                                         previousGate = self.oplines[freeindex-1][i]
                                         if previousGate is not None and \
+                                           not isinstance(previousGate, Measure) and \
                                            arg[0] == _invertStrGate(previousGate[0]) and \
                                            arg[1] == previousGate[1] and arg[2] == previousGate[2]:
                                             self.oplines[freeindex-1] = self.oplines[freeindex-1][:i] + [None for j in range(num_targets)] + self.oplines[freeindex-1][i+1:]
