@@ -52,7 +52,7 @@ class QCircuit(object):
                             self.oplines[freeindex].append(args[0])
                 else:
                     args = [_rebuildGateName(gate) for gate in args]
-                    parties = _getParties(args)
+                    parties = _getParties(args, offset=offset)
                     size = len(parties)
                     if size > 0:
                         if (self.size is not None) and (self.size != size):

@@ -331,7 +331,7 @@ def _invertStrGate(gatename):
     return gatename
 
 
-def _getParties(args, ignore_empty=False):
+def _getParties(args, ignore_empty=False, offset=0):
     parties = set()
     empties = set()
     currbit = 0
@@ -344,14 +344,16 @@ def _getParties(args, ignore_empty=False):
                     continue
                 myparty = set([currbit + j for j in range(gateSize)])
             if args[i][0] is not None:
-                if len(myparty.intersection(args[i][1])) == 0:
-                    myparty = myparty.union(args[i][1])
+                controls = {control + offset for control in args[i][1]}
+                if len(myparty.intersection(controls)) == 0:
+                    myparty = myparty.union(controls)
                 else:
-                    raise ValueError("You can't apply a gate to a qubit and use it as a control: " + str(myparty.intersection(args[i][1])))
-                if len(myparty.intersection(args[i][2])) == 0:
-                    myparty = myparty.union(args[i][2])
+                    raise ValueError("You can't apply a gate to a qubit and use it as a control: " + str(myparty.intersection(controls)))
+                anticontrols = {control + offset for control in args[i][2]}
+                if len(myparty.intersection(anticontrols)) == 0:
+                    myparty = myparty.union(anticontrols)
                 else:
-                    raise ValueError("You can't apply a gate to a qubit and use it as a control, or use it as control and anticontrol at the same time: " + str(myparty.intersection(args[i][2])))
+                    raise ValueError("You can't apply a gate to a qubit and use it as a control, or use it as control and anticontrol at the same time: " + str(myparty.intersection(anticontrols)))
             if len(parties.intersection(myparty)) == 0:
                 parties = parties.union(myparty)
             else:
