@@ -19,32 +19,38 @@ from collections.abc import Iterable
 
 # DLL Load
 if plat.system() == "Windows":
-    __libc__ = ct.cdll.msvcrt
+    _libc = ct.cdll.msvcrt
     extension = ".dll"
 else:
-    __libc__ = ct.cdll.LoadLibrary(ctypes.util.find_library("c"))
+    _libc = ct.cdll.LoadLibrary(ctypes.util.find_library("c"))
     extension = ".so"
-__rootfolder__ = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-__libfolder__ = __rootfolder__ + sep + "lib"
-__funmatpath__ = __libfolder__ + sep + "libfunmat" + extension
-__qsimovpath__ = __libfolder__ + sep + "libqsimov" + extension
+_rootfolder = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+_libfolder = _rootfolder + sep + "lib"
+_funmatpath = _libfolder + sep + "libfunmat" + extension
+_qsimovpath = _libfolder + sep + "libqsimov" + extension
 if hasattr(os, "add_dll_directory"):
-    __funmatpath__ = "libfunmat" + extension
-    __qsimovpath__ = "libqsimov" + extension
-__funmat__ = ct.CDLL(__funmatpath__)
-__qsimov__ = ct.CDLL(__qsimovpath__)
+    _funmatpath = "libfunmat" + extension
+    _qsimovpath = "libqsimov" + extension
+_funmat = ct.CDLL(_funmatpath)
+_qsimov = ct.CDLL(_qsimovpath)
 
 # C Pointer types
 c_double_p = ct.POINTER(ct.c_double)
 c_int_p = ct.POINTER(ct.c_int)
 
-free = __libc__.free
+free = _libc.free
 free.argtypes = [ct.c_void_p]
 free.restype = ct.c_void_p
+"""C free function.
+Positional arguments:
+    pointer to release
+Return:
+    nothing
+"""
 
-__new_QRegistry__ = __qsimov__.new_QRegistry  # C QRegistry Constructor
-__new_QRegistry__.argtypes = [ct.c_uint]      # Number of qubits
-__new_QRegistry__.restype = ct.c_void_p       # Pointer to the C QRegistry
+_new_QRegistry = _qsimov.new_QRegistry  # C QRegistry Constructor
+_new_QRegistry.argtypes = [ct.c_uint]      # Number of qubits
+_new_QRegistry.restype = ct.c_void_p       # Pointer to the C QRegistry
 """C QRegistry Constructor.
 Positional arguments:
     unsigned integer -> number of qubits
@@ -53,9 +59,9 @@ Return:
 """
 
 
-__cToString__ = __qsimov__.QR_toString
-__cToString__.argtypes = [ct.c_void_p]
-__cToString__.restype = ct.c_char_p
+_cToString = _qsimov.QR_toString
+_cToString.argtypes = [ct.c_void_p]
+_cToString.restype = ct.c_char_p
 """C QRegistry toString function.
 Positional arguments:
     pointer -> C QRegistry
@@ -64,11 +70,11 @@ Return:
 """
 
 
-__cApplyGate__ = __qsimov__.applyGate
-__cApplyGate__.argtypes = [ct.c_void_p, ct.c_char_p, ct.c_double, ct.c_double,
-                           ct.c_double, ct.c_int, ct.c_int, c_int_p, ct.c_int,
-                           c_int_p, ct.c_int]
-__cApplyGate__.restype = ct.c_int
+_cApplyGate = _qsimov.applyGate
+_cApplyGate.argtypes = [ct.c_void_p, ct.c_char_p, ct.c_double, ct.c_double,
+                        ct.c_double, ct.c_int, ct.c_int, c_int_p, ct.c_int,
+                        c_int_p, ct.c_int]
+_cApplyGate.restype = ct.c_int
 """C QRegistry applyGate function.
 Positional arguments:
     pointer -> C QRegistry
@@ -87,11 +93,10 @@ Return:
 """
 
 
-__cSWAPQubits__ = __qsimov__.SWAPQubits
-__cSWAPQubits__.argtypes = [ct.c_void_p, ct.c_int, ct.c_int, ct.c_int,
-                            ct.c_int, ct.c_int, c_int_p, ct.c_int,
-                            c_int_p, ct.c_int]
-__cSWAPQubits__.restype = ct.c_int
+_cSWAPQubits = _qsimov.SWAPQubits
+_cSWAPQubits.argtypes = [ct.c_void_p, ct.c_int, ct.c_int, ct.c_int, ct.c_int,
+                         ct.c_int, c_int_p, ct.c_int, c_int_p, ct.c_int]
+_cSWAPQubits.restype = ct.c_int
 """C QRegistry SWAPQubits function.
 Positional arguments:
     pointer -> C QRegistry
@@ -111,11 +116,11 @@ Return:
 """
 
 
-__cIsingQubits__ = __qsimov__.IsingQubits
-__cIsingQubits__.argtypes = [ct.c_void_p, ct.c_int, ct.c_double, ct.c_int,
-                             ct.c_int, ct.c_int, c_int_p, ct.c_int,
-                             c_int_p, ct.c_int]
-__cIsingQubits__.restype = ct.c_int
+_cIsingQubits = _qsimov.IsingQubits
+_cIsingQubits.argtypes = [ct.c_void_p, ct.c_int, ct.c_double, ct.c_int,
+                          ct.c_int, ct.c_int, c_int_p, ct.c_int,
+                          c_int_p, ct.c_int]
+_cIsingQubits.restype = ct.c_int
 """C QRegistry IsingQubits function.
 Positional arguments:
     pointer -> C QRegistry
@@ -136,9 +141,9 @@ Return:
 """
 
 
-__cBlochCoords__ = __qsimov__.blochCoords
-__cBlochCoords__.argtypes = [ct.c_void_p]
-__cBlochCoords__.restype = c_double_p
+_cBlochCoords = _qsimov.blochCoords
+_cBlochCoords.argtypes = [ct.c_void_p]
+_cBlochCoords.restype = c_double_p
 """C QRegistry blochCoords function.
 Positional arguments:
     pointer -> C QRegistry
@@ -147,9 +152,9 @@ Return:
 """
 
 
-__cMeasure__ = __qsimov__.measure
-__cMeasure__.argtypes = [ct.c_void_p, c_int_p, ct.c_int, c_int_p, ct.c_int]
-__cMeasure__.restype = ct.c_int
+_cMeasure = _qsimov.measure
+_cMeasure.argtypes = [ct.c_void_p, c_int_p, ct.c_int, c_int_p, ct.c_int]
+_cMeasure.restype = ct.c_int
 """C QRegistry measure function.
 Positional arguments:
     pointer -> C QRegistry
@@ -162,9 +167,9 @@ Return:
     int: 0 -> Failure. 1 -> Success
 """
 
-__cGetState__ = __qsimov__.getState
-__cGetState__.argtypes = [ct.c_void_p]
-__cGetState__.restype = c_double_p
+_cGetState = _qsimov.getState
+_cGetState.argtypes = [ct.c_void_p]
+_cGetState.restype = c_double_p
 """C QRegistry getState function.
 Positional arguments:
     pointer -> C QRegistry
@@ -174,9 +179,9 @@ Return:
         The second half contains the imaginary part of the amplitudes
 """
 
-__cSetState__ = __qsimov__.setState
-__cSetState__.argtypes = [ct.c_void_p, c_double_p, ct.c_int]
-__cSetState__.restype = ct.c_int
+_cSetState = _qsimov.setState
+_cSetState.argtypes = [ct.c_void_p, c_double_p, ct.c_int]
+_cSetState.restype = ct.c_int
 """C QRegistry setState function.
 Positional arguments:
     pointer -> C QRegistry
@@ -188,9 +193,9 @@ Return:
     int: 0 -> Failure. 1 -> Success
 """
 
-__cGetNQubits__ = __qsimov__.getNQubits
-__cGetNQubits__.argtypes = [ct.c_void_p]
-__cGetNQubits__.restype = ct.c_int
+_cGetNQubits = _qsimov.getNQubits
+_cGetNQubits.argtypes = [ct.c_void_p]
+_cGetNQubits.restype = ct.c_int
 """C QRegistry getNQubits function.
 Positional arguments:
     pointer -> C QRegistry
@@ -198,9 +203,9 @@ Return:
     int: number of qubits in the registry
 """
 
-__cGetSize__ = __qsimov__.getSize
-__cGetSize__.argtypes = [ct.c_void_p]
-__cGetSize__.restype = ct.c_int
+_cGetSize = _qsimov.getSize
+_cGetSize.argtypes = [ct.c_void_p]
+_cGetSize.restype = ct.c_int
 """C QRegistry getSize function.
 Positional arguments:
     pointer -> C QRegistry
@@ -208,9 +213,9 @@ Return:
     int: number of amplitudes in the state vector of the registry
 """
 
-__cDensityMat__ = __qsimov__.DensityMat
-__cDensityMat__.argtypes = [ct.c_void_p]
-__cDensityMat__.restype = ct.c_void_p
+_cDensityMat = _qsimov.DensityMat
+_cDensityMat.argtypes = [ct.c_void_p]
+_cDensityMat.restype = ct.c_void_p
 """C QRegistry DensityMat function.
 Positional arguments:
     pointer -> C QRegistry
@@ -218,9 +223,9 @@ Return:
     pointer to a functional matrix representing the density matrix
 """
 
-__cFreeState__ = __qsimov__.freeState
-__cFreeState__.argtypes = [ct.c_void_p]
-__cFreeState__.restype = ct.c_int
+_cFreeState = _qsimov.freeState
+_cFreeState.argtypes = [ct.c_void_p]
+_cFreeState.restype = ct.c_int
 """C QRegistry freeState function.
 Positional arguments:
     pointer -> C QRegistry
@@ -228,15 +233,27 @@ Return:
     int: 0 -> Failure. 1 -> Success
 """
 
-__partialTrace__ = __funmat__.partial_trace
-__partialTrace__.argtypes = [ct.c_void_p, ct.c_int]
-__partialTrace__.restype = ct.c_void_p
+_partialTrace = _funmat.partial_trace
+_partialTrace.argtypes = [ct.c_void_p, ct.c_int]
+_partialTrace.restype = ct.c_void_p
 """C QRegistry partial_trace function.
 Positional arguments:
     pointer -> C QRegistry
     int -> id of the qubit to trace out
 Return:
     pointer to a functional matrix representing the reduced density matrix
+"""
+
+
+_cJoinStates = _qsimov.joinStates
+_cJoinStates.argtypes = [ct.c_void_p, ct.c_void_p]
+_cJoinStates.restype = ct.c_void_p
+"""C QRegistry joinStates function.
+Positional arguments:
+    pointer -> C QRegistry A
+    pointer -> C QRegistry B
+Return:
+    pointer to a C Qregistry A tensor product B
 """
 
 
@@ -248,24 +265,42 @@ class QRegistry:
 
         nqbits -> number of QuBits in the registry.
         """
-        self.reg = __new_QRegistry__(nqbits)
+        self.reg = _new_QRegistry(nqbits)
 
     def __del__(self):
         """Release memory held by the QRegistry."""
-        __cFreeState__(self.reg)
+        _cFreeState(self.reg)
         self.reg = None
 
+    def toString(self):
+        """Use state_string method instead. DEPRECATED."""
+        print("Method QRegistry.toString is deprecated.",
+              "Please use state_string if you seek the same functionality")
+        return self.state_string()
+
+    def state_string(self):
+        """Return string representation of the state of this registry."""
+        return _cToString(self.reg).decode("ascii")
+
     def getSize(self):
+        """Use get_state_size method instead. DEPRECATED."""
+        print("Method QRegistry.getSize is deprecated.",
+              "Please use get_state_size if you seek the same functionality")
+        return self.get_state_size()
+
+    def get_state_size(self):
         """Return the number of elements in the state vector."""
-        return int(__cGetSize__(self.reg))
+        return int(_cGetSize(self.reg))
 
     def getNQubits(self):
-        """Return the number of qubits in this registry."""
-        return int(__cGetNQubits__(self.reg))
+        """Use get_num_qubits method instead. DEPRECATED."""
+        print("Method QRegistry.getNQubits is deprecated.",
+              "Please use get_num_qubits if you seek the same functionality")
+        return self.get_num_qubits()
 
-    def toString(self):
-        """Return string representation of this registry."""
-        return __cToString__(self.reg).decode("ascii")
+    def get_num_qubits(self):
+        """Return the number of qubits in this registry."""
+        return int(_cGetNQubits(self.reg))
 
     def measure(self, msk, remove=False):
         """Measure specified qubits of this registry and collapse.
@@ -301,16 +336,22 @@ class QRegistry:
             rem = 0
             if (remove):
                 rem = 1
-            if int(__cMeasure__(self.reg, int_array(*mask), ct.c_int(nq),
-                                result, ct.c_int(rem))) == 0:
+            if int(_cMeasure(self.reg, int_array(*mask), ct.c_int(nq),
+                             result, ct.c_int(rem))) == 0:
                 print("Error measuring!")
             else:
                 return list(result)[::-1]
         else:
             return []
 
-    def applyGate(self, gate, qubit=0, control=None, anticontrol=None,
-                  optimize=True):
+    def applyGate(self, *args, **kwargs):
+        """Use apply_gate method instead. DEPRECATED."""
+        print("Method QRegistry.applyGate is deprecated.",
+              "Please use apply_gate if you seek the same functionality")
+        return self.apply_gate(*args, **kwargs)
+
+    def apply_gate(self, gate, qubit=0, control=None, anticontrol=None,
+                   optimize=True):
         """Apply specified gate to specified qubit with specified controls."""
         if (np.issubdtype(type(qubit), np.integer)
                 and qubit < self.getNQubits() and qubit >= 0):
@@ -372,41 +413,41 @@ class QRegistry:
                         if arg3 is None:
                             arg3 = 0
                         if (name.lower() == "swap"):
-                            __SWAPQubits__(self.reg, arg1, arg2, False, False,
-                                           invert, control, clen,
-                                           anticontrol, aclen)
+                            _swap_qubits(self.reg, arg1, arg2, False, False,
+                                         invert, control, clen,
+                                         anticontrol, aclen)
                         elif (name.lower() == "iswap"):
-                            __SWAPQubits__(self.reg, arg1, arg2, True, False,
-                                           invert, control, clen,
-                                           anticontrol, aclen)
+                            _swap_qubits(self.reg, arg1, arg2, True, False,
+                                         invert, control, clen,
+                                         anticontrol, aclen)
                         elif (name.lower() == "sqrtswap"):
-                            __SWAPQubits__(self.reg, arg1, arg2, False, True,
-                                           invert, control, clen,
-                                           anticontrol, aclen)
+                            _swap_qubits(self.reg, arg1, arg2, False, True,
+                                         invert, control, clen,
+                                         anticontrol, aclen)
                         elif (name.lower() == "xx"):
-                            __IsingQubits__(self.reg, 0, arg1, arg2, arg3,
-                                            invert, control, clen,
-                                            anticontrol, aclen)
+                            _ising_qubits(self.reg, 0, arg1, arg2, arg3,
+                                          invert, control, clen,
+                                          anticontrol, aclen)
                         elif (name.lower() == "yy"):
-                            __IsingQubits__(self.reg, 1, arg1, arg2, arg3,
-                                            invert, control, clen,
-                                            anticontrol, aclen)
+                            _ising_qubits(self.reg, 1, arg1, arg2, arg3,
+                                          invert, control, clen,
+                                          anticontrol, aclen)
                         elif (name.lower() == "zz"):
-                            __IsingQubits__(self.reg, 2, arg1, arg2, arg3,
-                                            invert, control, clen,
-                                            anticontrol, aclen)
+                            _ising_qubits(self.reg, 2, arg1, arg2, arg3,
+                                          invert, control, clen,
+                                          anticontrol, aclen)
                         else:
-                            if int(__cApplyGate__(self.reg,
-                                                  ct.c_char_p(name.encode()),
-                                                  ct.c_double(arg1),
-                                                  ct.c_double(arg2),
-                                                  ct.c_double(arg3),
-                                                  ct.c_int(int(invert)),
-                                                  ct.c_int(qubit),
-                                                  control,
-                                                  ct.c_int(clen),
-                                                  anticontrol,
-                                                  ct.c_int(aclen))) == 0:
+                            if int(_cApplyGate(self.reg,
+                                               ct.c_char_p(name.encode()),
+                                               ct.c_double(arg1),
+                                               ct.c_double(arg2),
+                                               ct.c_double(arg3),
+                                               ct.c_int(int(invert)),
+                                               ct.c_int(qubit),
+                                               control,
+                                               ct.c_int(clen),
+                                               anticontrol,
+                                               ct.c_int(aclen))) == 0:
                                 print("Error applying gate to specified QuBit")
                     elif type(gate) == QGate:
                         gate._applyGate(self, qubit, control[:clen],
@@ -421,8 +462,14 @@ class QRegistry:
                 print("The specified qubit doesn't exist!")
 
     def getState(self):
+        """Use get_state method instead. DEPRECATED."""
+        print("Method QRegistry.getState is deprecated.",
+              "Please use get_state if you seek the same functionality")
+        return self.get_state()
+
+    def get_state(self):
         """Return the state vector of the registry."""
-        rawState = __cGetState__(self.reg)
+        rawState = _cGetState(self.reg)
         size = self.getSize()
         state = np.array([complex(rawState[i], rawState[i + size])
                           for i in range(size)])
@@ -431,39 +478,70 @@ class QRegistry:
         return state
 
     def setState(self, newState, nqubits):
+        """Use _set_state method instead. DEPRECATED."""
+        print("Method QRegistry.setState is deprecated.",
+              "Please use _set_state if you seek the same functionality")
+        return self._set_state(newState, nqubits)
+
+    def _set_state(self, newState, nqubits):
         """Set the state vector of the registry."""
         size = 2 << (nqubits - 1)  # 2^n_qubits
         statetype = ct.c_double * (size * 2)
         cstate = statetype(*[newState[i].real if i < size
                              else newState[i - size].imag
                              for i in range(size * 2)])
-        result = __cSetState__(self.reg, cstate, ct.c_int(nqubits)) == 1
+        result = _cSetState(self.reg, cstate, ct.c_int(nqubits)) == 1
 
         return result
 
     def densityMatrix(self):
+        """Use density_matrix method instead. DEPRECATED."""
+        print("Method QRegistry.densityMatrix is deprecated.",
+              "Please use density_matrix if you seek the same functionality")
+        return self.density_matrix()
+
+    def density_matrix(self):
         """Return functional matrix of the density matrix."""
-        return Funmatrix(ct.c_void_p(__cDensityMat__(self.reg)), "Rho")
+        return Funmatrix(ct.c_void_p(_cDensityMat(self.reg)), "Rho")
 
     def reducedDensityMatrix(self, elem):
+        """Use reduced_density_matrix method instead. DEPRECATED."""
+        print("Method QRegistry.reducedDensityMatrix is deprecated.",
+              "Please use reduced_density_matrix if you seek the",
+              "same functionality")
+        return self.reduced_density_matrix(elem)
+
+    def reduced_density_matrix(self, elem):
         """Return functional matrix of the reduced density matrix."""
         nq = self.getNQubits()
         if 0 <= elem < nq:
             # elem = nq - elem - 1
-            c_density_mat = ct.c_void_p(__cDensityMat__(self.reg))
-            c_reduced_mat = ct.c_void_p(__partialTrace__(c_density_mat,
-                                                         ct.c_int(elem)))
+            c_density_mat = ct.c_void_p(_cDensityMat(self.reg))
+            c_reduced_mat = ct.c_void_p(_partialTrace(c_density_mat,
+                                                      ct.c_int(elem)))
             return Funmatrix(c_reduced_mat, "Tr_" + str(elem) + "(Rho)")
         else:
             print("The specified QuBit doesn't exist in this registry!")
 
     def reducedTrace(self, elem):
+        """Use reduced_trace method instead. DEPRECATED."""
+        print("Method QRegistry.reducedTrace is deprecated.",
+              "Please use reduced_trace if you seek the same functionality")
+        return self.reduced_trace(elem)
+
+    def reduced_trace(self, elem):
         """Trace of the square reduced density matrix."""
         rho_a = np.array(self.reducedDensityMatrix(elem)[:])
         rt = (rho_a @ rho_a).trace().real
         return rt if rt <= 1.0 else 1.0
 
     def vnEntropy(self, **kwargs):
+        """Use get_entropy method instead. DEPRECATED."""
+        print("Method QRegistry.vnEntropy is deprecated.",
+              "Please use get_entropy if you seek the same functionality")
+        return self.get_entropy(**kwargs)
+
+    def get_entropy(self, **kwargs):
         """Calculate Von Newmann Entropy.
 
         Keyworded arguments:
@@ -488,11 +566,17 @@ class QRegistry:
         return -entropy
 
     def blochCoords(self):
+        """Use get_bloch_coords method instead. DEPRECATED."""
+        print("Method QRegistry.blochCoords is deprecated.",
+              "Please use get_bloch_coords if you seek the same functionality")
+        return self.get_bloch_coords()
+
+    def get_bloch_coords(self):
         """Get the polar coordinates of ONE qubit in the bloch sphere."""
         if self.getNQubits() == 1:
-            return __cBlochCoords__(self.reg)[:2]
+            return _cBlochCoords(self.reg)[:2]
         else:
-            # print("You can only use 1 qubit registries!")
+            print("You can only get bloch coordinates for 1 qubit registries")
             return None
 
     def bra(self):
@@ -517,38 +601,34 @@ class QRegistry:
 
 def _calculateState(tnum, cnum, size, fun):
     """TODO: Find out the purpose of this function."""
+    print("Using unknown function")
     indexes = [i for i in range(cnum, size, tnum)]
     return [(index, fun(index, 0)) for index in indexes]
 
 
-__cJoinStates__ = __qsimov__.joinStates
-__cJoinStates__.argtypes = [ct.c_void_p, ct.c_void_p]
-__cJoinStates__.restype = ct.c_void_p
-
-
-def superposition(a, b):  # Devuelve el estado compuesto por los dos QuBits.
+def superposition(a, b):
     """Join two registries into one by calculating tensor product."""
     r = QRegistry(1)
-    __cFreeState__(r.reg)
-    r.reg = ct.c_void_p(__cJoinStates__(a.reg, b.reg))
+    _cFreeState(r.reg)
+    r.reg = ct.c_void_p(_cJoinStates(a.reg, b.reg))
     return r
 
 
-def __SWAPQubits__(reg, qubit1, qubit2, imaginary, sqrt, invert,
-                   control, clen, anticontrol, aclen):
+def _swap_qubits(reg, qubit1, qubit2, imaginary, sqrt, invert,
+                 control, clen, anticontrol, aclen):
     """Apply a type of SWAP gate to the registry."""
-    if int(__cSWAPQubits__(reg, ct.c_int(qubit1), ct.c_int(qubit2),
-                           ct.c_int(int(imaginary)), ct.c_int(int(sqrt)),
-                           ct.c_int(int(invert)), control, ct.c_int(clen),
-                           anticontrol, ct.c_int(aclen))) == 0:
+    if int(_cSWAPQubits(reg, ct.c_int(qubit1), ct.c_int(qubit2),
+                        ct.c_int(int(imaginary)), ct.c_int(int(sqrt)),
+                        ct.c_int(int(invert)), control, ct.c_int(clen),
+                        anticontrol, ct.c_int(aclen))) == 0:
         print("Error swapping specified QuBits!")
 
 
-def __IsingQubits__(reg, type, angle, qubit1, qubit2, invert,
-                    control, clen, anticontrol, aclen):
+def _ising_qubits(reg, type, angle, qubit1, qubit2, invert,
+                  control, clen, anticontrol, aclen):
     """Apply a type of Ising gate to the registry."""
-    if int(__cIsingQubits__(reg, ct.c_int(type), ct.c_double(angle),
-                            ct.c_int(qubit1), ct.c_int(qubit2),
-                            ct.c_int(int(invert)), control, ct.c_int(clen),
-                            anticontrol, ct.c_int(aclen))) == 0:
+    if int(_cIsingQubits(reg, ct.c_int(type), ct.c_double(angle),
+                         ct.c_int(qubit1), ct.c_int(qubit2),
+                         ct.c_int(int(invert)), control, ct.c_int(clen),
+                         anticontrol, ct.c_int(aclen))) == 0:
         print("Error coupling specified QuBits!")

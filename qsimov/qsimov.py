@@ -27,7 +27,7 @@ import ctypes.util
 import time as t
 import platform as plat
 from qsimov.structures.funmatrix import Funmatrix
-from qsimov.structures.qregistry import QRegistry
+from qsimov.structures.qregistry import QRegistry, superposition
 from qsimov.structures.qsystem import QSystem
 from qsimov.structures.qgate import QGate, getGate
 from qsimov.structures.qcircuit import QCircuit
