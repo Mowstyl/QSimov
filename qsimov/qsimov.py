@@ -59,6 +59,13 @@ def get_seed():
 
 
 def setRandomSeed(seed, debug=False):
+    """Use set_seed method instead. DEPRECATED."""
+    print("Method QSimov.setRandomSeed is deprecated.",
+          "Please use set_seed if you seek the same functionality")
+    return set_seed(seed, debug=debug)
+
+
+def set_seed(seed, debug=False):
     """Set the seed used in measurements.
 
     seed: The seed to use
@@ -126,4 +133,4 @@ def QEq(q1, q2):
     return np.array_equal(q1, q2) and str(q1) == str(q2)
 
 
-setRandomSeed(None, debug=False)
+set_seed(None, debug=False)
