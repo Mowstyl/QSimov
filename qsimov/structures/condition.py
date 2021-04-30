@@ -1,9 +1,9 @@
 """Module with Condition related stuff."""
-
 import qsimov.connectors.qsimovapi as qapi
 
 
 def _specialCompare(a, b):
+    """Compare length and content of two iterables."""
     same = len(a) == len(b)
     if (same):
         for i in range(len(a)):
@@ -61,14 +61,14 @@ class Condition(object):
                 if "anticontrol" in case:
                     actl = case["anticontrol"]
             if id is None:
-                r.applyGate(gate, control=ctrl, anticontrol=actl)
+                r.apply_gate(gate, control=ctrl, anticontrol=actl)
             else:
-                r.applyGate(gate, qubit=id, control=ctrl, anticontrol=actl)
+                r.apply_gate(gate, qubit=id, control=ctrl, anticontrol=actl)
         elif t == 2:  # QCircuit
             lines = case.lines
             if optimize:
                 lines = case.oplines
-            r = qapi._executeOnce(qregistry, lines)
+            r = qapi._execute_once(qregistry, lines)
         else:  # Do nothing
             r = qregistry
         return r

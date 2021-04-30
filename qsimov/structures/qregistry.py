@@ -14,7 +14,7 @@ import os
 from os.path import sep
 from qsimov.structures.funmatrix import Funmatrix
 from qsimov.structures.qgate import QGate
-from qsimov.connectors.parser import getGateData
+from qsimov.connectors.parser import get_gate_data
 from collections.abc import Iterable
 
 # DLL Load
@@ -24,23 +24,23 @@ if plat.system() == "Windows":
 else:
     _libc = ct.cdll.LoadLibrary(ctypes.util.find_library("c"))
     extension = ".so"
-_rootfolder = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-_libfolder = _rootfolder + sep + "lib"
-_funmatpath = _libfolder + sep + "libfunmat" + extension
-_qsimovpath = _libfolder + sep + "libqsimov" + extension
+_root_folder = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+_lib_folder = _root_folder + sep + "lib"
+_funmat_path = _lib_folder + sep + "libfunmat" + extension
+_qsimov_path = _lib_folder + sep + "libqsimov" + extension
 if hasattr(os, "add_dll_directory"):
-    _funmatpath = "libfunmat" + extension
-    _qsimovpath = "libqsimov" + extension
-_funmat = ct.CDLL(_funmatpath)
-_qsimov = ct.CDLL(_qsimovpath)
+    _funmat_path = "libfunmat" + extension
+    _qsimov_path = "libqsimov" + extension
+_funmat = ct.CDLL(_funmat_path)
+_qsimov = ct.CDLL(_qsimov_path)
 
 # C Pointer types
 c_double_p = ct.POINTER(ct.c_double)
 c_int_p = ct.POINTER(ct.c_int)
 
-free = _libc.free
-free.argtypes = [ct.c_void_p]
-free.restype = ct.c_void_p
+_cFree = _libc.free
+_cFree.argtypes = [ct.c_void_p]
+_cFree.restype = ct.c_void_p
 """C free function.
 Positional arguments:
     pointer to release
@@ -280,6 +280,7 @@ class QRegistry:
 
     def state_string(self):
         """Return string representation of the state of this registry."""
+        print("state_string might be removed in future versions")
         return _cToString(self.reg).decode("ascii")
 
     def getSize(self):
@@ -315,7 +316,7 @@ class QRegistry:
         Return:
             List with the value obtained after each measure
         """
-        nqubits = self.getNQubits()
+        nqubits = self.get_num_qubits()
         if (not isinstance(msk, Iterable)
                 or len(msk) != nqubits
                 or not all(type(num) == int
@@ -352,9 +353,20 @@ class QRegistry:
 
     def apply_gate(self, gate, qubit=0, control=None, anticontrol=None,
                    optimize=True):
-        """Apply specified gate to specified qubit with specified controls."""
+        """Apply specified gate to specified qubit with specified controls.
+
+        Positional arguments:
+            gate: string with the name of the gate to apply, or a QGate
+        Keyworded arguments:
+            qubit: id of the least significant qubit the gate will target
+            control: id or list of ids of the qubit that will act as controls
+            anticontrol: id or list of ids of the qubit that will act as
+                         anticontrols
+            optimize: only for QGates. Whether to use optimized lines or
+                      user defined lines
+        """
         if (np.issubdtype(type(qubit), np.integer)
-                and qubit < self.getNQubits() and qubit >= 0):
+                and qubit < self.get_num_qubits() and qubit >= 0):
             if (not isinstance(control, Iterable)
                     and type(control) != int
                     and not (control is None)):
@@ -385,7 +397,8 @@ class QRegistry:
                     clen = len(control)
                     int_array = ct.c_int * clen
                     control = int_array(*control)
-                    allOk = all(0 <= id < self.getNQubits() for id in control)
+                    allOk = all(0 <= id < self.get_num_qubits()
+                                for id in control)
 
                 aclen = 0
                 if np.issubdtype(type(anticontrol), np.integer):
@@ -400,12 +413,12 @@ class QRegistry:
                     aclen = len(anticontrol)
                     int_array = ct.c_int * aclen
                     anticontrol = int_array(*anticontrol)
-                    allOk = allOk and all(0 <= id < self.getNQubits()
+                    allOk = allOk and all(0 <= id < self.get_num_qubits()
                                           for id in anticontrol)
 
                 if allOk:
                     if type(gate) == str:
-                        name, arg1, arg2, arg3, invert = getGateData(gate)
+                        name, arg1, arg2, arg3, invert = get_gate_data(gate)
                         if arg1 is None:
                             arg1 = 0
                         if arg2 is None:
@@ -450,15 +463,16 @@ class QRegistry:
                                                ct.c_int(aclen))) == 0:
                                 print("Error applying gate to specified QuBit")
                     elif type(gate) == QGate:
-                        gate._applyGate(self, qubit, control[:clen],
-                                        anticontrol[:aclen], optimize=optimize)
+                        gate._apply_gate(self, qubit,
+                                         control[:clen], anticontrol[:aclen],
+                                         optimize=optimize)
                 else:
                     print("The ids must be between 0 and " +
-                          str(self.getNQubits))
+                          str(self.get_num_qubits()))
         else:
             if not np.issubdtype(type(qubit), np.integer):
                 print("Qubit must be of integer type!")
-            elif qubit >= self.getNQubits() or qubit < 0:
+            elif qubit >= self.get_num_qubits() or qubit < 0:
                 print("The specified qubit doesn't exist!")
 
     def getState(self):
@@ -470,10 +484,10 @@ class QRegistry:
     def get_state(self):
         """Return the state vector of the registry."""
         rawState = _cGetState(self.reg)
-        size = self.getSize()
+        size = self.get_state_size()
         state = np.array([complex(rawState[i], rawState[i + size])
                           for i in range(size)])
-        free(rawState)
+        _cFree(rawState)
 
         return state
 
@@ -513,7 +527,7 @@ class QRegistry:
 
     def reduced_density_matrix(self, elem):
         """Return functional matrix of the reduced density matrix."""
-        nq = self.getNQubits()
+        nq = self.get_num_qubits()
         if 0 <= elem < nq:
             # elem = nq - elem - 1
             c_density_mat = ct.c_void_p(_cDensityMat(self.reg))
@@ -531,7 +545,7 @@ class QRegistry:
 
     def reduced_trace(self, elem):
         """Trace of the square reduced density matrix."""
-        rho_a = np.array(self.reducedDensityMatrix(elem)[:])
+        rho_a = np.array(self.reduced_density_matrix(elem)[:])
         rt = (rho_a @ rho_a).trace().real
         return rt if rt <= 1.0 else 1.0
 
@@ -555,7 +569,7 @@ class QRegistry:
         # for e in evalues:
         #     if e != 0:
         #         entropy += e * np.log(e)
-        size = self.getSize()
+        size = self.get_state_size()
         for i in range(size):
             p = self.prob(i)
             if p > 0:
@@ -573,7 +587,7 @@ class QRegistry:
 
     def get_bloch_coords(self):
         """Get the polar coordinates of ONE qubit in the bloch sphere."""
-        if self.getNQubits() == 1:
+        if self.get_num_qubits() == 1:
             return _cBlochCoords(self.reg)[:2]
         else:
             print("You can only get bloch coordinates for 1 qubit registries")
@@ -581,29 +595,22 @@ class QRegistry:
 
     def bra(self):
         """Get the conjugated row form state vector (bra <v|)."""
-        k = np.array(self.getState())
+        k = np.array(self.get_state())
         k.shape = (1, k.shape[0])
         return np.conjugate(k)
 
     def ket(self):
         """Get the column form state vector (ket |v>)."""
-        k = np.array(self.getState())
+        k = np.array(self.get_state())
         k.shape = (k.shape[0], 1)
         return k
 
     def prob(self, x):
         """Get the odds of measuring a certain state x (not qubit)."""
         p = 0
-        if (x < self.getSize()):
-            p = self.densityMatrix()[x, x].real
+        if (x < self.get_state_size()):
+            p = self.density_matrix()[x, x].real
         return p
-
-
-def _calculateState(tnum, cnum, size, fun):
-    """TODO: Find out the purpose of this function."""
-    print("Using unknown function")
-    indexes = [i for i in range(cnum, size, tnum)]
-    return [(index, fun(index, 0)) for index in indexes]
 
 
 def superposition(a, b):

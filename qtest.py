@@ -371,15 +371,15 @@ def applyCACU(gate, id, controls, anticontrols, nq, reg):  # Controlled and Anti
 
 def Bal(n, controlId=0):
     gate = qj.QGate("Balanced")
-    gate.addLine(*[None for i in range(n-1)], ("X", controlId, None))
+    gate.add_line(*[None for i in range(n-1)], ("X", controlId, None))
     return gate
 
 
 def Const(n, twice=False):
     gate = qj.QGate("Constant")
-    gate.addLine(*(None for i in range(n-1)), "X")
+    gate.add_line(*(None for i in range(n-1)), "X")
     if twice:
-        gate.addLine(*[None for i in range(n-1)], "X")
+        gate.add_line(*[None for i in range(n-1)], "X")
     return gate
 
 
@@ -394,28 +394,28 @@ def DJAlgCircuit(size, U_f):
     c = qj.QCircuit("Deutsch-Josza Algorithm", ancilla=[1])
 
     # Se aplica una compuerta hadamard a todos los qubits
-    c.addLine(*["H" for i in range(size)])
-    c.addLine(U_f)  # Se aplica el oraculo
+    c.add_line(*["H" for i in range(size)])
+    c.add_line(U_f)  # Se aplica el oraculo
 
     # Se aplica una puerta Hadamard a todos los qubits excepto al ultimo
-    c.addLine(*("H" for i in range(size-1)), "I")
+    c.add_line(*("H" for i in range(size-1)), "I")
 
     # Se miden los qubit x, si es igual a 0 la funcion es constante.
     # En caso contrario no lo es.
-    c.addLine(qj.Measure([1 for i in range(size - 1)] + [0]))
+    c.add_line(qj.Measure([1 for i in range(size - 1)] + [0]))
 
     return c
 
 
 def TeleportationCircuit(gate, remove=True):  # Recibe como argumento lo que se va a ejecutar sobre el primer QuBit despues de hacer el estado de Bell con los dos últimos.
     qc = qj.QCircuit("Teleportation", ancilla=(0, 0))
-    qc.addLine(None, "H", None)
-    qc.addLine(None, None, ("X", 1, None))
+    qc.add_line(None, "H", None)
+    qc.add_line(None, None, ("X", 1, None))
     # Aqui es donde trabajamos con el qubit Q que queremos enviar posteriormente. Se le aplica la puerta pasada como parámetro.
-    qc.addLine(gate, None, None)
+    qc.add_line(gate, None, None)
     # Una vez terminado todo lo que queremos hacerle al QuBit, procedemos a preparar el envio
-    qc.addLine(None, ["X", 0, None], None)  # Se aplica una puerta C-NOT sobre Q (control) y B (objetivo).
-    qc.addLine("H", None, None)  # Se aplica una puerta Hadamard sobre Q.
+    qc.add_line(None, ["X", 0, None], None)  # Se aplica una puerta C-NOT sobre Q (control) y B (objetivo).
+    qc.add_line("H", None, None)  # Se aplica una puerta Hadamard sobre Q.
 
     gate1 = "X"
     gate2 = "Z"
@@ -427,7 +427,7 @@ def TeleportationCircuit(gate, remove=True):  # Recibe como argumento lo que se 
 
     m = qj.Measure((1, 1, 0), conds=[c1, c2], remove=remove)
 
-    qc.addLine(m)
+    qc.add_line(m)
 
     return qc  # Se devuelve el circuito.
 
@@ -435,15 +435,15 @@ def TeleportationCircuit(gate, remove=True):  # Recibe como argumento lo que se 
 def entangleGate():
     e = qj.QGate("Entangle")
 
-    e.addLine("H", "I")
-    e.addLine(None, ("X", 0))
+    e.add_line("H", "I")
+    e.add_line(None, ("X", 0))
 
     return e
 
 
 def entangleSystem(s, id, id2):
-    s.applyGate("H", qubit=id)
-    s.applyGate("X", qubit=id2, control=id)
+    s.apply_gate("H", qubit=id)
+    s.apply_gate("X", qubit=id2, control=id)
 
 
 def inversionTests(verbose=False):
@@ -484,18 +484,18 @@ def inversionTests(verbose=False):
     s = qj.QSystem(2)
     es = qj.QSystem(2)
 
-    r.applyGate(e)
-    r.applyGate(ed)
-    s.applyGate(e)
-    s.applyGate(ed)
-    if any(r.getState() != er.getState()) or any(s.getState() != es.getState()):
+    r.apply_gate(e)
+    r.apply_gate(ed)
+    s.apply_gate(e)
+    s.apply_gate(ed)
+    if any(r.get_state() != er.get_state()) or any(s.get_state() != es.get_state()):
         if verbose:
-            print(r.getState())
-            print(er.getState())
-            print(s.getState())
-            print(es.getState())
-            print(r.getState() == er.getState())
-            print(s.getState() == es.getState())
+            print(r.get_state())
+            print(er.get_state())
+            print(s.get_state())
+            print(es.get_state())
+            print(r.get_state() == er.get_state())
+            print(s.get_state() == es.get_state())
             print("    Michael Bay visited your simulator...")
         del r
         del er
@@ -526,13 +526,13 @@ def entangleTests(verbose=False, useSystem=False):
     r = QItem(3)
     rg = QItem(3)
     entangleSystem(r, 0, 1)
-    rg.applyGate(e)
+    rg.apply_gate(e)
 
-    if any(r.getState() != rg.getState()):
+    if any(r.get_state() != rg.get_state()):
         if verbose:
-            print(r.getState())
-            print(rg.getState())
-            print(r.getState() == rg.getState())
+            print(r.get_state())
+            print(rg.get_state())
+            print(r.get_state() == rg.get_state())
             print("    Michael Bay visited your simulator...")
         del r
         del rg
@@ -547,19 +547,19 @@ def entangleTests(verbose=False, useSystem=False):
     r = qj.QRegistry(3)
     rg1 = QItem(3)
     entangleSystem(r, 1, 2)
-    rg1.applyGate(e, qubit=1)
+    rg1.apply_gate(e, qubit=1)
     if useSystem:
         rg2 = QItem(3)
-        rg2.applyGate("I", e)
+        rg2.apply_gate("I", e)
 
-    if any(r.getState() != rg1.getState()) or (useSystem and any(r.getState() != rg2.getState())):
+    if any(r.get_state() != rg1.get_state()) or (useSystem and any(r.get_state() != rg2.get_state())):
         if verbose:
-            print(r.getState())
-            print(rg1.getState())
-            print(r.getState() == rg1.getState())
+            print(r.get_state())
+            print(rg1.get_state())
+            print(r.get_state() == rg1.get_state())
             if useSystem:
-                print(rg2.getState())
-                print(r.getState() == rg2.getState())
+                print(rg2.get_state())
+                print(r.get_state() == rg2.get_state())
             print("    Michael Bay visited your simulator...")
         del r
         del rg1
@@ -578,6 +578,9 @@ def entangleTests(verbose=False, useSystem=False):
     return (passed, total)
 
 
+# TODO: Test for gate with no controls in controlled QGate
+
+
 def gateTests(gatename, verbose=False, hasInv=False, nArgs=0):
     passed = 0
     if not hasInv:
@@ -590,7 +593,7 @@ def gateTests(gatename, verbose=False, hasInv=False, nArgs=0):
         print("  Testing gate " + gatename + "...")
 
     if not hasInv:
-        numpygate = qj.getGate(gatename)
+        numpygate = qj.get_gate(gatename)
         numpygate2 = globals()[gatename]()
         allOk = np.allclose(numpygate, numpygate2)
         if not allOk:
@@ -604,7 +607,7 @@ def gateTests(gatename, verbose=False, hasInv=False, nArgs=0):
         if verbose:
             print("    Noice")
     elif nArgs == 0:
-        numpygate = qj.getGate(gatename)
+        numpygate = qj.get_gate(gatename)
         numpygate2 = globals()[gatename](False)
         allOk = np.allclose(numpygate, numpygate2)
         if not allOk:
@@ -617,7 +620,7 @@ def gateTests(gatename, verbose=False, hasInv=False, nArgs=0):
         passed += 1
         if verbose:
             print("    Noice, testing inverse")
-        numpygate = qj.getGate(gatename + "-1")
+        numpygate = qj.get_gate(gatename + "-1")
         numpygate2 = globals()[gatename](True)
         allOk = np.allclose(numpygate, numpygate2)
         if not allOk:
@@ -643,7 +646,7 @@ def gateTests(gatename, verbose=False, hasInv=False, nArgs=0):
             for arg in args[1:-1]:
                 argstr += "," + str(arg)
             argstr = "(" + argstr + ")"
-            numpygate = qj.getGate(gatename + argstr)
+            numpygate = qj.get_gate(gatename + argstr)
             numpygate2 = globals()[gatename](*args)
             allOk = np.allclose(numpygate, numpygate2)
             if not allOk:
@@ -666,7 +669,7 @@ def gateTests(gatename, verbose=False, hasInv=False, nArgs=0):
             for arg in args[1:-1]:
                 argstr += "," + str(arg)
             argstr = "(" + argstr + ")"
-            numpygate = qj.getGate(gatename + argstr + "-1")
+            numpygate = qj.get_gate(gatename + argstr + "-1")
             numpygate2 = globals()[gatename](*args)
             allOk = np.allclose(numpygate, numpygate2)
             if not allOk:
@@ -690,7 +693,7 @@ def oneGateTests(nq, verbose=False, QItem=qj.QRegistry):
         print(" One gate tests:")
     for id in range(nq):
         gate = "U(" + str(rnd.random()) + "," + str(rnd.random()) + "," + str(rnd.random()) + ")"
-        numpygate = qj.getGate(gate)
+        numpygate = qj.get_gate(gate)
         if verbose:
             print("  Testing gate " + gate + " to qubit " + str(id) + "...")
         # print("    Gate: " + str(numpygate))
@@ -698,15 +701,15 @@ def oneGateTests(nq, verbose=False, QItem=qj.QRegistry):
         a = gateToId(numpygate, id, nq)
         if verbose:
             print("    Numpy done")
-        b.applyGate(gate, id)
+        b.apply_gate(gate, id)
         if verbose:
             print("    QSimov done")
-        allOk = np.allclose(a, b.getState())
+        allOk = np.allclose(a, b.get_state())
         if not allOk:
             if verbose:
                 print(a)
-                print(b.getState())
-                print(a == b.getState())
+                print(b.get_state())
+                print(a == b.get_state())
                 print("    Michael Bay visited your simulator...")
             del a
             del b
@@ -723,10 +726,10 @@ def simpleSwapTests(nq, imaginary, sqrt, invert, verbose=False, QItem=qj.QRegist
     passed = 0
     total = nq - 1
     gate2 = "U(" + str(rnd.random()) + "," + str(rnd.random()) + "," + str(rnd.random()) + ")"
-    numpygate2 = qj.getGate(gate2)
+    numpygate2 = qj.get_gate(gate2)
     a = gateToId(numpygate2, 0, nq)
     b = QItem(nq)
-    b.applyGate(gate2)
+    b.apply_gate(gate2)
     if verbose:
         if not imaginary and not sqrt:
             print(" Simple SWAP tests:")
@@ -762,18 +765,18 @@ def simpleSwapTests(nq, imaginary, sqrt, invert, verbose=False, QItem=qj.QRegist
         a = gateToRegId(numpygate, id, nq, a)
         if verbose:
             print("    Numpy done")
-        b.applyGate(gate + "(" + str(id) + "," + str(id + 1) + ")" + invstring)
+        b.apply_gate(gate + "(" + str(id) + "," + str(id + 1) + ")" + invstring)
         if verbose:
             print("    QSimov done")
         try:
-            allOk = np.allclose(a, b.getState())
+            allOk = np.allclose(a, b.get_state())
         except ValueError:
             allOk = False
         if not allOk:
             if verbose:
                 print(a)
-                print(b.getState())
-                print(a == b.getState())
+                print(b.get_state())
+                print(a == b.get_state())
                 print("    Michael Bay visited your simulator...")
             del a
             del b
@@ -793,7 +796,7 @@ def sparseSwapTests(nq, imaginary, sqrt, invert, verbose=False, QItem=qj.QRegist
     # for i in range(2, nq):
     #     total += (nq - i)
     gate2 = "U(" + str(rnd.random()) + "," + str(rnd.random()) + "," + str(rnd.random()) + ")"
-    numpygate2 = qj.getGate(gate2)
+    numpygate2 = qj.get_gate(gate2)
     if verbose:
         if not imaginary and not sqrt:
             print(" Sparse SWAP tests:")
@@ -812,7 +815,7 @@ def sparseSwapTests(nq, imaginary, sqrt, invert, verbose=False, QItem=qj.QRegist
         for id2 in range(id1 + 2, nq):
             a = gateToId(numpygate2, id1, nq)
             b = QItem(nq)
-            b.applyGate(gate2, id1)
+            b.apply_gate(gate2, id1)
             if verbose:
                 print("   Applied gate " + gate2 + " to qubit 0")
                 # print("    Gate: " + str(numpygate2))
@@ -834,15 +837,15 @@ def sparseSwapTests(nq, imaginary, sqrt, invert, verbose=False, QItem=qj.QRegist
             a = sparseTwoGate(numpygate, id1, id2, nq, a)
             if verbose:
                 print("    Numpy done")
-            b.applyGate(gate + "(" + str(id1) + "," + str(id2) + ")" + invstring)
+            b.apply_gate(gate + "(" + str(id1) + "," + str(id2) + ")" + invstring)
             if verbose:
                 print("    QSimov done")
-            allOk = np.allclose(a, b.getState())
+            allOk = np.allclose(a, b.get_state())
             if not allOk:
                 if verbose:
                     print(a)
-                    print(b.getState())
-                    print(a == b.getState())
+                    print(b.get_state())
+                    print(a == b.get_state())
                     print("    Michael Bay visited your simulator...")
                 del a
                 del b
@@ -894,10 +897,10 @@ def simpleIsingTests(nq, type, invert, verbose=False, QItem=qj.QRegistry):
                 print("  Inverse of Ising (ZZ) coupling gate:")
 
     gate2 = "U(" + str(rnd.random()) + "," + str(rnd.random()) + "," + str(rnd.random()) + ")"
-    numpygate2 = qj.getGate(gate2)
+    numpygate2 = qj.get_gate(gate2)
     a = gateToId(numpygate2, 0, nq)
     b = QItem(nq)
-    b.applyGate(gate2)
+    b.apply_gate(gate2)
     if verbose:
         print("   Applied gate " + gate2 + " to qubit 0")
         # print("    Gate: " + str(numpygate2))
@@ -910,15 +913,15 @@ def simpleIsingTests(nq, type, invert, verbose=False, QItem=qj.QRegistry):
         a = gateToRegId(numpygate, id, nq, a)
         if verbose:
             print("    Numpy done")
-        b.applyGate(gate + "(" + str(angle) + "," + str(id) + "," + str(id + 1) + ")" + invstring)
+        b.apply_gate(gate + "(" + str(angle) + "," + str(id) + "," + str(id + 1) + ")" + invstring)
         if verbose:
             print("    QSimov done")
-        allOk = np.allclose(a, b.getState())
+        allOk = np.allclose(a, b.get_state())
         if not allOk:
             if verbose:
                 print(a)
-                print(b.getState())
-                print(a == b.getState())
+                print(b.get_state())
+                print(a == b.get_state())
                 print("    Michael Bay visited your simulator...")
             del a
             del b
@@ -973,12 +976,12 @@ def sparseIsingTests(nq, type, invert, verbose=False, QItem=qj.QRegistry):
     for id1 in range(nq - 1):
         for id2 in range(id1 + 2, nq):
             gate2 = "U(" + str(rnd.random()) + "," + str(rnd.random()) + "," + str(rnd.random()) + ")"
-            numpygate2 = qj.getGate(gate2)
+            numpygate2 = qj.get_gate(gate2)
             angle = rnd.random()
             numpygate = gatefun(angle, invert)
             a = gateToId(numpygate2, id1, nq)
             b = QItem(nq)
-            b.applyGate(gate2, id1)
+            b.apply_gate(gate2, id1)
             if verbose:
                 print("   Applied gate " + gate2 + " to qubit 0")
                 # print("    Gate: " + str(numpygate2))
@@ -987,15 +990,15 @@ def sparseIsingTests(nq, type, invert, verbose=False, QItem=qj.QRegistry):
             a = sparseTwoGate(numpygate, id1, id2, nq, a)
             if verbose:
                 print("    Numpy done")
-            b.applyGate(gate + "(" + str(angle) + "," + str(id1) + "," + str(id2) + ")" + invstring)
+            b.apply_gate(gate + "(" + str(angle) + "," + str(id1) + "," + str(id2) + ")" + invstring)
             if verbose:
                 print("    QSimov done")
-            allOk = np.allclose(a, b.getState())
+            allOk = np.allclose(a, b.get_state())
             if not allOk:
                 if verbose:
                     print(a)
-                    print(b.getState())
-                    print(a == b.getState())
+                    print(b.get_state())
+                    print(a == b.get_state())
                     print("    Michael Bay visited your simulator...")
                 del a
                 del b
@@ -1021,10 +1024,10 @@ def controlledGateTests(nq, verbose=False, QItem=qj.QRegistry):
     if verbose:
         print(" Controlled gate tests:")
         print("  Gate: " + gate + " to qubit " + str(lastid))
-    numpygate = qj.getGate(gate)
+    numpygate = qj.get_gate(gate)
     a = gateToId(numpygate, lastid, nq)
     b = QItem(nq)
-    b.applyGate(gate, lastid)
+    b.apply_gate(gate, lastid)
     for id in qubitIds[1:]:
         if isControl:
             control.append(lastid)
@@ -1035,15 +1038,15 @@ def controlledGateTests(nq, verbose=False, QItem=qj.QRegistry):
             print("   controls: " + str(control))
             print("   anticontrols: " + str(anticontrol))
         a = applyCACU(numpygate, id, control, anticontrol, nq, a)
-        b.applyGate(gate, qubit=id, control=control, anticontrol=anticontrol)
+        b.apply_gate(gate, qubit=id, control=control, anticontrol=anticontrol)
         isControl = not isControl
         lastid = id
-        allOk = np.allclose(a, b.getState())
+        allOk = np.allclose(a, b.get_state())
         if not allOk:
             if verbose:
                 print(a)
-                print(b.getState())
-                print(a == b.getState())
+                print(b.get_state())
+                print(a == b.get_state())
                 print("    Michael Bay visited your simulator...")
             break
         passed += 1
@@ -1066,10 +1069,10 @@ def cSWAPTests(nq, imaginary, sqrt, invert, verbose=False, QItem=qj.QRegistry):
     if verbose:
         print(" Controlled gate tests:")
         print("  Gate: " + gate + " to qubit " + str(lastid))
-    numpygate = qj.getGate(gate)
+    numpygate = qj.get_gate(gate)
     a = gateToId(numpygate, lastid[0], nq)
     b = QItem(nq)
-    b.applyGate(gate, lastid[0])
+    b.apply_gate(gate, lastid[0])
 
     gate = "SWAP"
     numpygate = SWAP()
@@ -1084,13 +1087,13 @@ def cSWAPTests(nq, imaginary, sqrt, invert, verbose=False, QItem=qj.QRegistry):
         numpygate = sqrtSWAP(invert)
 
     a = sparseTwoGate(numpygate, lastid[0], lastid[1], nq, a)
-    b.applyGate(gate + "(" + str(lastid[0]) + "," + str(lastid[1]) + ")" + invstring)
-    allOk = np.allclose(a, b.getState())
+    b.apply_gate(gate + "(" + str(lastid[0]) + "," + str(lastid[1]) + ")" + invstring)
+    allOk = np.allclose(a, b.get_state())
     if not allOk:
         if verbose:
             print(a)
-            print(b.getState())
-            print(a == b.getState())
+            print(b.get_state())
+            print(a == b.get_state())
             print("    Michael Bay visited your simulator...")
     passed += 1
     if verbose:
@@ -1109,13 +1112,13 @@ def cSWAPTests(nq, imaginary, sqrt, invert, verbose=False, QItem=qj.QRegistry):
                 print("   controls: " + str(control))
                 print("   anticontrols: " + str(anticontrol))
             a = applyCACU(numpygate, lastid, control, anticontrol, nq, a)
-            b.applyGate(gate + "(" + str(lastid[0]) + "," + str(lastid[1]) + ")" + invstring, control=control, anticontrol=anticontrol)
-            allOk = np.allclose(a, b.getState())
+            b.apply_gate(gate + "(" + str(lastid[0]) + "," + str(lastid[1]) + ")" + invstring, control=control, anticontrol=anticontrol)
+            allOk = np.allclose(a, b.get_state())
             if not allOk:
                 if verbose:
                     print(a)
-                    print(b.getState())
-                    print(a == b.getState())
+                    print(b.get_state())
+                    print(a == b.get_state())
                     print("    Michael Bay visited your simulator...")
                 break
             passed += 1
@@ -1138,10 +1141,10 @@ def cIsingTests(nq, type, invert, verbose=False, QItem=qj.QRegistry):
     if verbose:
         print(" Controlled gate tests:")
         print("  Gate: " + gate + " to qubit " + str(lastid))
-    numpygate = qj.getGate(gate)
+    numpygate = qj.get_gate(gate)
     a = gateToId(numpygate, lastid[0], nq)
     b = QItem(nq)
-    b.applyGate(gate, lastid[0])
+    b.apply_gate(gate, lastid[0])
 
     gate = "XX"
     gatefun = xx
@@ -1156,13 +1159,13 @@ def cIsingTests(nq, type, invert, verbose=False, QItem=qj.QRegistry):
         invstring = "-1"
     angle = rnd.random()
     a = sparseTwoGate(gatefun(angle, invert), lastid[0], lastid[1], nq, a)
-    b.applyGate(gate + "(" + str(angle) + "," + str(lastid[0]) + "," + str(lastid[1]) + ")" + invstring)
-    allOk = np.allclose(a, b.getState())
+    b.apply_gate(gate + "(" + str(angle) + "," + str(lastid[0]) + "," + str(lastid[1]) + ")" + invstring)
+    allOk = np.allclose(a, b.get_state())
     if not allOk:
         if verbose:
             print(a)
-            print(b.getState())
-            print(a == b.getState())
+            print(b.get_state())
+            print(a == b.get_state())
             print("    Michael Bay visited your simulator...")
     passed += 1
     if verbose:
@@ -1181,13 +1184,13 @@ def cIsingTests(nq, type, invert, verbose=False, QItem=qj.QRegistry):
                 print("   controls: " + str(control))
                 print("   anticontrols: " + str(anticontrol))
             a = applyCACU(gatefun(angle, invert), lastid, control, anticontrol, nq, a)
-            b.applyGate(gate + "(" + str(angle) + "," + str(lastid[0]) + "," + str(lastid[1]) + ")" + invstring, control=control, anticontrol=anticontrol)
-            allOk = np.allclose(a, b.getState())
+            b.apply_gate(gate + "(" + str(angle) + "," + str(lastid[0]) + "," + str(lastid[1]) + ")" + invstring, control=control, anticontrol=anticontrol)
+            allOk = np.allclose(a, b.get_state())
             if not allOk:
                 if verbose:
                     print(a)
-                    print(b.getState())
-                    print(a == b.getState())
+                    print(b.get_state())
+                    print(a == b.get_state())
                     print("    Michael Bay visited your simulator...")
                 break
             passed += 1
@@ -1205,30 +1208,30 @@ def measureRegTests(nq, remove=False, verbose=False):
         print(" Measure QRegistry tests with remove=" + str(remove) + ":")
     for id in range(nq):
         reg = qj.QRegistry(nq)
-        reg.applyGate("X", qubit=id)
+        reg.apply_gate("X", qubit=id)
         eres = [0 if i != id else 1 for i in range(nq)]
         mes = reg.measure(eres, remove=remove)
         mes2 = reg.measure([1 for i in range(nq if not remove else nq-1)])
         if remove:
             eres = [0 for i in range(nq-1)]
 
-        if not mes[0] == 1 or mes2 != eres or (remove and reg.getState().size != 2**(nq-1)) or (not remove and reg.getState().size != 2**nq):
+        if not mes[0] == 1 or mes2 != eres or (remove and reg.get_state().size != 2**(nq-1)) or (not remove and reg.get_state().size != 2**nq):
             if verbose:
                 print(eres)
                 print(mes)
                 print(mes2)
                 print(not mes[0] == 1)
                 print(mes2 != eres)
-                print(reg.getState())
-                print(reg.getState().size)
+                print(reg.get_state())
+                print(reg.get_state().size)
                 if (remove):
                     print(2**(nq-1))
                 else:
                     print(2**nq)
                 print(not mes[0] == 1)
                 print(mes2 != eres)
-                print(remove and reg.getState().size != 2**(nq-1))
-                print(not remove and reg.getState().size != 2**nq)
+                print(remove and reg.get_state().size != 2**(nq-1))
+                print(not remove and reg.get_state().size != 2**nq)
                 print("    Michael Bay visited your simulator...")
             del reg
             break
@@ -1240,56 +1243,56 @@ def measureRegTests(nq, remove=False, verbose=False):
     return (passed, total)
 
 def compareState(r, state, rdm0, rdm1, rt0=1, rt1=1, verbose=False):
-    if not np.allclose(r.getState(), state):
+    if not np.allclose(r.get_state(), state):
         if verbose:
-            print(r.getState())
+            print(r.get_state())
             print(state)
-            print(r.getState() == state)
+            print(r.get_state() == state)
             print("    Michael Bay visited your simulator...")
         return False
 
     dm = state * state.reshape((4,1))
-    if not np.allclose(r.densityMatrix()[:], dm):
+    if not np.allclose(r.density_matrix()[:], dm):
         if verbose:
-            print(r.densityMatrix()[:])
+            print(r.density_matrix()[:])
             print(dm)
-            print(r.densityMatrix()[:] == dm)
+            print(r.density_matrix()[:] == dm)
             print("    Michael Bay visited your simulator...")
         return False
 
-    if not np.allclose(r.reducedDensityMatrix(0)[:], rdm0):
+    if not np.allclose(r.reduced_density_matrix(0)[:], rdm0):
         if verbose:
             print("RDM0")
-            print(r.reducedDensityMatrix(0)[:])
+            print(r.reduced_density_matrix(0)[:])
             print(rdm0)
-            print(r.reducedDensityMatrix(0)[:] == rdm0)
+            print(r.reduced_density_matrix(0)[:] == rdm0)
             print("    Michael Bay visited your simulator...")
         return False
 
-    if not np.allclose(r.reducedDensityMatrix(1)[:], rdm1):
+    if not np.allclose(r.reduced_density_matrix(1)[:], rdm1):
         if verbose:
             print("RDM1")
-            print(r.reducedDensityMatrix(1)[:])
+            print(r.reduced_density_matrix(1)[:])
             print(rdm1)
-            print(r.reducedDensityMatrix(1)[:] == rdm1)
+            print(r.reduced_density_matrix(1)[:] == rdm1)
             print("    Michael Bay visited your simulator...")
         return False
 
-    if not np.allclose(r.reducedTrace(0), rt0):
+    if not np.allclose(r.reduced_trace(0), rt0):
         if verbose:
             print("RT0")
-            print(r.reducedTrace(0))
+            print(r.reduced_trace(0))
             print(rt0)
-            print(r.reducedTrace(0) == rt0)
+            print(r.reduced_trace(0) == rt0)
             print("    Michael Bay visited your simulator...")
         return False
 
-    if not np.allclose(r.reducedTrace(1), rt1):
+    if not np.allclose(r.reduced_trace(1), rt1):
         if verbose:
             print("RT1")
-            print(r.reducedTrace(1))
+            print(r.reduced_trace(1))
             print(rt1)
-            print(r.reducedTrace(1) == rt1)
+            print(r.reduced_trace(1) == rt1)
             print("    Michael Bay visited your simulator...")
         return False
 
@@ -1314,7 +1317,7 @@ def toolTest(verbose=False):
     del rdm0
     del rdm1
 
-    reg.applyGate("H")
+    reg.apply_gate("H")
     state = np.array([1/np.sqrt(2),1/np.sqrt(2),0,0])
     rdm0 = np.array([1,0,0,0]).reshape((2,2))
     rdm1 = np.array([0.5,0.5,0.5,0.5]).reshape((2,2))
@@ -1327,7 +1330,7 @@ def toolTest(verbose=False):
     del rdm0
     del rdm1
 
-    reg.applyGate("X", qubit=1, control=0)
+    reg.apply_gate("X", qubit=1, control=0)
     state = np.array([1/np.sqrt(2),0,0,1/np.sqrt(2)])
     rdm0 = np.eye(2) * 0.5
     rdm1 = rdm0[:]
@@ -1351,18 +1354,18 @@ def measureSysTests(nq, entangle=False, remove=False, verbose=False):
         reg = qj.QSystem(nq)
         if entangle:
             for control in range(1, nq, 2):
-                reg.applyGate("X", qubit=control-1, control=control)
+                reg.apply_gate("X", qubit=control-1, control=control)
             if nq % 2 == 1:
-                reg.applyGate("X", qubit=nq-2, control=nq-1)
-        reg.applyGate("X", qubit=id)
+                reg.apply_gate("X", qubit=nq-2, control=nq-1)
+        reg.apply_gate("X", qubit=id)
         eres = [0 if i != id else 1 for i in range(nq)]
         mes = reg.measure(eres)
         mes2 = reg.measure([1 for i in range(nq)])
         r2 = qj.QRegistry(nq)
-        r2.applyGate("X", qubit=id)
+        r2.apply_gate("X", qubit=id)
         r2.measure(eres)
 
-        if not mes[0] == 1 or mes2 != eres or not all(reg.getState() == r2.getState()):
+        if not mes[0] == 1 or mes2 != eres or not all(reg.get_state() == r2.get_state()):
             if verbose:
                 print(eres)
                 print(mes)
@@ -1384,11 +1387,11 @@ def addLineTests(qstruct, verbose=False):
     passed = 0
     total = 1
     if verbose:
-        print(" addLine tests with " + qstruct.__name__ + ":")
+        print(" add_line tests with " + qstruct.__name__ + ":")
     qstr = qstruct()
     cons = set([1, 3])
     acons = set([2, 4])
-    qstr.addLine(["X", cons, acons])
+    qstr.add_line(["X", cons, acons])
     auxg, auxc, auxa = qstr.lines[0][0]
 
     if auxg != "X" or auxc != cons or auxa != acons:
@@ -1419,19 +1422,19 @@ def deutschTests(nq, verbose=False, useSystem=False, optimize=False):
         mes = mes[0]
 
         reg2 = qj.QSystem(nq)  # Los qubits se inicializan a cero (x1..xn) excepto el ultimo (y), inicializado a uno
-        reg2.applyGate("X", qubit=nq-1)
-        reg2.applyGate("H")  # Se aplica una compuerta hadamard a todos los qubits
-        reg2.applyGate(None, *["H" for i in range(nq-1)])  # Se aplica una compuerta hadamard a todos los qubits
-        reg2.applyGate(gate)  # Se aplica el oraculo
-        reg2.applyGate(*["H" for i in range(nq-1)], "I")  # Se aplica una puerta Hadamard a todos los qubits excepto al ultimo
+        reg2.apply_gate("X", qubit=nq-1)
+        reg2.apply_gate("H")  # Se aplica una compuerta hadamard a todos los qubits
+        reg2.apply_gate(None, *["H" for i in range(nq-1)])  # Se aplica una compuerta hadamard a todos los qubits
+        reg2.apply_gate(gate)  # Se aplica el oraculo
+        reg2.apply_gate(*["H" for i in range(nq-1)], "I")  # Se aplica una puerta Hadamard a todos los qubits excepto al ultimo
         mes2 = reg2.measure([1 for i in range(nq - 1)] + [0])  # Se miden los qubit x, si es igual a 0 la funcion es constante. En caso contrario no lo es.
         mes2 += [None]
 
-        if not all(reg.getState() == reg2.getState()) or not mes == mes2:
+        if not all(reg.get_state() == reg2.get_state()) or not mes == mes2:
             if verbose:
-                print(reg.getState())
-                print(reg2.getState())
-                print(reg.getState() == reg2.getState())
+                print(reg.get_state())
+                print(reg2.get_state())
+                print(reg.get_state() == reg2.get_state())
                 print(mes)
                 print(mes2)
                 print(mes == mes2)
@@ -1453,18 +1456,18 @@ def deutschTests(nq, verbose=False, useSystem=False, optimize=False):
             mes = mes[0]
 
             reg2 = qj.QSystem(nq)  # Los qubits se inicializan a cero (x1..xn) excepto el ultimo (y), inicializado a uno
-            reg2.applyGate("X", qubit=nq-1)
-            reg2.applyGate(*["H" for i in range(nq)])  # Se aplica una compuerta hadamard a todos los qubits
-            reg2.applyGate(gate)  # Se aplica el oraculo
-            reg2.applyGate(*["H" for i in range(nq-1)], "I")  # Se aplica una puerta Hadamard a todos los qubits excepto al ultimo
+            reg2.apply_gate("X", qubit=nq-1)
+            reg2.apply_gate(*["H" for i in range(nq)])  # Se aplica una compuerta hadamard a todos los qubits
+            reg2.apply_gate(gate)  # Se aplica el oraculo
+            reg2.apply_gate(*["H" for i in range(nq-1)], "I")  # Se aplica una puerta Hadamard a todos los qubits excepto al ultimo
             mes2 = reg2.measure([1 for i in range(nq - 1)] + [0])  # Se miden los qubit x, si es igual a 0 la funcion es constante. En caso contrario no lo es.
             mes2 += [None]
 
-            if not all(reg.getState() == reg2.getState()) or not mes == mes2:
+            if not all(reg.get_state() == reg2.get_state()) or not mes == mes2:
                 if verbose:
-                    print(reg.getState())
-                    print(reg2.getState())
-                    print(reg.getState() == reg2.getState())
+                    print(reg.get_state())
+                    print(reg2.get_state())
+                    print(reg.get_state() == reg2.get_state())
                     print(mes)
                     print(mes2)
                     print(mes == mes2)
@@ -1500,23 +1503,23 @@ def teleportationTests(verbose=False, useSystem=False, remove=False, optimize=Fa
     if remove:
         reg2 = qj.QRegistry(1)
         if initialValue == 1:
-            reg2.applyGate("X")
-        reg2.applyGate(gate)
+            reg2.apply_gate("X")
+        reg2.apply_gate(gate)
     else:
         reg2 = qj.QRegistry(3)
         if initialValue == 1:
-            reg2.applyGate("X", qubit=2)
-        reg2.applyGate(gate, qubit=2)
+            reg2.apply_gate("X", qubit=2)
+        reg2.apply_gate(gate, qubit=2)
         if mes[0] == 1:
-            reg2.applyGate("X", qubit=0)
+            reg2.apply_gate("X", qubit=0)
         if mes[1] == 1:
-            reg2.applyGate("X", qubit=1)
+            reg2.apply_gate("X", qubit=1)
 
-    if not np.allclose(reg.getState(), reg2.getState()):
+    if not np.allclose(reg.get_state(), reg2.get_state()):
         if verbose:
-            print(reg.getState())
-            print(reg2.getState())
-            print(reg.getState() == reg2.getState())
+            print(reg.get_state())
+            print(reg2.get_state())
+            print(reg.get_state() == reg2.get_state())
             print(mes)
             print("    Michael Bay visited your simulator...")
     else:
@@ -1612,7 +1615,7 @@ def dataStructureTests(minqubits, maxqubits, seed=None, verbose=False, QItem=qj.
             result[38] = map(add, result[38], measureSysTests(nq, remove=True, entangle=True, verbose=verbose))  # QSystem measurement tests with entanglement
 
     if QItem == qj.QRegistry:
-        result[37] = toolTest(verbose=verbose) # getState, densityMatrix, reducedDensityMatrix and reducedTrace tests
+        result[37] = toolTest(verbose=verbose) # get_state, density_matrix, reduced_density_matrix and reduced_trace tests
 
     for i in range(len(result)):
         result[i] = tuple(result[i])

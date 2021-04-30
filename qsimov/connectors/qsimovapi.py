@@ -5,16 +5,16 @@ on a given quantum system, using Doki (the QSimov core written in C) to
 perform the simulation.
 """
 
-from qsimov.structures.qgate import QGate, getGateSize
+from qsimov.structures.qgate import QGate, get_gate_qubits
 from qsimov.structures.qregistry import QRegistry, superposition
-from qsimov.structures.qsystem import QSystem, joinSystems
+from qsimov.structures.qsystem import QSystem, join_systems
 from qsimov.structures.measure import Measure
 from collections.abc import Iterable
 import gc
 import numpy as np
 
 
-def _executeOnce(qsystem, lines, ancilla=None, useSystem=True, optimize=True):
+def _execute_once(qsystem, lines, ancilla=None, useSystem=True, optimize=True):
     """Execute the gates in lines on a qsystem once.
 
     You can pass a QRegistry or an array to build a new QRegistry.
@@ -31,20 +31,20 @@ def _executeOnce(qsystem, lines, ancilla=None, useSystem=True, optimize=True):
         r = QDataStruct(len(qsystem))
         for i in range(len(qsystem)):
             if qsystem[i] != 0:
-                r.applyGate("X", qubit=i)
+                r.apply_gate("X", qubit=i)
     elif ancilla is not None:
         raise ValueError("Can not use ancilla with precreated registry!")
 
     if ancilla is not None and len(ancilla) > 0:
-        joinFunct = joinSystems
+        join_funct = join_systems
         if not useSystem:
-            def joinFunct(r1, r2):
+            def join_funct(r1, r2):
                 return superposition(r2, r1)
         a = QDataStruct(len(ancilla))
         for i in range(len(ancilla)):
             if ancilla[i] != 0:
-                a.applyGate("X", qubit=i)
-        raux = joinFunct(r, a)
+                a.apply_gate("X", qubit=i)
+        raux = join_funct(r, a)
         del r
         del a
         r = raux
@@ -61,16 +61,16 @@ def _executeOnce(qsystem, lines, ancilla=None, useSystem=True, optimize=True):
                         controls = line[i][1]
                         anticontrols = line[i][2]
                         if type(line[i][0]) == str:
-                            r.applyGate(line[i][0],
-                                        qubit=currbit,
-                                        control=controls,
-                                        anticontrol=anticontrols)
+                            r.apply_gate(line[i][0],
+                                         qubit=currbit,
+                                         control=controls,
+                                         anticontrol=anticontrols)
                         else:
-                            line[i][0]._applyGate(r, currbit,
-                                                  controls,
-                                                  anticontrols,
-                                                  optimize=optimize)
-                        currbit += getGateSize(line[i][0])
+                            line[i][0]._apply_gate(r, currbit,
+                                                   controls,
+                                                   anticontrols,
+                                                   optimize=optimize)
+                        currbit += get_gate_qubits(line[i][0])
                     else:
                         currbit += 1
             else:
@@ -90,7 +90,7 @@ def execute(qregistry, iterations=1, lines=[], ancilla=None,
     Gets repeated the specified number of iterations.
     Returns the result of each iteration.
     """
-    sol = [_executeOnce(qregistry, lines, ancilla, useSystem, optimize)
+    sol = [_execute_once(qregistry, lines, ancilla, useSystem, optimize)
            for i in range(iterations)]
     if iterations == 1:
         sol = sol[0]

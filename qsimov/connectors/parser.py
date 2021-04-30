@@ -14,8 +14,8 @@ __rep__ = re.compile(r"^([a-zA-Z0-9]+)" +
                      r"(?:e[\+\-][0-9]+)?)))\))?(\-1)?$")
 
 
-def parseGroups(groups):
-    """Parse the result of getGroups function, passed as parameter."""
+def parse_groups(groups):
+    """Parse the result of get_groups function, passed as parameter."""
     errored = False
     g1 = groups[0]
     g4 = groups[2] is not None
@@ -62,10 +62,10 @@ def parseGroups(groups):
         return None
 
 
-def getGroups(str_gate):
+def get_groups(str_gate):
     """Get matching groups using __rep__ regular expression."""
     res = __rep__.match(str_gate)
-    return parseGroups(res.groups()) if res is not None else None
+    return parse_groups(res.groups()) if res is not None else None
 
 
 __gateDict__ = {}
@@ -107,11 +107,11 @@ __gateDict__["iswap"] = ("ISWAP", 2, 2)
 __gateDict__["sqrtswap"] = ("SqrtSWAP", 2, 2)
 
 
-def getGateData(gateraw):
+def get_gate_data(gateraw):
     """Get the data of the gate associated with the given string."""
     gate = None
     if type(gateraw) == str:
-        groups = getGroups(gateraw)
+        groups = get_groups(gateraw)
         if not (groups is None):
             gatename, nargs, args, invert = groups
             gatename = gatename.lower()

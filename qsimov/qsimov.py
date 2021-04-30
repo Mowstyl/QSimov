@@ -5,8 +5,8 @@ Data Structures:
     Funmatrix: Functional Matrices related stuff in python
     QRegistry: Quantum Registry, base of all quantum related operations
     QSystem: Quantum System, preferred over QRegistry (can save a lot of space)
-    QGate: Quantum Gate, build from elemental gates or other QGates
-    QCircuit: Quantum Circuit, build from gates and measurements
+    QGate: Quantum Gate, built from elemental gates or other QGates
+    QCircuit: Quantum Circuit, built from gates and measurements
     Measure: Data structure that represents a measurement in a circuit
     Condition: A condition to be evaluated after a measurement
 
@@ -28,8 +28,8 @@ import time as t
 import platform as plat
 from qsimov.structures.funmatrix import Funmatrix
 from qsimov.structures.qregistry import QRegistry, superposition
-from qsimov.structures.qsystem import QSystem
-from qsimov.structures.qgate import QGate, getGate
+from qsimov.structures.qsystem import QSystem, join_systems
+from qsimov.structures.qgate import QGate, getGate, get_gate
 from qsimov.structures.qcircuit import QCircuit
 from qsimov.structures.measure import Measure
 from qsimov.structures.condition import Condition
