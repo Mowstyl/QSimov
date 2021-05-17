@@ -106,8 +106,8 @@ def getTruthTable(gate, ancilla=None, garbage=0, iterations=1):
             qinit += nbin
             if ancilla is None or qinit[-len(ancilla):] == ancilla:
                 qr = QSystem(len(qinit))
-                qr.applyGate(*[None if j == 0 else "X" for j in qinit])
-                qr.applyGate(gate)
+                qr.apply_gate(*[None if j == 0 else "X" for j in qinit])
+                qr.apply_gate(gate)
                 mes = qr.measure([1 for j in range(num-garbage)])
                 if ancilla is not None:
                     ini = qinit[:-len(ancilla)]

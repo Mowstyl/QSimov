@@ -13,7 +13,6 @@ import platform as plat
 import os
 from os.path import sep
 from qsimov.structures.funmatrix import Funmatrix
-from qsimov.structures.qgate import QGate
 from qsimov.connectors.parser import get_gate_data
 from collections.abc import Iterable
 
@@ -56,6 +55,18 @@ Positional arguments:
     unsigned integer -> number of qubits
 Return:
     Pointer to the C QRegistry
+"""
+
+'''
+_cGetRegMemory = _qsimov.getRegMemory
+_cGetRegMemory.argtypes = [ct.c_void_p]
+_cGetRegMemory.restype = ct.c_int
+'''
+"""C sizeof function.
+Positional arguments:
+    pointer to reg
+Return:
+    size of state in bytes
 """
 
 
@@ -265,12 +276,18 @@ class QRegistry:
 
         nqbits -> number of QuBits in the registry.
         """
-        self.reg = _new_QRegistry(nqbits)
+        self.reg = ct.c_void_p(_new_QRegistry(nqbits))
 
     def __del__(self):
         """Release memory held by the QRegistry."""
         _cFreeState(self.reg)
         self.reg = None
+
+    '''
+    def get_memory(self):
+        """Return memory allocated by C structure in bytes."""
+        return int(_cGetRegMemory(self.reg))
+    '''
 
     def toString(self):
         """Use state_string method instead. DEPRECATED."""
@@ -462,7 +479,7 @@ class QRegistry:
                                                anticontrol,
                                                ct.c_int(aclen))) == 0:
                                 print("Error applying gate to specified QuBit")
-                    elif type(gate) == QGate:
+                    else:
                         gate._apply_gate(self, qubit,
                                          control[:clen], anticontrol[:aclen],
                                          optimize=optimize)
