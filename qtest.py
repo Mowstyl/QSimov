@@ -8,6 +8,8 @@ import random as rnd
 import numpy as np
 from operator import add
 
+from qsimov.samples.djcircuit import DJAlgCircuit
+
 
 def gate_to_id(numpygate, id, nq):
     """Return the first column of the matrix result of applying gate->qubit.
@@ -436,30 +438,6 @@ def Const(n, twice=False):
     if twice:
         gate.add_line(*[None for i in range(n-1)], "X")
     return gate
-
-
-def DJAlgCircuit(size, U_f):
-    """Devuelve el circuito del algoritmo de Deutsch-Josza.
-
-    U_f es el oraculo, que debe tener x1..xn e y como qubits.
-    Tras aplicarlo el qubit y debe valer f(x1..xn) XOR y.
-    El argumento size es n + 1, donde n es el numero de bits de entrada de f.
-    """
-    # El ultimo QuBit al ejecutar el algoritmo es de ancilla, con su valor a 1
-    c = qj.QCircuit("Deutsch-Josza Algorithm", ancilla=[1])
-
-    # Se aplica una compuerta hadamard a todos los qubits
-    c.add_line(*["H" for i in range(size)])
-    c.add_line(U_f)  # Se aplica el oraculo
-
-    # Se aplica una puerta Hadamard a todos los qubits excepto al ultimo
-    c.add_line(*("H" for i in range(size-1)), "I")
-
-    # Se miden los qubit x, si es igual a 0 la funcion es constante.
-    # En caso contrario no lo es.
-    c.add_line(qj.Measure([1 for i in range(size - 1)] + [0]))
-
-    return c
 
 
 def TeleportationCircuit(gate, remove=True):
