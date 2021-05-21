@@ -530,14 +530,17 @@ def _get_parties(args, ignore_empty=False, offset=0):
                     continue
                 myparty = set([currbit + j for j in range(gateSize)])
             if args[i][0] is not None:
-                controls = {control + offset for control in args[i][1]}
+                newoffset = offset
+                if isinstance(args[i][0], QGate):
+                    newoffset += currbit
+                controls = {control + newoffset for control in args[i][1]}
                 if len(myparty.intersection(controls)) == 0:
                     myparty = myparty.union(controls)
                 else:
                     raise ValueError("You can't apply a gate to a qubit and " +
                                      "use it as a control: " +
                                      str(myparty.intersection(controls)))
-                anticontrols = {control + offset for control in args[i][2]}
+                anticontrols = {control + newoffset for control in args[i][2]}
                 if len(myparty.intersection(anticontrols)) == 0:
                     myparty = myparty.union(anticontrols)
                 else:
