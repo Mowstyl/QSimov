@@ -233,8 +233,9 @@ def _check_line_size(q_design, size):
 
 def _add_gates(q_design, args, add_to_lines, offset, controls, anticontrols):
     args = [_rebuild_gate_name(gate) for gate in args]
-    parties = _get_parties(args)
+    parties = _get_parties(args, offset=offset)
     size = len(parties)
+    currbit = 0
 
     if not _check_line_size(q_design, size):
         return
@@ -252,11 +253,15 @@ def _add_gates(q_design, args, add_to_lines, offset, controls, anticontrols):
                     none_after_gate = q_design.size - arg[0].size - i
                     q_design.add_line(*[None for j in range(i)], *line,
                                       *[None for j in range(none_after_gate)],
-                                      add_to_lines=False, offset=i,
+                                      add_to_lines=False, offset=currbit,
                                       control=arg[1],
                                       anticontrol=arg[2])
             else:
                 _update_oplines(q_design, i, args)
+        if arg is not None:
+            currbit += get_gate_qubits(arg[0])
+        else:
+            currbit += 1
 
 
 def _recalculate_free(q_design):
@@ -530,17 +535,20 @@ def _get_parties(args, ignore_empty=False, offset=0):
                     continue
                 myparty = set([currbit + j for j in range(gateSize)])
             if args[i][0] is not None:
-                newoffset = offset
-                if isinstance(args[i][0], QGate):
-                    newoffset += currbit
-                controls = {control + newoffset for control in args[i][1]}
+                controls = {control + offset for control in args[i][1]}
                 if len(myparty.intersection(controls)) == 0:
                     myparty = myparty.union(controls)
                 else:
+                    print("Args:", args)
+                    print("Arg:", args[i])
+                    print("Party:", myparty)
+                    print("Controls:", controls)
+                    print("Offset:", offset)
+                    print("Currbit:", currbit)
                     raise ValueError("You can't apply a gate to a qubit and " +
                                      "use it as a control: " +
                                      str(myparty.intersection(controls)))
-                anticontrols = {control + newoffset for control in args[i][2]}
+                anticontrols = {control + offset for control in args[i][2]}
                 if len(myparty.intersection(anticontrols)) == 0:
                     myparty = myparty.union(anticontrols)
                 else:
