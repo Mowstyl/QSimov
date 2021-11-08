@@ -9,16 +9,12 @@ def first_column_gate(num_qubits, vector):
     gates = get_gates(vector, num_qubits)
     # print("Gates:", gates)
     # print("V:", vector)
-    vector_oracle = QGate("Vector oracle")
-    if len(gates) == 0:
-        vector_oracle.add_line(*[None for i in range(num_qubits)])
-    else:
+    vector_oracle = QGate(num_qubits, "Vector oracle")
+    if len(gates) > 0:
         for angle, qid, controls, anticontrols in gates:
-            vector_oracle.add_line(*[None if i != qid
-                                     else ["U(" + str(angle * 2) + ",0,pi)",
-                                           controls,
-                                           anticontrols]
-                                     for i in range(num_qubits)])
+            vector_oracle.add_operation("U(" + str(angle * 2) + ",0,pi)",
+                                        targets=qid, controls=controls,
+                                        anticontrols=anticontrols)
     # print("Vector:", vector)
     # print("Gates:", gates)
     return vector_oracle

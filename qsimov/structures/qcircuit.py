@@ -4,95 +4,80 @@ Data Structures:
     QCircuit: Quantum Circuit, built from gates and measurements
 """
 from qsimov.structures.qregistry import QRegistry
+from qsimov.structures.qstructure import _get_op_data
 from qsimov.structures.qsystem import QSystem
-from qsimov.structures.qgate import _get_line_args, _add_gates
-from qsimov.structures.measure import Measure
+from qsimov.structures.qdesign import QDesign
 import qsimov.connectors.qsimovapi as qapi
-import gc
+import numpy as np
 
 
-class QCircuit(object):
+class QCircuit(QDesign):
     """Quantum Circuit, built from gates and measurements."""
 
-    def __init__(self, name="UNNAMED", size=None, ancilla=[]):
+    def __init__(self, num_qubits, name, ancilla=None):
         """Quantum Circuit constructor.
 
+        Positional arguments:
+            num_qubits: maximum number of qubits affected by this gate
+            name: name of the gate
         Keyworded arguments:
-            name: name of the circuit. Default="UNNAMED"
-            size: maximum number of qubits affected by this gate
-                If nothing specified it will be calculated in the
-                first call to add_line
             ancilla: list of values of the ancilliary qubits (0 or 1)
         """
-        self.empty = True
+        if num_qubits is None or not np.allclose(num_qubits % 1, 0):
+            raise ValueError("num_qubits must be an integer")
+        num_qubits = int(num_qubits)
+        if num_qubits <= 0:
+            raise ValueError("num_qubits must be positive")
+        if name is None:
+            raise ValueError("name can't be None")
+        if ancilla is None:
+            ancilla = []
+        aux = [int(val) for val in ancilla]
+        if not np.allclose(aux, ancilla):
+            raise ValueError("ancilla must be a list of integers")
+        ancilla = aux
+        if not all(0 <= val <= 1 for val in ancilla):
+            raise ValueError("ancilla must be a list of 0 and 1")
         self.name = name
-        self.lines = []
-        self.oplines = []
-        self.freeindexes = None
-        self.lastindex = -1
+        self.ops = []
         self.ancilla = ancilla
-        self.size = size
+        self.num_qubits = num_qubits
 
-    def addLine(self, *args, **kwargs):
-        """Use add_line method instead. DEPRECATED."""
-        print("Method QCircuit.addLine is deprecated.",
-              "Please use add_line if you seek the same functionality")
-        return self.add_line(*args, **kwargs)
+    def draw(self):
+        raise NotImplementedError("Draw has not been implemented yet")
 
-    def _add_measure(self, args, add_to_lines):
-        """Add a Measure object to oplines (and to lines if specified)."""
-        if len(args) > 1:
-            raise ValueError("You can only use 1 measure per line")
-        else:
-            size = len(args[0].mask)
-            if (self.empty):
-                self.size = size
-                self.empty = False
-                self.freeindexes = [0 for i in range(size)]
-            if (self.size != size):
-                raise ValueError("This circuit requires a measurement mask " +
-                                 "for " + str(self.size) + " QuBits. " +
-                                 " Received mask for " +
-                                 str(size) + " QuBits.")
-            if add_to_lines:
-                self.lines += [args]
-            freeindex = max([self.freeindexes[i]
-                             for i in range(len(args[0].mask))])
-            for i in range(len(args[0].mask)):
-                self.freeindexes[i] = freeindex + 1
-                if freeindex > self.lastindex:
-                    self.oplines.append([])
-                    self.lastindex += 1
-                self.oplines[freeindex].append(args[0])
+    def get_num_qubits(self):
+        return self.num_qubits
 
-    def add_line(self, *args, **kwargs):
-        """Apply specified gate to specified qubit with specified controls.
+    def get_operations(self):
+        return self.ops
+
+    def add_operation(self, gate, targets=None, controls=None,
+                      anticontrols=None):
+        """Apply specified operation to this QCircuit.
 
         Positional arguments:
-            comma separated gates, their sizes must match the number of
-                qubits in the system. Sorted by their least significant
-                target qubit id.
-            OR
-            Measure object
+            gate: string with the name of the gate to apply,
+                  a QGate or a Measure
         Keyworded arguments:
-            add_to_lines: whether to add args to lines or only to oplines
-            offset: offset to add to all the qubit ids each arg of this line
-            control: id or list of ids of the qubit that will act as
-                      controls
-            anticontrol: id or list of ids of the qubit that will act as
-                      anticontrols
+            targets: id or list of ids of the qubits the gate will target
+            controls: id or set of ids of the qubit that will act as controls
+            anticontrols: id or set of ids of the qubit that will act as
+                          anticontrols
+            num_threads: number of threads to use
         """
-        add_to_lines, offset, controls, anticontrols = _get_line_args(**kwargs)
-        if args is None or len(args) == 0:
-            print("Here goes nothing.")
-        try:
-            if any(isinstance(e, Measure) for e in args):
-                self._add_measure(args, add_to_lines)
-            else:
-                _add_gates(self, args, add_to_lines, offset,
-                           controls, anticontrols)
-        finally:
-            gc.collect()
+        if gate is None:
+            raise ValueError("Gate can't be None")
+        if isinstance(gate, str) and gate.lower() == "barrier":
+            self.ops.append("BARRIER")
+        aux = gate
+        if isinstance(gate, str) and gate.lower() == "measure":
+            aux = None
+        op_data = _get_op_data(self.num_qubits, aux, targets,
+                               controls, anticontrols)
+        if aux is None:
+            op_data["gate"] = "MEASURE"
+        self.ops.append(op_data)
 
     def execute(self, qubits, iterations=1, qmachine=None,
                 args={"useSystem": True}, optimize=True):

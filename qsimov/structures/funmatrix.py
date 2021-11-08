@@ -1,176 +1,12 @@
 """Module with functional matrices related stuff."""
-import ctypes as ct
-import qsimov.connectors.parser as prs
-import platform as plat
-import os
+import doki
 import numpy as np
-from os.path import sep
-
-# DLL Load
-if plat.system() == "Windows":
-    extension = ".dll"
-else:
-    extension = ".so"
-_root_folder = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-_lib_folder = _root_folder + sep + "lib"
-_funmat_path = _lib_folder + sep + "libfunmat" + extension
-if hasattr(os, "add_dll_directory"):
-    os.add_dll_directory(_root_folder)
-    os.add_dll_directory(_lib_folder)
-    _funmat_path = "libfunmat" + extension
-_funmat = ct.CDLL(_funmat_path)
-
-c_double_p = ct.POINTER(ct.c_double)
-
-_cGetItem = _funmat.getitemaux
-_cGetItem.argtypes = [ct.c_void_p, ct.c_uint, ct.c_uint,
-                      c_double_p, c_double_p]
-_cGetItem.restype = ct.c_int
-"""C FunMatrix getitemaux function.
-Positional arguments:
-    pointer: FunMatrix struct pointer
-    unsigned int: index of the row to get
-    unsigned int: index of the column to get
-    double pointer: real part of the result (output)
-    double pointer: imaginary part of the result (output)
-Return:
-    int: 0 -> Failure. 1 -> Success
-"""
-
-_cGetRows = _funmat.rows
-_cGetRows.argtypes = [ct.c_void_p]
-_cGetRows.restype = ct.c_int
-"""C FunMatrix rows function.
-Positional arguments:
-    pointer: FunMatrix struct pointer
-Return:
-    int: number of rows of the FunMatrix
-"""
-
-_cGetCols = _funmat.columns
-_cGetCols.argtypes = [ct.c_void_p]
-_cGetCols.restype = ct.c_int
-"""C FunMatrix columns function.
-Positional arguments:
-    pointer: FunMatrix struct pointer
-Return:
-    int: number of columns of the FunMatrix
-"""
-
-_cMadd = _funmat.madd
-_cMadd.argtypes = [ct.c_void_p, ct.c_void_p]
-_cMadd.restype = ct.c_void_p
-"""C FunMatrix madd function.
-Positional arguments:
-    pointer: FunMatrix struct pointer A
-    pointer: FunMatrix struct pointer B
-Return:
-    pointer: FunMatrix struct pointer A + B
-"""
-
-_cMsub = _funmat.msub
-_cMsub.argtypes = [ct.c_void_p, ct.c_void_p]
-_cMsub.restype = ct.c_void_p
-"""C FunMatrix msub function.
-Positional arguments:
-    pointer: FunMatrix struct pointer A
-    pointer: FunMatrix struct pointer B
-Return:
-    pointer: FunMatrix struct pointer A - B
-"""
-
-_cMprod = _funmat.mprodaux
-_cMprod.argtypes = [ct.c_double, ct.c_double, ct.c_void_p]
-_cMprod.restype = ct.c_void_p
-"""C FunMatrix mprodaux function.
-Positional arguments:
-    double: real part of the scalar value s
-    double: imaginary part of the scalar value s
-    pointer: FunMatrix struct pointer A
-Return:
-    pointer: FunMatrix struct pointer s * A
-"""
-
-_cEwmul = _funmat.ewmul
-_cEwmul.argtypes = [ct.c_void_p, ct.c_void_p]
-_cEwmul.restype = ct.c_void_p
-"""C FunMatrix ewmul function.
-Positional arguments:
-    pointer: FunMatrix struct pointer A
-    pointer: FunMatrix struct pointer B
-Return:
-    pointer: FunMatrix struct pointer A * B (entity wise multiplication)
-"""
-
-_cMdiv = _funmat.mdivaux
-_cMdiv.argtypes = [ct.c_double, ct.c_double, ct.c_void_p]
-_cMdiv.restype = ct.c_void_p
-"""C FunMatrix mdivaux function.
-Positional arguments:
-    double: real part of the scalar value s
-    double: imaginary part of the scalar value s
-    pointer: FunMatrix struct pointer A
-Return:
-    pointer: FunMatrix struct pointer A/s
-"""
-
-_cMatmul = _funmat.matmul
-_cMatmul.argtypes = [ct.c_void_p, ct.c_void_p]
-_cMatmul.restype = ct.c_void_p
-"""C FunMatrix matmul function.
-Positional arguments:
-    pointer: FunMatrix struct pointer A
-    pointer: FunMatrix struct pointer B
-Return:
-    pointer: FunMatrix struct pointer A . B (matrix multiplication)
-"""
-
-_cKron = _funmat.kron
-_cKron.argtypes = [ct.c_void_p, ct.c_void_p]
-_cKron.restype = ct.c_void_p
-"""C FunMatrix kron function.
-Positional arguments:
-    pointer: FunMatrix struct pointer A
-    pointer: FunMatrix struct pointer B
-Return:
-    pointer: FunMatrix struct pointer A x B (tensor product)
-"""
-
-_cTranspose = _funmat.transpose
-_cTranspose.argtypes = [ct.c_void_p]
-_cTranspose.restype = ct.c_void_p
-"""C FunMatrix transpose function.
-Positional arguments:
-    pointer: FunMatrix struct pointer A
-Return:
-    pointer: FunMatrix struct pointer A transposed
-"""
-
-_cDagger = _funmat.dagger
-_cDagger.argtypes = [ct.c_void_p]
-_cDagger.restype = ct.c_void_p
-"""C FunMatrix dagger function.
-Positional arguments:
-    pointer: FunMatrix struct pointer A
-Return:
-    pointer: FunMatrix struct pointer A transposed and conjugated
-"""
-
-_cGetMemory = _funmat.getMemory
-_cGetMemory.argtypes = [ct.c_void_p]
-_cGetMemory.restype = ct.c_int
-"""C FunMatrix getMemory function.
-Positional arguments:
-    pointer: FunMatrix struct pointer A
-Return:
-    int: size allocated by the FunMatrix structure in bytes
-"""
 
 
 class Funmatrix(object):
     """Functional Matrices related stuff in python."""
 
-    def __init__(self, fmatrix, name="Lazy Matrix"):
+    def __init__(self, fmatrix, name="Lazy Matrix", verbose=False):
         """Functional Matrix constructor.
 
         Positional arguments:
@@ -180,7 +16,7 @@ class Funmatrix(object):
         """
         self.m = fmatrix
         self.name = name
-        self._shape = (int(_cGetRows(fmatrix)), int(_cGetCols(fmatrix)))
+        self._shape = doki.funmatrix_shape(fmatrix, verbose)
 
     def __repr__(self):
         """Return the string representation of the FunMatrix."""
@@ -190,21 +26,9 @@ class Funmatrix(object):
         """Return the string representation of the FunMatrix."""
         return self.name
 
-    def _get_single_item(self, i, j):
+    def _get_single_item(self, i, j, verbose=False):
         """Return the item in (i, j) position of the matrix."""
-        res = None
-        re = ct.c_double(0.0)
-        im = ct.c_double(0.0)
-        try:
-            aux = _cGetItem(self.m, ct.c_uint(i), ct.c_uint(j),
-                            c_double_p(re), c_double_p(im))
-            if (aux == 0):
-                print("Error getting the specified item!")
-            else:
-                res = complex(re.value, im.value)
-        except Exception as e:
-            print(e)
-        return res
+        return doki.funmatrix_get(self.m, i, j, verbose)
 
     def __getitem__(self, key):
         """Return the items of the matrix specified in key."""
@@ -323,173 +147,124 @@ class Funmatrix(object):
         if type(other) != Funmatrix:
             raise TypeError("unsupported operand type(s) for +: '" +
                             type(self).__name__ + "' and '" +
-                            type(self).__name__ + "'")
-        res = None
-        try:
-            res = Funmatrix(ct.c_void_p(_cMadd(self.m, other.m)))
-        except Exception as e:
-            print(e)
-        return res
+                            type(other).__name__ + "'")
+        if self.shape != other.shape:
+            raise ValueError("Both matrices must have the same shape")
+        return Funmatrix(doki.funmatrix_add(self.m, other.m, False))
 
     def __sub__(self, other):
         """Return the result of substracting self - other matrices."""
         if type(other) != Funmatrix:
             raise TypeError("unsupported operand type(s) for -: '" +
                             type(self).__name__ + "' and '" +
-                            type(self).__name__ + "'")
-        res = None
-        try:
-            res = Funmatrix(ct.c_void_p(_cMsub(self.m, other.m)))
-        except Exception as e:
-            print(e)
-        return res
+                            type(other).__name__ + "'")
+        if self.shape != other.shape:
+            raise ValueError("Both matrices must have the same shape")
+        return Funmatrix(doki.funmatrix_sub(self.m, other.m, False))
 
     def __mul__(self, other):
         """Calculate entity wise self * other or scalar product."""
         if type(other) == Funmatrix:
-            res = None
-            try:
-                res = Funmatrix(ct.c_void_p(_cEwmul(self.m, other.m)))
-            except Exception as e:
-                print(e)
-            return res
-        elif (type(other) == int
-                or type(other) == float
-                or type(other) == complex):
-            res = None
-            re = 0
-            im = 0
-            if type(other) == int or type(other) == float:
-                re = other
-            else:
-                re = other.real
-                im = other.imag
-            try:
-                res = Funmatrix(ct.c_void_p(_cMprod(ct.c_double(re),
-                                                    ct.c_double(im),
-                                                    self.m)))
-            except Exception as e:
-                print(e)
-            return res
+            if self.shape != other.shape:
+                raise ValueError("Both matrices must have the same shape")
+            return Funmatrix(doki.funmatrix_ewmul(self.m, other.m, False))
+        elif np.isscalar(other):
+            scalar = complex(other)
+            return Funmatrix(doki.funmatrix_scalar_mul(self.m, scalar, False))
         else:
             raise TypeError("unsupported operand type(s) for *: '" +
                             type(self).__name__ + "' and '" +
-                            type(self).__name__ + "'")
+                            type(other).__name__ + "'")
 
     def __rmul__(self, other):
         """Calculate entity wise other * self or scalar product."""
         if type(other) == Funmatrix:
-            res = None
-            try:
-                res = Funmatrix(ct.c_void_p(_cEwmul(other.m, self.m)))
-            except Exception as e:
-                print(e)
-            return res
-        elif (type(other) == int
-                or type(other) == float
-                or type(other) == complex):
-            res = None
-            re = 0
-            im = 0
-            if type(other) == int or type(other) == float:
-                re = other
-            else:
-                re = other.real
-                im = other.imag
-            try:
-                res = Funmatrix(ct.c_void_p(_cMprod(ct.c_double(re),
-                                                    ct.c_double(im),
-                                                    self.m)))
-            except Exception as e:
-                print(e)
-            return res
+            if self.shape != other.shape:
+                raise ValueError("Both matrices must have the same shape")
+            return Funmatrix(doki.funmatrix_ewmul(other.m, self.m, False))
+        elif np.isscalar(other):
+            scalar = complex(other)
+            return Funmatrix(doki.funmatrix_scalar_mul(self.m, scalar, False))
         else:
             raise TypeError("unsupported operand type(s) for *: '" +
-                            type(self).__name__ + "' and '" +
+                            type(other).__name__ + "' and '" +
                             type(self).__name__ + "'")
 
     def __truediv__(self, other):
         """Calculate scalar division self / scalar."""
-        if (type(other) == int
-                or type(other) == float
-                or type(other) == complex):
-            res = None
-            re = 0
-            im = 0
-            if type(other) == int or type(other) == float:
-                re = other
-            else:
-                re = other.real
-                im = other.imag
-            res = None
-            try:
-                res = Funmatrix(ct.c_void_p(_cMdiv(ct.c_double(re),
-                                                   ct.c_double(im),
-                                                   self.m)))
-            except Exception as e:
-                print(e)
-            return res
+        if np.isscalar(other):
+            scalar = complex(other)
+            return Funmatrix(doki.funmatrix_scalar_div(self.m, scalar, False))
         else:
             raise TypeError("unsupported operand type(s) for /: '" +
                             type(self).__name__ + "' and '" +
-                            type(self).__name__ + "'")
+                            type(other).__name__ + "'")
 
     def __matmul__(self, other):
         """Calculate matrix multiplication self . other."""
         if type(other) != Funmatrix:
             raise TypeError("unsupported operand type(s) for @: '" +
                             type(self).__name__ + "' and '" +
-                            type(self).__name__ + "'")
-        res = None
-        try:
-            res = Funmatrix(ct.c_void_p(_cMatmul(self.m, other.m)))
-        except Exception as e:
-            print(e)
-        return res
+                            type(other).__name__ + "'")
+        if self.shape[1] != other.shape[0]:
+            raise ValueError("Matrix product is only defined when the number" +
+                             " of columns of the first operand equals the" +
+                             " number of rows of the second operand")
+        return Funmatrix(doki.funmatrix_matmul(self.m, other.m, False))
 
     def __pow__(self, other):
-        """Calculate matrix tensor product self x other."""
-        if type(other) != Funmatrix:
+        """Calculate matrix tensor product self x other or usual power."""
+        if type(other) == Funmatrix:
+            return Funmatrix(doki.funmatrix_kron(self.m, other.m, False))
+        elif np.issubdtype(other, np.integer):
+            exponent = int(other)
+            if exponent < 0:
+                raise ValueError("Negative exponents are not supported")
+            res = self
+            if exponent == 0:
+                res = 1
+            for i in range(exponent - 1):
+                res = res @ self
+            return res
+        else:
             raise TypeError("unsupported operand type(s) for **: '" +
                             type(self).__name__ + "' and '" +
                             type(self).__name__ + "'")
-        res = None
-        try:
-            res = Funmatrix(ct.c_void_p(_cKron(self.m, other.m)))
-        except Exception as e:
-            print(e)
-        return res
 
     def transpose(self):
         """Return the transpose of this matrix."""
-        res = None
-        try:
-            res = Funmatrix(ct.c_void_p(_cTranspose(self.m)))
-        except Exception as e:
-            print(e)
-        return res
+        return Funmatrix(doki.funmatrix_transpose(self.m, False))
 
     def dagger(self):
         """Return the conjugate (Hermitian) transpose of this matrix."""
-        res = None
-        if prs.getGroups(self.name)[1] in ["I", "H", "X", "NOT",
-                                           "Y", "Z", "SWAP"]:
-            res = self
-        else:
-            try:
-                res = Funmatrix(ct.c_void_p(_cDagger(self.m)),
-                                self.name + "-1")
-            except Exception as e:
-                print(e)
-        return res
+        return Funmatrix(doki.funmatrix_dagger(self.m, False))
+
+    def partial_trace(self, elem):
+        """Return the partial trace of this matrix, after tracing out elem."""
+        if self.shape[0] != self.shape[1]:
+            raise ValueError("Partial trace undefined for non square matrices")
+        num_elems = np.log2(self.shape[0])
+        if not np.allclose(num_elems % 1, 0):
+            raise NotImplementedError("Partial trace unsupported for " +
+                                      "shapes that are not a power of 2")
+        num_elems = int(num_elems)
+        if not np.allclose(elem % 1, 0):
+            raise ValueError("elem must be an integer")
+        elem = int(elem)
+        if elem < 0 or elem >= num_elems:
+            raise ValueError(f"elem must be in [0, {num_elems - 1}] for" +
+                             " this matrix")
+        return Funmatrix(doki.funmatrix_partialtrace(self.m, elem, False))
+
+    def trace(self):
+        """Return the trace of this matrix."""
+        if self.shape[0] != self.shape[1]:
+            raise ValueError("Trace undefined for non square matrices")
+        return doki.funmatrix_trace(self.m, False)
 
     def get_matrix(self):
         """Return self."""
         return self
-
-    def get_memory(self):
-        """Return memory allocated by C structure in bytes."""
-        return int(_cGetMemory(self.m))
 
     @property
     def shape(self):

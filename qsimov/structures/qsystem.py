@@ -6,37 +6,82 @@ Data Structures:
 Functions:
     superposition: join two registries into one by calculating tensor product.
 """
-import qsimov.connectors.parser as prs
 import numpy as np
+from qsimov.structures.qstructure import QStructure, _get_qubit_set, \
+                                        _get_op_data
 from qsimov.structures.qregistry import QRegistry, superposition
-from qsimov.structures.qgate import QGate, get_gate_data
-from collections.abc import Iterable
 
 
-class QSystem:
+class QSystem(QStructure):
     """Quantum System, preferred over QRegistry (can save a lot of space)."""
 
-    def __init__(self, nqbits):
+    def __init__(self, num_qubits, doki=None, verbose=False):
         """Initialize QSystem to state 0.
 
-        nqbits -> number of QuBits in the system.
+        num_qubits -> number of QuBits in the system.
         """
-        self.regs = [[QRegistry(1), [id]] for id in range(nqbits)]
-        self.qubitMap = {id: id for id in range(nqbits)}
-        self.usable = [id for id in range(nqbits)]
-        self.nqubits = nqbits
+        if doki is None:
+            import doki
+        self.doki = doki
+        if num_qubits is None:
+            self.regs = None
+            self.qubitMap = None
+            self.usable = None
+            self.num_qubits = 0
+        else:
+            self.regs = [[QRegistry(1, doki=self.doki), [id]]
+                         for id in range(num_qubits)]
+            self.qubitMap = {id: id for id in range(num_qubits)}
+            self.usable = [True for id in range(num_qubits)]
+            self.num_qubits = num_qubits
+        self.verbose = verbose
+
+    def free(self):
+        """Release memory held by the QSystem."""
+        if self.regs is not None:
+            for reg, _ in self.regs:
+                if isinstance(reg, QRegistry):
+                    reg.free()
+            del self.regs
+            del self.qubitMap
+            del self.usable
+            self.regs = None
+            self.qubitMap = None
+            self.usable = None
+
+    def clone(self):
+        """Clone this QSystem."""
+        new_sys = QSystem(None, doki=self.doki)
+        new_sys.num_qubits = self.num_qubits
+        new_sys.usable = self.usable[:]
+        new_sys.qubitMap = {}
+        for id in self.qubitMap:
+            new_sys.qubitMap[id] = self.qubitMap[id]
+        new_sys.regs = [[self.regs[id][0].clone(), self.regs[id][1][:]]
+                        if isinstance(self.regs[id][0], QRegistry)
+                        else [self.regs[id][0], self.regs[id][1][:]]
+                        for id in range(new_sys.num_qubits)]
+        return new_sys
 
     def __del__(self):
-        """Release memory held by the QSystem."""
-        del self.regs
-        del self.qubitMap
-        del self.usable
+        """Clean after deletion."""
+        self.free()
 
-    def getRegSize(self):
-        """Use get_sizes method instead. DEPRECATED."""
-        print("Method QSystem.getRegSize is deprecated.",
-              "Please use get_sizes if you seek the same functionality")
-        return self.get_sizes()
+    def prob(self, id, num_threads=-1):
+        """Get the odds of getting 1 when measuring specified qubit."""
+        id = _get_qubit_set(self.get_num_qubits(), [id], True, "argument")[0]
+        reg, ids = self.regs[self.qubitMap[id]]
+        if not self.usable[id]:
+            return reg
+        new_id = None
+        for i in range(len(ids)):
+            if ids[i] == id:
+                new_id = i
+                break
+        if new_id is None:
+            raise RuntimeError("Couldn't find id in any reg, " +
+                               "please report this bug.")
+        return reg.prob(new_id, num_threads=num_threads)
 
     def get_sizes(self):
         """Return the number of elements of each registry in the system."""
@@ -44,12 +89,6 @@ class QSystem:
                 if type(reg[0]) == QRegistry
                 else (1, reg[1])
                 for reg in self.regs)
-
-    def getSize(self):
-        """Use get_state_size method instead. DEPRECATED."""
-        print("Method QSystem.getSize is deprecated.",
-              "Please use get_state_size if you seek the same functionality")
-        return self.get_state_size()
 
     def get_state_size(self):
         """Return the number of elements in the state vector of the system."""
@@ -61,13 +100,6 @@ class QSystem:
                 total += 1
         return total
 
-    def getRegNQubits(self):
-        """Use get_split_num_qubits method instead. DEPRECATED."""
-        print("Method QSystem.getRegNQubits is deprecated.",
-              "Please use get_split_num_qubits if you",
-              "seek the same functionality")
-        return self.get_split_num_qubits()
-
     def get_split_num_qubits(self):
         """Return the number of qubits in each registry of the system."""
         return (reg[0].get_num_qubits()
@@ -75,221 +107,289 @@ class QSystem:
                 else 1  # When we measure with remove=True
                 for reg in self.regs)
 
-    def getNQubits(self):
-        """Use get_num_qubits method instead. DEPRECATED."""
-        print("Method QSystem.getNQubits is deprecated.",
-              "Please use get_num_qubits if you seek the same functionality")
-        return self.get_num_qubits()
-
     def get_num_qubits(self):
         """Return the number of qubits in this system."""
-        return self.nqubits
+        return self.num_qubits
 
-    def toString(self):
-        """Use state_strings method instead. DEPRECATED."""
-        print("Method QSystem.toString is deprecated.",
-              "Please use state_strings if you seek the same functionality")
-        return self.state_strings()
-
-    def state_strings(self):
-        """Return string representation of each registry in this system."""
-        print("state_strings might be removed in future versions")
-        return str([[reg[0].state_string(), reg[1]]
-                    if type(reg[0]) == QRegistry
-                    else reg  # When we measure with remove=True
-                    for reg in self.regs])
-
-    def measure(self, msk, remove=False):
+    def measure(self, ids, random_generator=np.random.rand, num_threads=-1):
         """Measure specified qubits of this system and collapse.
 
         Positional arguments:
-            msk -> List of numbers with the qubits that should be measured
-                0 means not measuring that qubit, 1 otherwise
+            ids -> List of QuBit ids that have to be measured
         Keyworded arguments:
-            remove = True if you want to turn the registry containing only
-                the measured qubit into an int with the measured value
-
+            random_generator -> function without arguments that returns
+                                a random real number in [0, 1)
         Return:
             List with the value obtained after each measure
         """
-        nqubits = self.get_num_qubits()
-        if (not isinstance(msk, Iterable) or len(msk) != nqubits or
-                not all(type(num) == int and (num == 0 or num == 1)
-                        for num in msk)):
-            raise ValueError('Not valid mask: ' + str(msk))
-        result = []
-        for qubit in range(self.nqubits):
-            if msk[qubit] == 1:
-                regid = self.qubitMap[qubit]
-                if self.regs[regid][0].get_num_qubits() > 1:
-                    aux_mask = [0 if self.regs[regid][1][i] != qubit
-                                else 1
-                                for i in range(len(self.regs[regid][1]))]
-                    result += self.regs[regid][0].measure(aux_mask,
-                                                          remove=True)
-                    self.regs[regid][1].remove(qubit)
-                    newid = self.regs.index(None)
-                    self.qubitMap[qubit] = newid
-                    if not remove:
-                        self.regs[newid] = [QRegistry(1), [qubit]]
-                        if result[-1] == 1:
-                            self.regs[newid][0].apply_gate("X")
-                    else:
-                        self.regs[newid] = [result[-1], [qubit]]
-                        self.usable.remove(qubit)
+        num_qubits = self.get_num_qubits()
+        ids = _get_qubit_set(num_qubits, ids, False, "ids")
+        if ids is None:
+            raise ValueError("ids cannot be None")
+        split_ids = {reg_id: set() for reg_id in range(len(self.regs))}
+        for qubit_id in ids:
+            if not self.usable[qubit_id]:
+                raise ValueError(f"Id {qubit_id} has already been measured")
+            reg_id = self.qubitMap[qubit_id]
+            split_ids[reg_id].add(qubit_id)
+        # In split ids we have reg_id -> set of ids to measure in that reg
+        split_ids = {k: v for k, v in split_ids.items() if len(v) > 0}
+        result = [None for i in range(num_qubits)]
+        # Here we have the registries that have not been used
+        untouched_regs = {i for i in range(len(self.regs))
+                          if i not in split_ids}
+        # We create a new QSystem with the regs that have not been used
+        new_sys = QSystem(None, doki=self.doki)
+        new_sys.regs = []
+        exception = None
+        try:
+            for reg_id in untouched_regs:
+                reggie, reg_ids = self.regs[reg_id]
+                if isinstance(reggie, QRegistry):
+                    reggie = reggie.clone()
+                new_sys.regs.append((reggie,
+                                     reg_ids[:]))
+            new_sys.qubitMap = {}
+            for reg_id in range(len(untouched_regs)):
+                for qubit_id in new_sys.regs[reg_id][1]:
+                    new_sys.qubitMap[qubit_id] = reg_id
+            # print("[DEBUG]", ids)
+            new_sys.usable = [i not in ids and self.usable[i]
+                              for i in range(self.num_qubits)]
+            # print("[DEBUG]", new_sys.usable)
+            new_sys.num_qubits = self.num_qubits
+
+            # We iterate through the registries that have a qubit in ids
+            for reg_id in split_ids:
+                partial_ids = split_ids[reg_id]  # ids of QSystem to measure
+                new_reg = None
+                partial_result = None
+                reg, reg_ids = self.regs[reg_id]
+                # Ids to measure in the QRegistry (not in the whole QSystem)
+                # mapped to the id in the QSystem
+                new_ids = {i: reg_ids[i] for i in range(len(reg_ids))
+                           if reg_ids[i] in partial_ids}
+                # Not measured ids of the QSystem belonging to this QRegistry
+                not_ids = [reg_ids[i] for i in range(len(reg_ids))
+                           if reg_ids[i] not in partial_ids]
+                # We measure registries
+                if isinstance(reg, QRegistry):
+                    aux = reg.measure(new_ids.keys(),
+                                      random_generator=random_generator,
+                                      num_threads=num_threads)
+                    new_reg, partial_result = aux
+                    new_reg.num_bits = 0
+                    new_reg.qubit_map = {i: i
+                                         for i in range(new_reg.num_qubits)}
+                    new_reg.classic_vals = {}
+                elif isinstance(reg, bool):
+                    new_reg = None
+                    partial_result = [reg]
                 else:
-                    if not remove:
-                        result += self.regs[regid][0].measure([1],
-                                                              remove=False)
+                    raise RuntimeError(f"Unknown reg type: {type(reg)}." +
+                                       " Please report this bug.")
+                # We add the results to the result list
+                for local_id in new_ids:
+                    result[new_ids[local_id]] = partial_result[local_id]
+                # We add the new registry (if it exists) to the list of regs
+                if new_reg is not None:
+                    new_sys.regs.append([new_reg, not_ids])
+                    # We update the mapping
+                    for qubit_id in not_ids:
+                        new_sys.qubitMap[qubit_id] = len(new_sys.regs) - 1
+                # We add booleans
+                for qubit_id in partial_ids:
+                    new_sys.regs.append([result[qubit_id], [qubit_id]])
+                    new_sys.qubitMap[qubit_id] = len(new_sys.regs) - 1
+        except Exception as ex:
+            exception = ex
+        if exception is not None:
+            new_sys.free()
+            raise exception
+        return (new_sys, result)
+
+    def as_qregistry(self, num_threads=-1, canonical=True):
+        """Return this system as a QRegistry."""
+        aux_reg = None
+        new_reg = None
+        new_ids = []
+        first = True
+        exception = None
+        reg_ids = []
+        for i in range(self.num_qubits):
+            if self.usable[i]:
+                reg_id = self.qubitMap[i]
+                if reg_id not in reg_ids:
+                    reg_ids.append(reg_id)
+        try:
+            for reg_id in reg_ids[::-1]:
+                reg, ids = self.regs[reg_id]
+                if type(reg) == QRegistry:
+                    if new_reg is None:
+                        new_reg = reg
                     else:
-                        if type(self.regs[regid][0]) == QRegistry:
-                            result += self.regs[regid][0].measure([1],
-                                                                  remove=False)
-                            del self.regs[regid][0]
-                            self.regs[regid] = [result[-1],
-                                                self.regs[regid][0][0]]
-                        else:
-                            result.append(self.regs[regid])
-                        self.usable.remove(qubit)
-        return result
+                        aux_reg = superposition(new_reg, reg,
+                                                num_threads=num_threads,
+                                                verbose=self.verbose)
+                    new_ids = ids + new_ids
+                    if aux_reg is not None:
+                        if not first:
+                            new_reg.free()
+                        first = False
+                        new_reg = aux_reg
+                        aux_reg = None
+            # Here we remove the unused ids
+            # print("[DEBUG] PreSort:", new_reg.get_state())
+            # print("[DEBUG] IDs:", new_ids)
+            swap_ids = np.argsort(np.argsort(new_ids))
+            # print("[DEBUG] SWAP IDs:", swap_ids)
+            # And we sort the remaining qubits by qubit_id
+            for i in range(len(swap_ids)):
+                while swap_ids[i] != i:
+                    swap_targets = [swap_ids[i], swap_ids[swap_ids[i]]]
+                    # print("[DEBUG] Looping:", swap_targets)
+                    swap_ids[swap_targets[0]], swap_ids[i] = swap_targets
+                    aux_reg = new_reg.apply_gate("SWAP",
+                                                 targets=[i, swap_targets[0]],
+                                                 num_threads=num_threads)
+                    if not first:
+                        new_reg.free()
+                    new_reg = aux_reg
+                    # print("[DEBUG] Sorted:", new_reg.get_state())
+        except Exception as ex:
+            exception = ex
+        if exception is not None:
+            if new_reg is not None:
+                new_reg.free()
+            if aux_reg is not None:
+                aux_reg.free()
+            raise exception
+        return new_reg
 
-    def applyGate(self, *args, **kwargs):
-        """Use apply_gate method instead. DEPRECATED."""
-        print("Method QSystem.applyGate is deprecated.",
-              "Please use apply_gate if you seek the same functionality")
-        return self.apply_gate(*args, **kwargs)
+    def get_state(self, key=None, canonical=False):
+        return self.as_qregistry().get_state(key=key, canonical=canonical)
 
-    def apply_gate(self, *args, **kwargs):
+    def get_classic(self, id):
+        """Return classic bit value (if qubit has been measured)."""
+        if self.usable[id]:
+            return None
+        return self.regs[self.qubitMap[id]][0]
+
+    def apply_gate(self, gate, targets=None, controls=None, anticontrols=None,
+                   num_threads=-1):
         """Apply specified gate to specified qubit with specified controls.
 
-        There are two variants for this method, depending on the number of
-        gates you want to apply.
-        One gate:
-            Positional arguments:
-                gate: string with the name of the gate to apply, or a QGate
-            Keyworded arguments:
-                qubit: id of the least significant qubit the gate will target
-                control: id or list of ids of the qubit that will act as
-                         controls
-                anticontrol: id or list of ids of the qubit that will act as
-                             anticontrols
-                optimize: only for QGates. Whether to use optimized lines or
-                          user defined lines
-        Multiple gates:
-            Positional arguments:
-                comma separated gates, their sizes must match the number of
-                    qubits in the system. Sorted by their least significant
-                    target qubit id.
+        Positional arguments:
+            gate: string with the name of the gate to apply, or a QGate
+        Keyworded arguments:
+            targets: id of the least significant qubit the gate will target
+            controls: id or list of ids of the qubit that will act as
+                     controls
+            anticontrols: id or list of ids of the qubit that will act as
+                         anticontrols
+            num_threads: number of threads to use
+            optimize: only for QGates. Whether to use optimized lines or
+                      user defined lines
         """
-        optimize = True
-        if "optimize" in kwargs:
-            optimize = kwargs["optimize"]
-        if (len(args) == 1
-                or (len(args) == 2
-                    and np.issubdtype(type(args[1]), np.integer)
-                    and "qubit" not in kwargs)):
-            for key in kwargs:
-                if (key != "qubit" and key != "control"
-                        and key != "anticontrol" and key != "optimize"):
-                    raise ValueError('Apart from the gates, you can only ' +
-                                     'specify "qubit", "control", ' +
-                                     '"anticontrol" (lowercase) and/or ' +
-                                     '"optimize"')
-            gate = args[0]
-            if type(gate) == QGate:
-                gate = (gate, gate.size)
-            elif gate == "I" or gate is None:
-                return
-            else:
-                gate = (gate, get_gate_data(gate)[0])
-            qubit = kwargs.get("qubit", self.usable[0])
-            if len(args) == 2:
-                qubit = args[1]
-            control = kwargs.get("control", [])
-            if control is None:
-                control = []
-            if not isinstance(control, Iterable):
-                control = [control]
-            anticontrol = kwargs.get("anticontrol", [])
-            if anticontrol is None:
-                anticontrol = []
-            if not isinstance(anticontrol, Iterable):
-                anticontrol = [anticontrol]
-            if isinstance(qubit, Iterable):
-                for qid in qubit:
-                    self.apply_gate(gate[0], qubit=qid, control=control,
-                                    anticontrol=anticontrol, optimize=optimize)
-            else:
-                name = ""
-                if type(gate[0]) != QGate:
-                    name, arg1, arg2, arg3, invert = prs.get_gate_data(gate[0])
-                    invstring = ""
-                    if invert:
-                        invstring = "-1"
-                qubits = set(control).union(anticontrol)  # All affected qubits
-                if "SWAP" in name:
-                    qubit = arg1
-                    qubits.add(arg2)
-                elif name == "XX" or name == "YY" or name == "ZZ":
-                    qubit = arg2
-                    qubits.add(arg3)
+        if not np.allclose(num_threads % 1, 0):
+            raise ValueError("num_threads must be an integer")
+        num_threads = int(num_threads)
+        num_qubits = self.get_num_qubits()
+        op_data = _get_op_data(num_qubits, gate, targets,
+                               controls, anticontrols)
+        gate = op_data["gate"]
+        targets = op_data["targets"]
+        controls = op_data["controls"]
+        anticontrols = op_data["anticontrols"]
+        # We create a new system without the data of the parties
+        new_sys = QSystem(None, doki=self.doki)
+        new_sys.regs = []
+        new_reg = None
+        aux_reg = None
+        exception = None
+        try:
+            # If any of the affected qubits is marked as not usable
+            if any([not self.usable[qubit_id]
+                    for qubit_id in targets]):
+                # we raise an exception
+                raise ValueError("Trying to apply gate to classic bit")
+            classic_controls = {qubit_id for qubit_id in controls
+                                if not self.usable[qubit_id]}
+            classic_anticontrols = {qubit_id for qubit_id in anticontrols
+                                    if not self.usable[qubit_id]}
+            ccheck = all(self.regs[self.qubitMap[id]][0]
+                         for id in classic_controls)
+            accheck = any(self.regs[self.qubitMap[id]][0]
+                          for id in classic_anticontrols)
+            if ((len(classic_controls) > 0 and not ccheck)
+                    or (len(classic_anticontrols) > 0 and not accheck)):
+                return self.clone()
+            controls -= classic_controls
+            anticontrols -= classic_anticontrols
+            # All affected qubits
+            parties = controls.union(anticontrols).union(targets)
+            touched_regs = {self.qubitMap[qubit_id]
+                            for qubit_id in parties}
+            for reg_id in range(len(self.regs)):
+                if reg_id not in touched_regs:
+                    reggie, reg_ideses = self.regs[reg_id]
+                    if isinstance(reggie, QRegistry):
+                        reggie = reggie.clone()
+                    new_sys.regs.append([reggie, reg_ideses[:]])
+            # Create new qubit map
+            new_sys.qubitMap = {}
+            for reg_id in range(len(new_sys.regs)):
+                for qubit_id in new_sys.regs[reg_id][1]:
+                    new_sys.qubitMap[qubit_id] = reg_id
+            new_sys.usable = self.usable[:]
+            new_sys.num_qubits = self.num_qubits
+            new_ids = []
+            merged = False
+            for reg_id in touched_regs:
+                curr_reg, curr_ids = self.regs[reg_id]
+                if new_reg is not None:
+                    aux_reg = superposition(curr_reg, new_reg,
+                                            num_threads=num_threads,
+                                            verbose=self.verbose)
+                    if merged:
+                        new_reg.free()
+                        del new_reg
+                    else:
+                        merged = True
+                    new_reg = aux_reg
                 else:
-                    qubits.update([qubit + i for i in range(1, gate[1])])
-                rid = self.qubitMap[qubit]
-                for qid in qubits:
-                    self._superposition(rid, self.qubitMap[qid])
-                reg, idlist = self.regs[rid]
-                regmap = {idlist[i]: i for i in range(len(idlist))}
-                newqubit = regmap[qubit]
-                newcontrol = [regmap[qid] for qid in control]
-                newanticontrol = [regmap[qid] for qid in anticontrol]
-                if type(gate[0]) == QGate:
-                    reg.apply_gate(gate[0], qubit=newqubit, control=newcontrol,
-                                   anticontrol=newanticontrol,
-                                   optimize=optimize)
-                else:
-                    if "SWAP" in name:
-                        gate = (name + "(" + str(regmap[arg1]) + "," +
-                                str(regmap[arg2]) + ")" + invstring, gate[1])
-                    if name == "XX" or name == "YY" or name == "ZZ":
-                        gate = (name + "(" + str(arg1) + "," +
-                                str(regmap[arg2]) + "," + str(regmap[arg3]) +
-                                ")" + invstring, gate[1])
-                    reg.apply_gate(gate[0], qubit=newqubit, control=newcontrol,
-                                   anticontrol=newanticontrol,
-                                   optimize=optimize)
-        elif len(kwargs) == 0 and len(args) > 0:
-            nq = 0
-            gates = []
-            for arg in args:
-                if type(arg) == QGate:
-                    gatenq = (arg, arg.size)
-                elif arg == "I" or arg is None:
-                    gatenq = (None, 1)
-                else:
-                    gatenq = (arg, get_gate_data(arg)[0])
-                nq += gatenq[1]
-                gates.append(gatenq)
-            if nq == self.get_num_qubits():
-                qid = 0
-                for gate in gates:
-                    if gate[0] is not None:
-                        self.apply_gate(gate[0], qubit=qid, optimize=optimize)
-                    qid += gate[1]
-            else:
-                print("You have to specify a gate for each QuBit",
-                      "(or None if you don't want to operate with it)")
-        elif len(args) == 0:
-            print("You must specify at least one gate")
-        else:
-            print("You can't apply more than one gate when using",
-                  '"qubit", "control" or "anticontrol"')
-
-    def blochCoords(self):
-        """Use get_bloch_coords method instead. DEPRECATED."""
-        print("Method QRegistry.blochCoords is deprecated.",
-              "Please use get_bloch_coords if you seek the same functionality")
-        return self.get_bloch_coords()
+                    new_reg = curr_reg
+                new_ids += curr_ids
+            inverse_map = {new_ids[qubit_id]: qubit_id
+                           for qubit_id in range(len(new_ids))}
+            mapped_targets = [inverse_map[qubit_id]
+                              for qubit_id in targets]
+            mapped_controls = {inverse_map[qubit_id]
+                               for qubit_id in controls}
+            mapped_anticontrols = {inverse_map[qubit_id]
+                                   for qubit_id in anticontrols}
+            aux_reg = new_reg.apply_gate(gate, targets=mapped_targets,
+                                         controls=mapped_controls,
+                                         anticontrols=mapped_anticontrols,
+                                         num_threads=num_threads)
+            if merged:
+                new_reg.free()
+                new_reg = None
+            new_sys.regs.append([aux_reg, new_ids])
+            for id in new_ids:
+                new_sys.qubitMap[id] = len(new_sys.regs) - 1
+        except Exception as ex:
+            if new_sys is not None:
+                new_sys.free()
+            if new_reg is not None and merged:
+                new_reg.free()
+            if aux_reg is not None:
+                aux_reg.free()
+            new_sys = None
+            exception = ex
+        if exception is not None:
+            raise exception
+        return new_sys
 
     def get_bloch_coords(self):
         """Get the polar coordinates of all ONE qubit registries."""
@@ -297,121 +397,40 @@ class QSystem:
                 if (type(self.regs[self.qubitMap[id]][0]) == QRegistry
                     and len(self.regs[self.qubitMap[id]][1]) == 1)
                 else None
-                for id in range(self.nqubits)]
-
-    def _superposition(self, regid1, regid2):
-        """Join two registries into one by calculating tensor product."""
-        if regid1 != regid2:
-            a = self.regs[regid1]
-            b = self.regs[regid2]
-            newregdata = join_regs(a, b)
-            self.regs[regid1] = newregdata
-            self.regs[regid2] = None
-            for id in b[1]:
-                self.qubitMap[id] = regid1
-            del a[0]
-            del b[0]
-
-    def getState(self):
-        """Use get_state method instead. DEPRECATED."""
-        print("Method QSystem.getState is deprecated.",
-              "Please use get_state if you seek the same functionality")
-        return self.get_state()
-
-    def get_state(self):
-        """Return the state vector of the system."""
-        regs = list(filter(lambda reg: reg is not None
-                           and type(reg[0]) == QRegistry,
-                           self.regs))
-        if len(regs) == 1:
-            return regs[0][0].get_state()
-        else:
-            reg = join_regs(regs[0], regs[1])
-            for i in range(2, len(regs)):
-                if regs[i] is not None:
-                    aux = reg
-                    reg = join_regs(aux, regs[i])
-                    del aux[0]
-            state = reg[0].get_state()
-            del reg[0]
-            return state
+                for id in range(self.num_qubits)]
 
 
-def joinSystems(a, b):
-    """Use join_systems method instead. DEPRECATED."""
-    print("Method QSystem.joinSystems is deprecated.",
-          "Please use join_systems if you seek the same functionality")
-    return join_systems(a, b)
-
-
-def join_systems(a, b):
+def join_systems(most, least):
     """Return a system that contains both a and b systems."""
-    res = QSystem(a.nqubits + b.nqubits)
-
-    for i in range(len(res.regs)):
-        if res.regs[i] is not None:
-            del res.regs[i][0]
-    res.regs.clear()
-    res.qubitMap.clear()
-    res.regs = [[reg[0], reg[1][:]] if reg is not None
-                else None for reg in a.regs]
-    offset = a.nqubits
-    res.regs += [[reg[0], [id + offset for id in reg[1]]] if reg is not None
-                 else None for reg in b.regs]
-    res.qubitMap = a.qubitMap.copy()
-    res.qubitMap.update({k + offset: b.qubitMap[k] + offset
-                         for k in b.qubitMap})
-
+    res = QSystem(None, doki=most.doki)
+    res.regs = []
+    res.qubitMap = {}
+    res.usable = set()
+    exception = None
+    try:
+        count = 0
+        for reg, ids in least.regs:
+            new_reg = reg
+            if reg == QRegistry:
+                new_reg = reg.clone()
+                res.usable.add(count)
+            count += 1
+            res.regs.append([new_reg, ids[:]])
+        offset = least.get_num_qubits()
+        for reg, ids in most.regs:
+            new_reg = reg
+            if reg == QRegistry:
+                new_reg = reg.clone()
+                res.usable.add(count)
+            count += 1
+            res.regs.append([new_reg, [id + offset for id in ids]])
+        for i in range(len(res.regs)):
+            _, ids = res.regs[i]
+            for qubit_id in ids:
+                res.qubitMap[qubit_id] = i
+    except Exception as ex:
+        exception = ex
+    if exception is not None:
+        res.free()
+        raise exception
     return res
-
-
-def join_regs(a, b):
-    """Join two registries and sort them by qubit id (descending order).
-
-    Positional arguments:
-        a: pair of QRegistry and list of qubit ids in that registry
-        b: pair of QRegistry and list of qubit ids in that registry
-    Return:
-        pair of QRegistry and list of qubit ids in that registry
-            result of joining a and b
-    """
-    newregdata = []
-    # We assume a and b are already sorted
-    if b[1][0] > a[1][-1]:
-        # If the last qubit of a is less than the first of b
-        # we calculate b tensor product a
-        newregdata = [superposition(b[0], a[0]), a[1] + b[1]]
-    elif a[1][0] > b[1][-1]:
-        # If the last qubit of b is less than the first of a
-        # we calculate a tensor product b
-        newregdata = [superposition(a[0], b[0]), b[1] + a[1]]
-    else:  # En caso contrario
-        # Otherwise we calculate b tensor product a
-        newregdata = [superposition(b[0], a[0]), a[1] + b[1]]
-        # and we sort them
-        newregdata = sort_reg_data(newregdata)
-    return newregdata
-
-
-def sort_reg_data(reg_data):
-    """Sort a registry by qubit id (descending order).
-
-    Positional arguments:
-        reg_data: pair of QRegistry and list of qubit ids in that registry
-    Return:
-        reg_data after sorting
-    """
-    reg_len = len(reg_data[1])  # Number of qubits in the registry
-    for i in range(reg_len-1):
-        # With n elements, we don't need the last iteration.
-        # The last element will already be in the last position
-        unsorted = reg_data[1][i:]  # Elements still not sorted
-        min_id = min(unsorted)  # Smaller qubit id still not sorted
-        min_index = unsorted.index(min_id) + i  # Index of id in the registry
-        if unsorted[0] != min_id:  # If it is not yet in the first position
-            # We SWAP it with the qubit in that position
-            reg_data[0].apply_gate("SWAP(" + str(i) +
-                                   "," + str(min_index) + ")")
-            # and we update the list of qubit ids accordingly
-            reg_data[1][i], reg_data[1][min_index] = min_id, reg_data[1][i]
-    return reg_data

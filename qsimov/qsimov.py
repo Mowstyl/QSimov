@@ -20,20 +20,14 @@ Functions:
 Data structures and functions marked as UNSTABLE might not work
 Avoid using them as they might be removed in future versions
 """
-
 import numpy as np
-import ctypes as ct
-import ctypes.util
-import time as t
-import platform as plat
-
 from qsimov.structures.funmatrix import Funmatrix
 from qsimov.structures.qregistry import QRegistry, superposition
 from qsimov.structures.qsystem import QSystem, join_systems
-from qsimov.structures.qgate import QGate, getGate, get_gate
+from qsimov.structures.qgate import QGate
 from qsimov.structures.qcircuit import QCircuit
-from qsimov.structures.measure import Measure
-from qsimov.structures.condition import Condition
+from qsimov.structures.simple_gate import SimpleGate
+from qsimov.connectors.drewom import Drewom
 
 # np.zeros((h,w), dtype=complex) Inicializa una matriz de numeros complejos
 # con alto h y ancho w
@@ -41,46 +35,6 @@ from qsimov.structures.condition import Condition
 # La multiplicacion por un escalar se hace con *. n * A
 # Para multiplicar las matrices A y B se usa np.dot(A,B)
 # El producto Kronecker de A y B esta definido con np.kron(A,B)
-
-# Lib C functions
-if plat.system() == "Windows":
-    __libc__ = ct.cdll.msvcrt
-else:
-    __libc__ = ct.cdll.LoadLibrary(ctypes.util.find_library("c"))
-__cSrand__ = __libc__.srand
-__cSrand__.argtypes = [ct.c_uint]
-
-_seed = None
-
-
-def get_seed():
-    """Return the current seed."""
-    global _seed
-    return _seed
-
-
-def setRandomSeed(seed, debug=False):
-    """Use set_seed method instead. DEPRECATED."""
-    print("Method QSimov.setRandomSeed is deprecated.",
-          "Please use set_seed if you seek the same functionality")
-    return set_seed(seed, debug=debug)
-
-
-def set_seed(seed, debug=False):
-    """Set the seed used in measurements.
-
-    seed: The seed to use
-    debug: Whether to print the seed or not (default: False)
-    """
-    if seed is None:
-        seed = ct.c_uint(int(t.time()))
-    else:
-        seed = ct.c_uint(int(seed))
-    if debug:
-        print("Seed: " + str(seed.value))
-    __cSrand__(seed)
-    global _seed
-    _seed = seed.value
 
 
 def getTruthTable(gate, ancilla=None, garbage=0, iterations=1):
@@ -132,6 +86,3 @@ def getTruthTable(gate, ancilla=None, garbage=0, iterations=1):
 def QEq(q1, q2):
     """Return if q1 and q2 are equal and represented the same."""
     return np.array_equal(q1, q2) and str(q1) == str(q2)
-
-
-set_seed(None, debug=False)
