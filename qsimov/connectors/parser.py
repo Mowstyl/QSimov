@@ -451,7 +451,7 @@ def get_gate_data(gateraw):
                 else:
                     raise ValueError("Couldn't find data for gate " + gatename)
             else:
-                raise ValueError(gatename + " is not a gate." +
+                raise ValueError(gateraw + " is not a gate." +
                                  " Have you already added it?")
         else:
             raise ValueError(gateraw + " can't be used with QSimovAPI")
