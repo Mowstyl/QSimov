@@ -39,6 +39,14 @@ class QStructure(QBase):
     def free(self):
         pass
 
+    @abstractmethod
+    def get_bloch_coords(self, key=None):
+        pass
+
+    @abstractmethod
+    def bloch(self, key=None):
+        pass
+
 
 def _get_op_data(num_qubits, gate, targets, controls, anticontrols):
     """Do basic error checking for arguments and return them."""
@@ -97,3 +105,32 @@ def _get_qubit_set(max_qubits, raw_ids, sorted, name):
     if sorted:
         return id_list
     return id_set
+
+
+def _get_key_with_defaults(key, size, def_start, def_stop, def_step):
+    if key is None:
+        key = slice(def_start, def_stop, def_step)
+    if type(key) != slice and np.allclose(key % 1, 0):
+        key = int(key)
+        if (key < 0):
+            key = size + key
+        if (key >= size or key < 0):
+            raise IndexError(f"index {key} is out of bounds " +
+                             f"for axis 0 with shape {size}")
+        key = slice(key, key + 1, 1)
+    if type(key) != slice:
+        raise ValueError("key must be an index or a slice")
+
+    start = key.start if key.start is not None else def_start
+    if (start < 0):
+        start = size + start
+        if (start < 0):
+            start = 0
+    stop = key.stop if key.stop is not None else def_stop
+    if (stop < 0):
+        stop = size + stop
+        if (stop < 0):
+            stop = 0
+    step = key.step if key.step is not None else def_step
+
+    return (start, stop, step)

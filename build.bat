@@ -1,5 +1,5 @@
 @ECHO OFF
-SET QSimovVersion=4.0.0
+SET QSimovVersion=4.1.0
 :: Removing old wheels
 del "dist\qsimov_Mowstyl-*.whl"
 :: Removing old sources

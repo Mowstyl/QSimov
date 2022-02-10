@@ -11,7 +11,7 @@ import numpy as np
 from qsimov.structures.funmatrix import Funmatrix
 from qsimov.structures.simple_gate import SimpleGate
 from qsimov.structures.qstructure import QStructure, _get_op_data, \
-                                         _get_qubit_set
+                                         _get_qubit_set, _get_key_with_defaults
 from qsimov.connectors.qsimovapi import apply_design
 
 
@@ -210,30 +210,8 @@ class QRegistry(QStructure):
 
     def get_state(self, key=None, canonical=False):
         """Return the selected items of the state."""
-        if key is None:
-            key = slice(0, self.size, 1)
-        if type(key) != slice and np.allclose(key % 1, 0):
-            key = int(key)
-            if (key < 0):
-                key = self.size + key
-            if (key >= self.size or key < 0):
-                raise IndexError(f"index {key} is out of bounds " +
-                                 f"for axis 0 with shape {self.size}")
-            key = slice(key, key + 1, 1)
-        if type(key) != slice:
-            raise ValueError("key must be an index or a slice")
-
-        start = key.start if key.start is not None else 0
-        if (start < 0):
-            start = self.size + start
-            if (start < 0):
-                start = 0
-        stop = key.stop if key.stop is not None else self.size
-        if (stop < 0):
-            stop = self.size + stop
-            if (stop < 0):
-                stop = 0
-        step = key.step if key.step is not None else 1
+        start, stop, step = _get_key_with_defaults(key, self.size,
+                                                   0, self.size, 1)
         res = np.array([self.doki.registry_get(self.reg, i, canonical,
                                                self.verbose)
                         for i in range(start, stop, step)])
@@ -264,18 +242,27 @@ class QRegistry(QStructure):
                     entropy += p * np.log(p)/np.log(base)
         return -entropy
 
-    def get_bloch_coords(self):
+    def get_bloch_coords(self, key=None):
         """Get the polar coordinates of ONE qubit in the bloch sphere."""
         if self.get_num_qubits() != 1:
             raise NotImplementedError("Bloch sphere is only supported for " +
                                       "1 qubit registries")
+        start, stop, step = _get_key_with_defaults(key, self.num_qubits,
+                                                   0, self.num_qubits, 1)
+        for id in range(start, stop, step):
+            if id != 0:
+                raise ValueError(f"Qubit {id} is not in this registry")
+            if id in self.classic_vals:
+                raise ValueError("That is a classical bit, not a qubit")
         state = self.get_state(canonical=True)
-        if state[0] == 0:
-            phase = np.angle(state[1])
-            state = np.exp(phase * -1j) * state
-        theta = np.arccos(state[0])
-        aux = state[1] / np.sin(theta)
-        phi = np.arctan2(np.imag(aux), np.real(aux))
+        cos_t2 = state[0].real
+        sin_t2 = abs(state[1])
+        phi = np.angle(state[1])
+        theta = np.arctan2(sin_t2, cos_t2) * 2
+        if theta < 0:
+            theta += 2 * np.pi
+        if phi < 0:
+            phi += 2 * np.pi
         return (theta, phi)
 
     def bra(self):
@@ -294,6 +281,12 @@ class QRegistry(QStructure):
         """Get the odds of getting 1 when measuring specified qubit."""
         id = _get_qubit_set(self.get_num_qubits(), [id], True, "argument")[0]
         return self.doki.registry_prob(self.reg, id, num_threads, self.verbose)
+
+    def bloch(self, key=None):
+        """Return matplotlib bloch sphere."""
+        theta, phi = self.get_bloch_coords(key=key)
+        from qsimov.utils.bloch import draw_bloch_sphere
+        return draw_bloch_sphere(theta, phi)
 
 
 def superposition(a, b, num_threads=-1, verbose=False):

@@ -8,7 +8,7 @@ Functions:
 """
 import numpy as np
 from qsimov.structures.qstructure import QStructure, _get_qubit_set, \
-                                        _get_op_data
+                                        _get_op_data, _get_key_with_defaults
 from qsimov.structures.qregistry import QRegistry, superposition
 
 
@@ -391,13 +391,32 @@ class QSystem(QStructure):
             raise exception
         return new_sys
 
-    def get_bloch_coords(self):
+    def get_bloch_coords(self, key=None):
         """Get the polar coordinates of all ONE qubit registries."""
-        return [self.regs[self.qubitMap[id]][0].get_bloch_coords()
-                if (type(self.regs[self.qubitMap[id]][0]) == QRegistry
-                    and len(self.regs[self.qubitMap[id]][1]) == 1)
+        start, stop, step = _get_key_with_defaults(key, self.num_qubits,
+                                                   0, self.num_qubits, 1)
+        coords = [self.regs[self.qubitMap[id]][0].get_bloch_coords(0)
+                  if (type(self.regs[self.qubitMap[id]][0]) == QRegistry
+                      and len(self.regs[self.qubitMap[id]][1]) == 1)
+                  else None
+                  for id in range(start, stop, step)]
+
+        if key is not None and type(key) != slice:
+            coords = coords[0]
+        return coords
+
+    def bloch(self, key=None):
+        """Return matplotlib bloch sphere."""
+        all_coords = self.get_bloch_coords(key=key)
+        if type(all_coords) != list:
+            all_coords = [all_coords]
+        from qsimov.utils.bloch import draw_bloch_sphere
+        figs = [draw_bloch_sphere(coords[0], coords[1]) if coords is not None
                 else None
-                for id in range(self.num_qubits)]
+                for coords in all_coords]
+        if key is not None and type(key) != slice:
+            figs = figs[0]
+        return figs
 
 
 def join_systems(most, least):
