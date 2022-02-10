@@ -28,7 +28,7 @@ def main():
         ],
         keywords="quantum",
         install_requires=[
-            "numpy>=1.17.4",
+            "numpy>=1.21",
             "doki-Mowstyl>=1.3.0"
         ]
     )
