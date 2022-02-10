@@ -32,5 +32,4 @@ jobs:
         pip install dist/qsimov_Mowstyl-*-py3-none-any.whl
     - name: Test
       run: |
-        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd)/qsimov/lib
-        python tests/qtest.py 3 8
+        python tests/qtest.py 1 8
