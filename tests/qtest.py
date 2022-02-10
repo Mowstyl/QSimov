@@ -8,7 +8,7 @@ import random as rnd
 import sys
 # import webbrowser as wb
 
-from operator import add
+# from operator import add
 from qsimov.samples.djcircuit import DJAlgCircuit
 
 
@@ -701,6 +701,7 @@ def teleportation_tests(verbose=False, useSystem=False, optimize=False):
     del reg2
 
 
+'''
 def all_gate_tests(seed=None, verbose=False):
     """Execute all gate tests."""
     if not (seed is None):
@@ -741,6 +742,7 @@ def all_gate_tests(seed=None, verbose=False):
     result[14] = gate_tests("U1", verbose=verbose, hasInv=True, nArgs=1)
 
     return result
+'''
 
 
 def data_structure_tests(minqubits, maxqubits, seed=None, verbose=False,
