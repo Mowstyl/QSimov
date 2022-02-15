@@ -430,32 +430,35 @@ def compare_state(r, state, rdm0, rdm1, srt0=1, srt1=1, verbose=False):
     dm = np.dot(state.reshape((state.size, 1)),  # Ket
                 state.conj().reshape((1, state.size)))  # Bra
     qdm = r.density_matrix()
-    if not np.allclose(qdm[:], dm):
+    np_qdm = qdm[:]
+    if not np.allclose(np_qdm, dm):
         if verbose:
             print("Density matrix error")
-            print(qdm[:])
+            print(np_qdm)
             print(dm)
-            print(qdm[:] == dm)
+            print(np_qdm == dm)
             print("    Michael Bay visited your simulator...")
         return False
 
     qrdm0 = qdm.partial_trace(0)
-    if not np.allclose(qrdm0[:], rdm0):
+    np_qrdm0 = qrdm0[:]
+    if not np.allclose(np_qrdm0, rdm0):
         if verbose:
             print("RDM0")
-            print(qrdm0[:])
+            print(np_qrdm0)
             print(rdm0)
-            print(qrdm0[:] == rdm0)
+            print(np_qrdm0 == rdm0)
             print("    Michael Bay visited your simulator...")
         return False
 
     qrdm1 = qdm.partial_trace(1)
-    if not np.allclose(qrdm1[:], rdm1):
+    np_qrdm1 = qrdm1[:]
+    if not np.allclose(np_qrdm1, rdm1):
         if verbose:
             print("RDM1")
-            print(qrdm1[:])
+            print(np_qrdm1)
             print(rdm1)
-            print(qrdm1[:] == rdm1)
+            print(np_qrdm1 == rdm1)
             print("    Michael Bay visited your simulator...")
         return False
 
