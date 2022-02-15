@@ -420,16 +420,19 @@ def compare_state(r, state, rdm0, rdm1, srt0=1, srt1=1, verbose=False):
     """
     if not np.allclose(r.get_state(), state):
         if verbose:
+            print("State error")
             print(r.get_state())
             print(state)
             print(r.get_state() == state)
             print("    Michael Bay visited your simulator...")
         return False
 
-    dm = state * state.reshape((4, 1))
+    dm = np.dot(state.reshape((state.size, 1)),  # Ket
+                state.conj().reshape((1, state.size)))  # Bra
     qdm = r.density_matrix()
     if not np.allclose(qdm[:], dm):
         if verbose:
+            print("Density matrix error")
             print(r.density_matrix()[:])
             print(dm)
             print(r.density_matrix()[:] == dm)
