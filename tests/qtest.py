@@ -433,9 +433,9 @@ def compare_state(r, state, rdm0, rdm1, srt0=1, srt1=1, verbose=False):
     if not np.allclose(qdm[:], dm):
         if verbose:
             print("Density matrix error")
-            print(r.density_matrix()[:])
+            print(qdm[:])
             print(dm)
-            print(r.density_matrix()[:] == dm)
+            print(qdm[:] == dm)
             print("    Michael Bay visited your simulator...")
         return False
 
