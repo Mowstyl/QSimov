@@ -814,7 +814,7 @@ def main():
             print("minimum number of qubits cannot be greater than maximum")
         verbose = False
         seed = None
-        if len(argv) >= 3:
+        if len(argv) >= 3 and argv[2] != "None":
             seed = int(argv[2])
         else:
             seed = rnd.randrange(2**32 - 1)
