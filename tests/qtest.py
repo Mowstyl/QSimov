@@ -817,13 +817,18 @@ def main():
             print("minimum number of qubits cannot be greater than maximum")
         verbose = False
         seed = None
-        if len(argv) >= 3 and argv[2] != "None":
+        verbose_location = 3
+        if len(argv) == 4 or (len(argv) == 3 and argv[2].isnumeric()):
             seed = int(argv[2])
-        else:
-            seed = rnd.randrange(2**32 - 1)
-        if len(argv) == 4:
-            verbose = bool(argv[3])
+        elif len(argv) == 3:
+            verbose_location = 2
+        if len(argv) == verbose_location + 1:
+            verbose = argv[verbose_location].lower() == "true"
+            if not verbose and argv[verbose_location].lower() != "false":
+                print('verbose must either be "true" or "false" (without ")')
 
+        if seed is None:
+            seed = rnd.randrange(2**32 - 1)
         print("Seed:", seed)
         # print("\tTesting Gates...")
         # all_gate_tests(seed=seed, verbose=verbose)
