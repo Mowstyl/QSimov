@@ -32,4 +32,4 @@ jobs:
         pip install dist/qsimov_Mowstyl-*-py3-none-any.whl
     - name: Test
       run: |
-        python tests/qtest.py 1 8 None False
+        python tests/qtest.py 1 8 False
