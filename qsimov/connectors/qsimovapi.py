@@ -81,14 +81,14 @@ def apply_design(qdesign, qstruct, targets=None,
                                             anticontrols=curr_anticontrols,
                                             num_threads=num_threads)
             if aux is not qstruct:
-                aux.free()
+                del aux
                 aux = None
     except Exception as ex:
         exception = ex
         if aux is not None and aux is not qstruct:
-            aux.free()
+            del aux
         if new_struct is not None:
-            new_struct.free()
+            del new_struct
     if exception is not None:
         raise exception
     return (new_struct, measures)
@@ -122,7 +122,7 @@ def execute(qcircuit, random_generator=np.random.rand, num_threads=-1,
     for i in range(len(qcircuit.ancilla)):
         if qcircuit.ancilla[i] == 1:
             aux = old_sys.apply_gate("X", targets=num_qubits-num_ancilla+i)
-            old_sys.free()
+            del old_sys
             old_sys = aux
     results = []
     for i in range(iterations):
@@ -134,9 +134,6 @@ def execute(qcircuit, random_generator=np.random.rand, num_threads=-1,
             results.append([new_sys, mess])
         else:
             results.append(mess)
-            if new_sys is not None:
-                new_sys.free()
             del new_sys
-    old_sys.free()
     del old_sys
     return results

@@ -36,12 +36,13 @@ class QSystem(QStructure):
             self.num_qubits = num_qubits
         self.verbose = verbose
 
-    def free(self):
+    def free(self, deep=False):
         """Release memory held by the QSystem."""
         if self.regs is not None:
-            for reg, _ in self.regs:
-                if isinstance(reg, QRegistry):
-                    reg.free()
+            if deep:
+                for reg, _ in self.regs:
+                    if isinstance(reg, QRegistry):
+                        reg.free()
             del self.regs
             del self.qubitMap
             del self.usable
@@ -49,7 +50,7 @@ class QSystem(QStructure):
             self.qubitMap = None
             self.usable = None
 
-    def clone(self):
+    def clone(self, deep=False):
         """Clone this QSystem."""
         new_sys = QSystem(None, doki=self.doki)
         new_sys.num_qubits = self.num_qubits
@@ -57,10 +58,16 @@ class QSystem(QStructure):
         new_sys.qubitMap = {}
         for id in self.qubitMap:
             new_sys.qubitMap[id] = self.qubitMap[id]
-        new_sys.regs = [[self.regs[id][0].clone(), self.regs[id][1][:]]
-                        if isinstance(self.regs[id][0], QRegistry)
-                        else [self.regs[id][0], self.regs[id][1][:]]
-                        for id in range(new_sys.num_qubits)]
+        if deep:
+            new_sys.regs = [[self.regs[id][0].clone(), self.regs[id][1][:]]
+                            if isinstance(self.regs[id][0], QRegistry)
+                            else [self.regs[id][0], self.regs[id][1][:]]
+                            for id in range(new_sys.num_qubits)]
+        else:
+            new_sys.regs = [[self.regs[id][0], self.regs[id][1][:]]
+                            if isinstance(self.regs[id][0], QRegistry)
+                            else [self.regs[id][0], self.regs[id][1][:]]
+                            for id in range(new_sys.num_qubits)]
         return new_sys
 
     def __del__(self):
@@ -111,7 +118,8 @@ class QSystem(QStructure):
         """Return the number of qubits in this system."""
         return self.num_qubits
 
-    def measure(self, ids, random_generator=np.random.rand, num_threads=-1):
+    def measure(self, ids, random_generator=np.random.rand,
+                num_threads=-1, deep=False):
         """Measure specified qubits of this system and collapse.
 
         Positional arguments:
@@ -145,7 +153,7 @@ class QSystem(QStructure):
         try:
             for reg_id in untouched_regs:
                 reggie, reg_ids = self.regs[reg_id]
-                if isinstance(reggie, QRegistry):
+                if deep and isinstance(reggie, QRegistry):
                     reggie = reggie.clone()
                 new_sys.regs.append((reggie,
                                      reg_ids[:]))
@@ -204,7 +212,7 @@ class QSystem(QStructure):
         except Exception as ex:
             exception = ex
         if exception is not None:
-            new_sys.free()
+            del new_sys
             raise exception
         return (new_sys, result)
 
@@ -234,7 +242,7 @@ class QSystem(QStructure):
                     new_ids = ids + new_ids
                     if aux_reg is not None:
                         if not first:
-                            new_reg.free()
+                            del new_reg
                         first = False
                         new_reg = aux_reg
                         aux_reg = None
@@ -253,16 +261,16 @@ class QSystem(QStructure):
                                                  targets=[i, swap_targets[0]],
                                                  num_threads=num_threads)
                     if not first:
-                        new_reg.free()
+                        del new_reg
                     new_reg = aux_reg
                     # print("[DEBUG] Sorted:", new_reg.get_state())
         except Exception as ex:
             exception = ex
         if exception is not None:
             if new_reg is not None:
-                new_reg.free()
+                del new_reg
             if aux_reg is not None:
-                aux_reg.free()
+                del aux_reg
             raise exception
         return new_reg
 
@@ -276,7 +284,7 @@ class QSystem(QStructure):
         return self.regs[self.qubitMap[id]][0]
 
     def apply_gate(self, gate, targets=None, controls=None, anticontrols=None,
-                   num_threads=-1):
+                   num_threads=-1, deep=False):
         """Apply specified gate to specified qubit with specified controls.
 
         Positional arguments:
@@ -323,7 +331,10 @@ class QSystem(QStructure):
                           for id in classic_anticontrols)
             if ((len(classic_controls) > 0 and not ccheck)
                     or (len(classic_anticontrols) > 0 and not accheck)):
-                return self.clone()
+                if deep:
+                    return self.clone(deep=True)
+                else:
+                    return self
             controls -= classic_controls
             anticontrols -= classic_anticontrols
             # All affected qubits
@@ -333,7 +344,7 @@ class QSystem(QStructure):
             for reg_id in range(len(self.regs)):
                 if reg_id not in touched_regs:
                     reggie, reg_ideses = self.regs[reg_id]
-                    if isinstance(reggie, QRegistry):
+                    if deep and isinstance(reggie, QRegistry):
                         reggie = reggie.clone()
                     new_sys.regs.append([reggie, reg_ideses[:]])
             # Create new qubit map
@@ -352,7 +363,6 @@ class QSystem(QStructure):
                                             num_threads=num_threads,
                                             verbose=self.verbose)
                     if merged:
-                        new_reg.free()
                         del new_reg
                     else:
                         merged = True
@@ -373,18 +383,18 @@ class QSystem(QStructure):
                                          anticontrols=mapped_anticontrols,
                                          num_threads=num_threads)
             if merged:
-                new_reg.free()
+                del new_reg
                 new_reg = None
             new_sys.regs.append([aux_reg, new_ids])
             for id in new_ids:
                 new_sys.qubitMap[id] = len(new_sys.regs) - 1
         except Exception as ex:
             if new_sys is not None:
-                new_sys.free()
+                del new_sys
             if new_reg is not None and merged:
-                new_reg.free()
+                del new_reg
             if aux_reg is not None:
-                aux_reg.free()
+                del aux_reg
             new_sys = None
             exception = ex
         if exception is not None:
@@ -419,7 +429,7 @@ class QSystem(QStructure):
         return figs
 
 
-def join_systems(most, least):
+def join_systems(most, least, deep=False):
     """Return a system that contains both a and b systems."""
     res = QSystem(None, doki=most.doki)
     res.regs = []
@@ -431,7 +441,8 @@ def join_systems(most, least):
         for reg, ids in least.regs:
             new_reg = reg
             if reg == QRegistry:
-                new_reg = reg.clone()
+                if deep:
+                    new_reg = reg.clone()
                 res.usable.add(count)
             count += 1
             res.regs.append([new_reg, ids[:]])
@@ -439,7 +450,8 @@ def join_systems(most, least):
         for reg, ids in most.regs:
             new_reg = reg
             if reg == QRegistry:
-                new_reg = reg.clone()
+                if deep:
+                    new_reg = reg.clone()
                 res.usable.add(count)
             count += 1
             res.regs.append([new_reg, [id + offset for id in ids]])
@@ -450,6 +462,6 @@ def join_systems(most, least):
     except Exception as ex:
         exception = ex
     if exception is not None:
-        res.free()
+        del res
         raise exception
     return res

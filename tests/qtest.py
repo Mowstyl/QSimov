@@ -71,7 +71,7 @@ def entangle_system(s, id, id2):
     """Entangle specified qubits of a system."""
     aux = s.apply_gate("H", targets=id)
     res = aux.apply_gate("X", targets=id2, controls=id)
-    aux.free()
+    del aux
     return res
 
 
@@ -111,13 +111,13 @@ def inversion_tests(verbose=False):
     es = qj.QSystem(2)
 
     aux = r.apply_gate(e)
-    r.free()
+    del r
     r = aux.apply_gate(ed)
-    aux.free()
+    del aux
     aux = s.apply_gate(e)
-    s.free()
+    del s
     s = aux.apply_gate(ed)
-    aux.free()
+    del aux
     if any(r.get_state() != er.get_state()) \
             or any(s.get_state() != es.get_state()):
         if verbose:
@@ -128,10 +128,10 @@ def inversion_tests(verbose=False):
             print(r.get_state() == er.get_state())
             print(s.get_state() == es.get_state())
             print("    Michael Bay visited your simulator...")
-        r.free()
-        er.free()
-        s.free()
-        es.free()
+        del r
+        del er
+        del s
+        del es
         raise AssertionError("Error comparing gate+inversion result")
     if verbose:
         print("    Noice")
@@ -142,10 +142,10 @@ def entangle_test(QItem, id1, id2, verbose):
     r = QItem(3)
     rg = QItem(3)
     aux = entangle_system(r, id1, id2)
-    r.free()
+    del r
     r = aux
     aux = rg.apply_gate(e, targets=[id1, id2])
-    rg.free()
+    del rg
     rg = aux
 
     if any(r.get_state() != rg.get_state()):
@@ -154,11 +154,11 @@ def entangle_test(QItem, id1, id2, verbose):
             print(rg.get_state())
             print(r.get_state() == rg.get_state())
             print("    Michael Bay visited your simulator...")
-        r.free()
-        rg.free()
+        del r
+        del rg
         raise AssertionError(f"Error entangling {id1} and {id2}")
-    r.free()
-    rg.free()
+    del r
+    del rg
 
 
 def entangle_tests(verbose=False, useSystem=False):
@@ -566,13 +566,13 @@ def measure_system_tests(nq, entangle=False, remove=False, verbose=False):
                                          for i in range(nq) if i != id))
                 print("Check5:", (nq > 1 and any(aux2.usable)))
                 print("    Michael Bay visited your simulator...")
-            aux1.free()
+            del aux1
             if nq > 1:
-                aux2.free()
+                del aux2
             raise AssertionError("Error measuring states")
-        aux1.free()
+        del aux1
         if nq > 1:
-            aux2.free()
+            del aux2
     if verbose:
         print("    Noice")
 
