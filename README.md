@@ -1,6 +1,6 @@
 # QSimov
 
-This is the quantum framework QSimov, written in both Python and C.
+This is the quantum framework QSimov, written in Python.
 
 ## Getting Started
 
@@ -8,37 +8,35 @@ By following this instructions you will have a working binary.
 
 ### Prerequisites
 
-You only need the source code, either by cloning the project or by downloading it, and Python >= 3.7. The QSimov quantum computing simulator works better when used under a x64 architecture. Expect lower maximum number of QuBits when on a x86 system.
+CPython>=3.7 is needed to run QSimov. Expect lower maximum number of QuBits when on a x86 system (or when using x86 CPython)
+You also need the following python libraries in order to use QSimov:
+ - numpy>=1.21
+ - matplotlib>=3.5.1
+ - doki-Mowstyl>=1.3.2
+
+### Building from sources
+
+You need the source code, either by cloning the project or by downloading it. You also need the "wheels" and the "build" python modules.
+Execute the following command while on the root directory of the project to generate the .whl file into the dist folder:
+ - python -m build
 
 ### Installing
 
-If you've tried before to build the project, you may want to clean it before trying to build it again.
-If it's the first time you build it, it's safe to skip this step.
-The cleaning can be performed by using
- - **Windows**
-You don't need to do anything special, just extract the source code in a folder.
- - **GNU-Linux**
-The lib folder has to be in the LDD search path. You can do that either by running
-```
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd)/lib
-```
-before executing the simulator or, if that fails or if you want it to be always available, executing the *addLibraryPath.sh* script as admin.
+You may install QSimov with pip by downloading the latest version from PyPI with
+ - pip install QSimov-Mowstyl
+You can also install the generated .whl package, in case you are building it from the source, with the following command.
+ - pip install dist/qsimov_Mowstyl-%QSimovVersion%-py3-none-any.whl
 
 ## Testing
 
 The full test suite can be run with:
 ```
-python qtest.py <min> <max> [seed]
+python tests/qtest.py <min> <max> [seed] [verbose]
 ```
 - min: minimum number of qubits to use in the tests involving data structures with a variable number of qubits. min has to be at least 3.
 - max: minimum number of qubits to use in the tests involving data structures with a variable number of qubits. Don't use more than 8 since the simulator tests against operations made in numpy, which is not made for quantum computing simulation and therefore can be very slow with a number of qubits greater than 7.
 - seed (optional): the seed to use in random operations. If none specified, the used seed will be printed in console so you can always repeat a failed test.
-
-## libqsimov and libfunmant built With
-
-* [MSYS2](https://www.msys2.org/) - Software distro and building platform for Windows
-* MinGW-w64 - Build tools for Windows systems. Obtained with MSYS2 to get the latest gcc version.
-* [GCC](https://gcc.gnu.org/) - C compiler for GNU-Linux systems.
+- verbose (optional): whether to print extra information.
 
 ## Contributing
 
