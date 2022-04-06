@@ -439,12 +439,13 @@ def get_gate_data(gateraw):
                     if self_inv:  # If gate . gate = identity
                         invert = False
                     if has_inv:  # If function has invert as last argument
-                        args = args + [invert]
+                        if args is not None:
+                            args = args + [invert]
+                        else:
+                            args = [invert]
                     if minargs <= nargs <= maxargs:  # Adoro Python
                         gate = (gatename, args, invert, self_inv)
                     else:
-                        # print("Received: " + gateraw)
-                        # print("Parsed: " + gate)
                         raise ValueError(gatename + " gate number of args" +
                                          " must be between " + str(minargs) +
                                          " and " + str(maxargs))

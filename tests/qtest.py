@@ -549,22 +549,24 @@ def measure_system_tests(nq, entangle=False, remove=False, verbose=False):
         if nq > 1:
             aux2, mes2 = aux1.measure({i for i in range(nq) if i != id})
         del reg
-        if (not mes[id]
-                or (nq > 1 and any(mes2[i] for i in range(nq) if i != id))
-                or aux1.usable[id]
-                or not all(aux1.usable[i] for i in range(nq) if i != id)
-                or (nq > 1 and any(aux2.usable))):
+        check_bad_measure = not mes[id]
+        check_bad_measures = (nq > 1 and any(mes2[i]
+                              for i in range(nq) if i != id))
+        check_not_classic = aux1.get_classic(id) is None
+        check_not_classics = not all(aux1.get_classic(i) is None
+                                     for i in range(nq) if i != id)
+        check_all_classic = nq > 1 and any(aux2.get_classic(i) is None
+                                           for i in range(nq))
+        if (check_bad_measure or check_bad_measures or check_not_classic
+                or check_not_classics or check_all_classic):
             if verbose:
                 print("M1:", mes)
                 print("M2:", mes2)
-                print("Check1:", not mes[id])
-                print("Check2:", (nq > 1 and any(mes2[i]
-                                                 for i in range(nq)
-                                                 if i != id)))
-                print("Check3:", aux1.usable[id])
-                print("Check4:", not all(aux1.usable[i]
-                                         for i in range(nq) if i != id))
-                print("Check5:", (nq > 1 and any(aux2.usable)))
+                print("Check1:", check_bad_measure)
+                print("Check2:", check_bad_measures)
+                print("Check3:", check_not_classic)
+                print("Check4:", check_not_classics)
+                print("Check5:", check_all_classic)
                 print("    Michael Bay visited your simulator...")
             del aux1
             if nq > 1:

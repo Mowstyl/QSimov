@@ -26,13 +26,11 @@ class QSystem(QStructure):
         if num_qubits is None:
             self.regs = None
             self.qubitMap = None
-            self.usable = None
             self.num_qubits = 0
         else:
             self.regs = [[QRegistry(1, doki=self.doki), [id]]
                          for id in range(num_qubits)]
             self.qubitMap = {id: id for id in range(num_qubits)}
-            self.usable = [True for id in range(num_qubits)]
             self.num_qubits = num_qubits
         self.verbose = verbose
 
@@ -45,16 +43,13 @@ class QSystem(QStructure):
                         reg.free()
             del self.regs
             del self.qubitMap
-            del self.usable
             self.regs = None
             self.qubitMap = None
-            self.usable = None
 
     def clone(self, deep=False):
         """Clone this QSystem."""
         new_sys = QSystem(None, doki=self.doki)
         new_sys.num_qubits = self.num_qubits
-        new_sys.usable = self.usable[:]
         new_sys.qubitMap = {}
         for id in self.qubitMap:
             new_sys.qubitMap[id] = self.qubitMap[id]
@@ -78,8 +73,6 @@ class QSystem(QStructure):
         """Get the odds of getting 1 when measuring specified qubit."""
         id = _get_qubit_set(self.get_num_qubits(), [id], True, "argument")[0]
         reg, ids = self.regs[self.qubitMap[id]]
-        if not self.usable[id]:
-            return reg
         new_id = None
         for i in range(len(ids)):
             if ids[i] == id:
@@ -136,8 +129,6 @@ class QSystem(QStructure):
             raise ValueError("ids cannot be None")
         split_ids = {reg_id: set() for reg_id in range(len(self.regs))}
         for qubit_id in ids:
-            if not self.usable[qubit_id]:
-                raise ValueError(f"Id {qubit_id} has already been measured")
             reg_id = self.qubitMap[qubit_id]
             split_ids[reg_id].add(qubit_id)
         # In split ids we have reg_id -> set of ids to measure in that reg
@@ -149,22 +140,18 @@ class QSystem(QStructure):
         # We create a new QSystem with the regs that have not been used
         new_sys = QSystem(None, doki=self.doki)
         new_sys.regs = []
+        new_sys.qubitMap = {}
         exception = None
         try:
             for reg_id in untouched_regs:
                 reggie, reg_ids = self.regs[reg_id]
-                if deep and isinstance(reggie, QRegistry):
+                if deep:
                     reggie = reggie.clone()
-                new_sys.regs.append((reggie,
-                                     reg_ids[:]))
-            new_sys.qubitMap = {}
+                    reg_ids = reg_ids[:]
+                new_sys.regs.append((reggie, reg_ids))
             for reg_id in range(len(untouched_regs)):
                 for qubit_id in new_sys.regs[reg_id][1]:
                     new_sys.qubitMap[qubit_id] = reg_id
-            # print("[DEBUG]", ids)
-            new_sys.usable = [i not in ids and self.usable[i]
-                              for i in range(self.num_qubits)]
-            # print("[DEBUG]", new_sys.usable)
             new_sys.num_qubits = self.num_qubits
 
             # We iterate through the registries that have a qubit in ids
@@ -177,38 +164,19 @@ class QSystem(QStructure):
                 # mapped to the id in the QSystem
                 new_ids = {i: reg_ids[i] for i in range(len(reg_ids))
                            if reg_ids[i] in partial_ids}
-                # Not measured ids of the QSystem belonging to this QRegistry
-                not_ids = [reg_ids[i] for i in range(len(reg_ids))
-                           if reg_ids[i] not in partial_ids]
                 # We measure registries
-                if isinstance(reg, QRegistry):
-                    aux = reg.measure(new_ids.keys(),
-                                      random_generator=random_generator,
-                                      num_threads=num_threads)
-                    new_reg, partial_result = aux
-                    new_reg.num_bits = 0
-                    new_reg.qubit_map = {i: i
-                                         for i in range(new_reg.num_qubits)}
-                    new_reg.classic_vals = {}
-                elif isinstance(reg, bool):
-                    new_reg = None
-                    partial_result = [reg]
-                else:
-                    raise RuntimeError(f"Unknown reg type: {type(reg)}." +
-                                       " Please report this bug.")
+                aux = reg.measure(new_ids.keys(),
+                                  random_generator=random_generator,
+                                  num_threads=num_threads)
+                new_reg, partial_result = aux
                 # We add the results to the result list
                 for local_id in new_ids:
                     result[new_ids[local_id]] = partial_result[local_id]
-                # We add the new registry (if it exists) to the list of regs
-                if new_reg is not None:
-                    new_sys.regs.append([new_reg, not_ids])
-                    # We update the mapping
-                    for qubit_id in not_ids:
-                        new_sys.qubitMap[qubit_id] = len(new_sys.regs) - 1
-                # We add booleans
-                for qubit_id in partial_ids:
-                    new_sys.regs.append([result[qubit_id], [qubit_id]])
-                    new_sys.qubitMap[qubit_id] = len(new_sys.regs) - 1
+                # We add the new registry to the list of regs
+                aux_id = len(new_sys.regs)
+                new_sys.regs.append((new_reg, reg_ids))
+                for id in reg_ids:
+                    new_sys.qubitMap[id] = aux_id
         except Exception as ex:
             exception = ex
         if exception is not None:
@@ -222,56 +190,35 @@ class QSystem(QStructure):
         new_reg = None
         new_ids = []
         first = True
-        exception = None
-        reg_ids = []
-        for i in range(self.num_qubits):
-            if self.usable[i]:
-                reg_id = self.qubitMap[i]
-                if reg_id not in reg_ids:
-                    reg_ids.append(reg_id)
-        try:
-            for reg_id in reg_ids[::-1]:
-                reg, ids = self.regs[reg_id]
-                if type(reg) == QRegistry:
-                    if new_reg is None:
-                        new_reg = reg
-                    else:
-                        aux_reg = superposition(new_reg, reg,
-                                                num_threads=num_threads,
-                                                verbose=self.verbose)
-                    new_ids = ids + new_ids
-                    if aux_reg is not None:
-                        if not first:
-                            del new_reg
-                        first = False
-                        new_reg = aux_reg
-                        aux_reg = None
-            # Here we remove the unused ids
-            # print("[DEBUG] PreSort:", new_reg.get_state())
-            # print("[DEBUG] IDs:", new_ids)
-            swap_ids = np.argsort(np.argsort(new_ids))
-            # print("[DEBUG] SWAP IDs:", swap_ids)
-            # And we sort the remaining qubits by qubit_id
-            for i in range(len(swap_ids)):
-                while swap_ids[i] != i:
-                    swap_targets = [swap_ids[i], swap_ids[swap_ids[i]]]
-                    # print("[DEBUG] Looping:", swap_targets)
-                    swap_ids[swap_targets[0]], swap_ids[i] = swap_targets
-                    aux_reg = new_reg.apply_gate("SWAP",
-                                                 targets=[i, swap_targets[0]],
-                                                 num_threads=num_threads)
-                    if not first:
-                        del new_reg
-                    new_reg = aux_reg
-                    # print("[DEBUG] Sorted:", new_reg.get_state())
-        except Exception as ex:
-            exception = ex
-        if exception is not None:
-            if new_reg is not None:
-                del new_reg
+        for reg_id in range(len(self.regs)):
+            reg, ids = self.regs[reg_id]
+            if new_reg is None:
+                new_reg = reg
+            else:
+                aux_reg = superposition(new_reg, reg,
+                                        num_threads=num_threads,
+                                        verbose=self.verbose)
+            new_ids = ids + new_ids
             if aux_reg is not None:
-                del aux_reg
-            raise exception
+                if not first:
+                    del new_reg
+                first = False
+                new_reg = aux_reg
+                aux_reg = None
+        # Here we remove the unused ids
+        q_ids = [id for id in new_ids if new_reg.get_classic(id) is None]
+        swap_ids = np.argsort(np.argsort(q_ids))
+        # And we sort the remaining qubits by qubit_id
+        for i in range(len(swap_ids)):
+            while swap_ids[i] != i:
+                swap_targets = [swap_ids[i], swap_ids[swap_ids[i]]]
+                swap_ids[swap_targets[0]], swap_ids[i] = swap_targets
+                aux_reg = new_reg.apply_gate("SWAP",
+                                             targets=[i, swap_targets[0]],
+                                             num_threads=num_threads)
+                if not first:
+                    del new_reg
+                new_reg = aux_reg
         return new_reg
 
     def get_state(self, key=None, canonical=False):
@@ -279,9 +226,9 @@ class QSystem(QStructure):
 
     def get_classic(self, id):
         """Return classic bit value (if qubit has been measured)."""
-        if self.usable[id]:
-            return None
-        return self.regs[self.qubitMap[id]][0]
+        reg, ids = self.regs[self.qubitMap[id]]
+        new_id = ids.index(id)
+        return reg.get_classic(new_id)
 
     def apply_gate(self, gate, targets=None, controls=None, anticontrols=None,
                    num_threads=-1, deep=False):
@@ -317,26 +264,23 @@ class QSystem(QStructure):
         exception = None
         try:
             # If any of the affected qubits is marked as not usable
-            if any([not self.usable[qubit_id]
+            if any([self.get_classic(qubit_id) is not None
                     for qubit_id in targets]):
                 # we raise an exception
                 raise ValueError("Trying to apply gate to classic bit")
-            classic_controls = {qubit_id for qubit_id in controls
-                                if not self.usable[qubit_id]}
-            classic_anticontrols = {qubit_id for qubit_id in anticontrols
-                                    if not self.usable[qubit_id]}
-            ccheck = all(self.regs[self.qubitMap[id]][0]
-                         for id in classic_controls)
-            accheck = any(self.regs[self.qubitMap[id]][0]
-                          for id in classic_anticontrols)
-            if ((len(classic_controls) > 0 and not ccheck)
-                    or (len(classic_anticontrols) > 0 and not accheck)):
+            cfail = any([self.get_classic(qubit_id) is False
+                         for qubit_id in controls])
+            acfail = any([self.get_classic(qubit_id) is True
+                          for qubit_id in anticontrols])
+            if cfail or acfail:
                 if deep:
                     return self.clone(deep=True)
                 else:
                     return self
-            controls -= classic_controls
-            anticontrols -= classic_anticontrols
+            controls = {qubit_id for qubit_id in controls
+                        if self.get_classic(qubit_id) is None}
+            anticontrols = {qubit_id for qubit_id in anticontrols
+                            if self.get_classic(qubit_id) is None}
             # All affected qubits
             parties = controls.union(anticontrols).union(targets)
             touched_regs = {self.qubitMap[qubit_id]
@@ -352,7 +296,6 @@ class QSystem(QStructure):
             for reg_id in range(len(new_sys.regs)):
                 for qubit_id in new_sys.regs[reg_id][1]:
                     new_sys.qubitMap[qubit_id] = reg_id
-            new_sys.usable = self.usable[:]
             new_sys.num_qubits = self.num_qubits
             new_ids = []
             merged = False
@@ -405,12 +348,14 @@ class QSystem(QStructure):
         """Get the polar coordinates of all ONE qubit registries."""
         start, stop, step = _get_key_with_defaults(key, self.num_qubits,
                                                    0, self.num_qubits, 1)
-        coords = [self.regs[self.qubitMap[id]][0].get_bloch_coords(0)
-                  if (type(self.regs[self.qubitMap[id]][0]) == QRegistry
-                      and len(self.regs[self.qubitMap[id]][1]) == 1)
-                  else None
-                  for id in range(start, stop, step)]
-
+        coords = [None for id in range(start, stop, step)]
+        for id in range(start, stop, step):
+            try:
+                reg, ids = self.regs[self.qubitMap[id]]
+                new_id = ids.index(id)
+                coords[id] = reg.get_bloch_coords(new_id)
+            except Exception:
+                pass
         if key is not None and type(key) != slice:
             coords = coords[0]
         return coords
@@ -434,7 +379,6 @@ def join_systems(most, least, deep=False):
     res = QSystem(None, doki=most.doki)
     res.regs = []
     res.qubitMap = {}
-    res.usable = set()
     exception = None
     try:
         count = 0
@@ -443,7 +387,6 @@ def join_systems(most, least, deep=False):
             if reg == QRegistry:
                 if deep:
                     new_reg = reg.clone()
-                res.usable.add(count)
             count += 1
             res.regs.append([new_reg, ids[:]])
         offset = least.get_num_qubits()
@@ -452,7 +395,6 @@ def join_systems(most, least, deep=False):
             if reg == QRegistry:
                 if deep:
                     new_reg = reg.clone()
-                res.usable.add(count)
             count += 1
             res.regs.append([new_reg, [id + offset for id in ids]])
         for i in range(len(res.regs)):

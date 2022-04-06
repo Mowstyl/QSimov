@@ -69,7 +69,7 @@ class QRegistry(QStructure):
 
     def get_num_qubits(self):
         """Return the number of qubits in this registry."""
-        return self.num_qubits
+        return self.num_qubits + self.num_bits
 
     def measure(self, ids, random_generator=np.random.rand, num_threads=-1):
         """Measure specified qubits of this registry and collapse.
@@ -82,7 +82,7 @@ class QRegistry(QStructure):
         Return:
             List with the value obtained after each measure
         """
-        ids_set = _get_qubit_set(self.num_qubits + self.num_bits,
+        ids_set = _get_qubit_set(self.get_num_qubits(),
                                  ids, False, "ids")
         if len(ids_set) == 0:
             raise ValueError('ids cannot be empty')
@@ -244,16 +244,13 @@ class QRegistry(QStructure):
 
     def get_bloch_coords(self, key=None):
         """Get the polar coordinates of ONE qubit in the bloch sphere."""
-        if self.get_num_qubits() != 1:
+        if self.num_qubits != 1:
             raise NotImplementedError("Bloch sphere is only supported for " +
                                       "1 qubit registries")
-        start, stop, step = _get_key_with_defaults(key, self.num_qubits,
-                                                   0, self.num_qubits, 1)
-        for id in range(start, stop, step):
-            if id != 0:
-                raise ValueError(f"Qubit {id} is not in this registry")
-            if id in self.classic_vals:
-                raise ValueError("That is a classical bit, not a qubit")
+        if key is not None and key >= self.get_num_qubits():
+            raise ValueError(f"Qubit {key} is not in this registry")
+        if key is not None and key in self.classic_vals:
+            raise ValueError("That is a classical bit, not a qubit")
         state = self.get_state(canonical=True)
         cos_t2 = state[0].real
         sin_t2 = abs(state[1])
@@ -267,19 +264,24 @@ class QRegistry(QStructure):
 
     def bra(self):
         """Get the conjugated row form state vector (bra <v|)."""
-        k = np.array(self.get_state())
+        k = self.get_state()
         k.shape = (1, k.shape[0])
         return np.conjugate(k)
 
     def ket(self):
         """Get the column form state vector (ket |v>)."""
-        k = np.array(self.get_state())
+        k = self.get_state()
         k.shape = (k.shape[0], 1)
         return k
 
     def prob(self, id, num_threads=-1):
         """Get the odds of getting 1 when measuring specified qubit."""
         id = _get_qubit_set(self.get_num_qubits(), [id], True, "argument")[0]
+        if id in self.classic_vals:
+            return self.classic_vals[id]
+        for i in range(self.get_num_qubits(), id):
+            if i in self.classic_vals:
+                id -= 1
         return self.doki.registry_prob(self.reg, id, num_threads, self.verbose)
 
     def bloch(self, key=None):
@@ -294,7 +296,15 @@ def superposition(a, b, num_threads=-1, verbose=False):
     if not np.allclose(num_threads % 1, 0):
         raise ValueError("num_threads must be an integer")
     num_threads = int(num_threads)
-    doki_reg = a.doki.registry_join(a.reg, b.reg, num_threads, verbose)
+    doki_reg = None
+    if a.reg is None and b.reg is None:
+        doki_reg = None
+    elif a.reg is None:
+        doki_reg = b.reg
+    elif b.reg is None:
+        doki_reg = a.reg
+    else:
+        doki_reg = a.doki.registry_join(a.reg, b.reg, num_threads, verbose)
     new_reg = QRegistry(None, doki=a.doki)
     new_reg.num_qubits = a.num_qubits + b.num_qubits
     new_reg.num_bits = a.num_bits + b.num_bits
