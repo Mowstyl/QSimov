@@ -405,11 +405,11 @@ _gate_data["U1"] = (1, 1, True, False)
 _gate_func["U1"] = U1
 _gate_data["HalfDeutsch"] = (1, 1, True, False)
 _gate_func["HalfDeutsch"] = HalfDeutsch
-_gate_data["XX"] = (3, 3, True, False)
+_gate_data["XX"] = (1, 1, True, False)
 _gate_func["XX"] = xx
-_gate_data["YY"] = (3, 3, True, False)
+_gate_data["YY"] = (1, 1, True, False)
 _gate_func["YY"] = yy
-_gate_data["ZZ"] = (3, 3, True, False)
+_gate_data["ZZ"] = (1, 1, True, False)
 _gate_func["ZZ"] = zz
 _gate_data["SWAP"] = (0, 0, False, True)
 _gate_func["SWAP"] = SWAP
@@ -417,6 +417,14 @@ _gate_data["ISWAP"] = (0, 0, True, False)
 _gate_func["ISWAP"] = iSWAP
 _gate_data["SqrtSWAP"] = (0, 0, True, False)
 _gate_func["SqrtSWAP"] = sqrtSWAP
+
+
+def get_available_gates():
+    return set(_gate_data.keys())
+
+
+def get_gate_aliases():
+    return _gate_alias.copy()
 
 
 def get_gate_data(gateraw):

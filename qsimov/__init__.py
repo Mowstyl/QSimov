@@ -5,3 +5,4 @@ from qsimov.structures.qgate import QGate
 from qsimov.structures.qcircuit import QCircuit
 from qsimov.structures.simple_gate import SimpleGate, add_gate
 from qsimov.connectors.drewom import Drewom
+from qsimov.connectors.parser import get_available_gates, get_gate_aliases

@@ -21,13 +21,8 @@ Data structures and functions marked as UNSTABLE might not work
 Avoid using them as they might be removed in future versions
 """
 import numpy as np
-from qsimov.structures.funmatrix import Funmatrix
-from qsimov.structures.qregistry import QRegistry, superposition
-from qsimov.structures.qsystem import QSystem, join_systems
+from qsimov.structures.qsystem import QSystem
 from qsimov.structures.qgate import QGate
-from qsimov.structures.qcircuit import QCircuit
-from qsimov.structures.simple_gate import SimpleGate, add_gate
-from qsimov.connectors.drewom import Drewom
 
 # np.zeros((h,w), dtype=complex) Inicializa una matriz de numeros complejos
 # con alto h y ancho w

@@ -709,48 +709,43 @@ def teleportation_tests(verbose=False, useSystem=False, optimize=False):
     del reg2
 
 
-'''
+def get_gate(gate_name):
+    try:
+        return [qj.SimpleGate(gate_name), ""]
+    except ValueError as ex:
+        s = ex.args[0].split("and")
+        max_args = int(s[-1].strip())
+        min_args = int(s[-2].strip().split(" ")[-1])
+        for num_args in range(min_args, max_args + 1):
+            args = []
+            for i in range(num_args):
+                args.append(str(rnd.random()))
+            str_args = f"({','.join(args)})"
+            return [qj.SimpleGate(gate_name + str_args), str_args]
+
+
 def all_gate_tests(seed=None, verbose=False):
     """Execute all gate tests."""
-    if not (seed is None):
-        qj.set_seed(seed)
-        rnd.seed(seed)
-        np.random.seed(seed)
-    result = [(0, 0) for i in range(15)]  # We have 15 tests
-    # H gate tests
-    result[0] = gate_tests("H", verbose=verbose, hasInv=False, nArgs=0)
-    # X gate tests
-    result[1] = gate_tests("X", verbose=verbose, hasInv=False, nArgs=0)
-    # Y gate tests
-    result[2] = gate_tests("Y", verbose=verbose, hasInv=False, nArgs=0)
-    # Z gate tests
-    result[3] = gate_tests("Z", verbose=verbose, hasInv=False, nArgs=0)
-    # SqrtX gate tests
-    result[4] = gate_tests("SqrtX", verbose=verbose, hasInv=True, nArgs=0)
-    # RX gate tests
-    result[5] = gate_tests("RX", verbose=verbose, hasInv=True, nArgs=1)
-    # RY gate tests
-    result[6] = gate_tests("RY", verbose=verbose, hasInv=True, nArgs=1)
-    # RZ gate tests
-    result[7] = gate_tests("RZ", verbose=verbose, hasInv=True, nArgs=1)
-    # Phase shift gate tests
-    result[8] = gate_tests("R", verbose=verbose, hasInv=True, nArgs=1)
-    # Roots of unity gate tests
-    result[9] = gate_tests("RUnity", verbose=verbose, hasInv=True, nArgs=1)
-    # Partial Deutsch gate tests
-    result[10] = gate_tests("HalfDeutsch", verbose=verbose,
-                            hasInv=True, nArgs=1)
-    # U gate tests
-    result[11] = gate_tests("U", verbose=verbose, hasInv=True, nArgs=3)
-    # U3 gate tests
-    result[12] = gate_tests("U3", verbose=verbose, hasInv=True, nArgs=3)
-    # U2 gate tests
-    result[13] = gate_tests("U2", verbose=verbose, hasInv=True, nArgs=2)
-    # U1 gate tests
-    result[14] = gate_tests("U1", verbose=verbose, hasInv=True, nArgs=1)
-
-    return result
-'''
+    gate_names = qj.get_available_gates()
+    gates = {}
+    for gate_name in gate_names:
+        gates[gate_name] = get_gate(gate_name)
+    gate_aliases = qj.get_gate_aliases()
+    for alias in gate_aliases:
+        gate_names = gate_aliases[alias]
+        if type(gate_names) == str:
+            gate_names = (gate_names,)
+        for gate_name in gate_names:
+            gate, str_args = gates[gate_name]
+            new_gate = qj.SimpleGate(alias + str_args)
+            if not np.array_equal(gate.get_matrix(), new_gate.get_matrix()):
+                if verbose:
+                    print("Gate:", gate_name)
+                    print("Alias:", alias)
+                    print("Args:", str_args)
+                    print("Expected:", gate.get_matrix())
+                    print("Found:", new_gate.get_matrix())
+                raise AssertionError("Error comparing gate with alias")
 
 
 def data_structure_tests(minqubits, maxqubits, seed=None, verbose=False,
@@ -835,8 +830,8 @@ def main():
         if seed is None:
             seed = rnd.randrange(2**32 - 1)
         print("Seed:", seed)
-        # print("\tTesting Gates...")
-        # all_gate_tests(seed=seed, verbose=verbose)
+        print("\tTesting Gates...")
+        all_gate_tests(seed=seed, verbose=verbose)
         print("\tTesting QRegistry...")
         data_structure_tests(minqubits, maxqubits, seed=seed, verbose=verbose,
                              QItem=qj.QRegistry)
