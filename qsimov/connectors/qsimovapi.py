@@ -9,8 +9,22 @@ from qsimov.structures.qstructure import QStructure, _get_op_data
 from qsimov.structures.qdesign import QDesign
 
 
-def apply_design(qdesign, qstruct, targets=None,
-                 controls=None, anticontrols=None,
+def _check_classical(classical_reg, c_controls, c_anticontrols):
+    for k in c_controls:
+        if classical_reg[k] is None:
+            raise ValueError("Undefined value for classic " +
+                             f"control bit {k}.")
+    for k in c_anticontrols:
+        if classical_reg[k] is None:
+            raise ValueError("Undefined value for classic " +
+                             f"anticontrol bit {k}.")
+    return (all(classical_reg[k] for k in c_controls) and
+            not any(classical_reg[k] for k in c_anticontrols))
+
+
+def apply_design(qdesign, qstruct, classical_reg, targets=None,
+                 c_targets=None, controls=None, anticontrols=None,
+                 c_controls=None, c_anticontrols=None,
                  random_generator=np.random.rand, num_threads=-1):
     """Apply specified gate to specified qubit with specified controls.
 
@@ -28,52 +42,73 @@ def apply_design(qdesign, qstruct, targets=None,
     if not isinstance(qstruct, QStructure):
         raise ValueError("qstruct must be a QRegistry or a QSystem")
     num_qubits = qstruct.get_num_qubits()
-    op_data = _get_op_data(num_qubits, None, targets,
-                           controls, anticontrols)
+    num_bits = qdesign.get_num_bits()
+    op_data = _get_op_data(num_qubits, num_bits, None,
+                           targets, c_targets, None,
+                           controls, anticontrols, c_controls, c_anticontrols,
+                           empty=True)
     targets = op_data["targets"]
+    c_targets = op_data["c_targets"]
     controls = op_data["controls"]
     anticontrols = op_data["anticontrols"]
+    c_controls = op_data["c_controls"]
+    c_anticontrols = op_data["c_anticontrols"]
     num_targets = qdesign.get_num_qubits()
     if len(targets) == 0:  # By default we use the least significant qubits
         targets = [i for i in range(num_targets)]
+    if len(c_targets) == 0:  # By default we use the least significant qubits
+        c_targets = [i for i in range(num_bits)]
     if len(targets) != num_targets:
         raise ValueError(f"Specified gate is for {num_targets} qubits." +
                          f" {len(targets)} qubit ids given")
+    for k in c_controls:
+        if (k not in classical_reg):
+            raise ValueError("Undefined value for classic " +
+                             f"control bit {k}.")
+    for k in c_anticontrols:
+        if (k not in classical_reg):
+            raise ValueError("Undefined value for classic " +
+                             f"anticontrol bit {k}.")
+    if not _check_classical(classical_reg, c_controls, c_anticontrols):
+        return (qstruct, classical_reg)
     new_struct = qstruct.clone()
-    measures = []
     aux = None
     exception = None
     try:
         for gate_data in qdesign.get_operations():
             if gate_data == "BARRIER":
                 continue
+            curr_c_controls = {c_targets[i] for i in gate_data["c_controls"]}
+            curr_c_acontrols = {c_targets[i]
+                                for i in gate_data["c_anticontrols"]}
+            if not _check_classical(classical_reg,
+                                    curr_c_controls, curr_c_acontrols):
+                continue
             aux = new_struct
             curr_targets = [targets[i] for i in gate_data["targets"]]
+            curr_c_targets = [c_targets[i] for i in gate_data["c_targets"]]
             curr_controls = {targets[i] for i in gate_data["controls"]}
             curr_controls = curr_controls.union(controls)
             curr_anticontrols = {targets[i]
                                  for i in gate_data["anticontrols"]}
             curr_anticontrols = curr_anticontrols.union(anticontrols)
+            # print(gate_data)
+            # print(c_targets)
+            curr_outputs = [c_targets[i] for i in gate_data["outputs"]]
             gate = gate_data["gate"]
             if isinstance(gate, QDesign):
-                new_struct, m = apply_design(gate, aux,
+                new_struct, _ = apply_design(gate, aux, classical_reg,
                                              targets=curr_targets,
+                                             c_targets=curr_c_targets,
                                              controls=curr_controls,
                                              anticontrols=curr_anticontrols,
+                                             random_generator=random_generator,
                                              num_threads=num_threads)
-                if len(m) > 0:
-                    measures.append(m)
             elif gate == "MEASURE":
-                cvals = [aux.get_classic(id) for id in curr_controls]
-                acvals = [aux.get_classic(id) for id in curr_anticontrols]
-                if any(val is None for val in cvals + acvals):
-                    raise ValueError("Can't do a measurement controlled " +
-                                     "by a qubit, only by classic bits")
-                if not all(cvals) or any(acvals):
-                    continue
                 new_struct, m = aux.measure(curr_targets,
                                             random_generator=random_generator)
-                measures.append(m)
+                for i in range(len(curr_outputs)):
+                    classical_reg[curr_outputs[i]] = m[curr_targets[i]]
             else:
                 new_struct = aux.apply_gate(gate,
                                             targets=curr_targets,
@@ -91,7 +126,7 @@ def apply_design(qdesign, qstruct, targets=None,
             del new_struct
     if exception is not None:
         raise exception
-    return (new_struct, measures)
+    return (new_struct, classical_reg)
 
 
 def execute(qcircuit, random_generator=np.random.rand, num_threads=-1,
@@ -104,6 +139,7 @@ def execute(qcircuit, random_generator=np.random.rand, num_threads=-1,
     from qsimov.structures.qsystem import QSystem
     from qsimov.structures.qregistry import QRegistry
     num_qubits = qcircuit.get_num_qubits()
+    num_bits = qcircuit.get_num_bits()
     num_ancilla = len(qcircuit.ancilla)
     if core is None or core.upper() == "CPU":
         import doki
@@ -126,14 +162,16 @@ def execute(qcircuit, random_generator=np.random.rand, num_threads=-1,
             old_sys = aux
     results = []
     for i in range(iterations):
-        new_sys, mess = apply_design(qcircuit, old_sys,
-                                     targets=[i for i in range(num_qubits)],
-                                     random_generator=random_generator,
-                                     num_threads=num_threads)
+        classical_reg = [None for i in range(num_bits)]
+        new_sys, _ = apply_design(qcircuit, old_sys, classical_reg,
+                                  targets=[i for i in range(num_qubits)],
+                                  c_targets=[i for i in range(num_bits)],
+                                  random_generator=random_generator,
+                                  num_threads=num_threads)
         if return_struct:
-            results.append([new_sys, mess])
+            results.append([new_sys, classical_reg])
         else:
-            results.append(mess)
+            results.append(classical_reg)
             del new_sys
     del old_sys
     return results

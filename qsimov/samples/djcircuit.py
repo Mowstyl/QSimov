@@ -15,7 +15,7 @@ def DJAlgCircuit(size, U_f):
     Size is n + 1, where n is the number of input bits of f.
     """
     # The last qubit is defined as an ancilla qubit with value 1
-    c = QCircuit(size, "Deutsch-Josza Algorithm", ancilla=[1])
+    c = QCircuit(size, size-1, "Deutsch-Josza Algorithm", ancilla=[1])
 
     # We apply a Hadamard gate to all the qubits
     for i in range(size):
@@ -30,14 +30,15 @@ def DJAlgCircuit(size, U_f):
 
     # We measure x1..xn qubits.
     # If all of them are 0, f is constant, otherwise f is balanced.
-    c.add_operation("MEASURE", targets=[i for i in range(size - 1)])
+    targets = [i for i in range(size - 1)]
+    c.add_operation("MEASURE", targets=targets, outputs=targets)
 
     return c
 
 
 def geq_zero(size):
     """DJ Oracle for f(x) = x >= 0. Balanced."""
-    gate = QGate(size, "U_(x>=0)")
+    gate = QGate(size, 0, "U_(x>=0)")
 
     gate.add_operation("X", targets=size-1, anticontrols=size-2)
 

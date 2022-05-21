@@ -14,14 +14,14 @@ from qsimov.samples.djcircuit import DJAlgCircuit
 
 def Bal(n, controlId=0):
     """Return Deutsch-Jozsa oracle for balanced function."""
-    gate = qj.QGate(n, "Balanced")
+    gate = qj.QGate(n, 0, "Balanced")
     gate.add_operation("X", targets=n-1, controls=controlId)
     return gate
 
 
 def Const(n, twice=False):
     """Return Deutsch-Jozsa oracle for constant function."""
-    gate = qj.QGate(n, "Constant")
+    gate = qj.QGate(n, 0, "Constant")
     gate.add_operation("X", targets=n-1)
     if twice:
         gate.add_operation("X", targets=n-1)
@@ -37,7 +37,7 @@ def TeleportationCircuit(gate):
     Return:
         QCircuit with teleportation algorithm
     """
-    qc = qj.QCircuit(3, "Teleportation", ancilla=(0, 0))
+    qc = qj.QCircuit(3, 2, "Teleportation", ancilla=(0, 0))
     qc.add_operation("H", targets=[1])
     qc.add_operation("X", targets=[2], controls=[1])
     # Aqui es donde trabajamos con el qubit Q que queremos enviar.
@@ -50,16 +50,16 @@ def TeleportationCircuit(gate):
     # Se aplica una puerta Hadamard sobre Q.
     qc.add_operation("H", targets=[0])
 
-    qc.add_operation("MEASURE", targets=(0, 1))
-    qc.add_operation("X", targets=2, controls=1)
-    qc.add_operation("Z", targets=2, controls=0)
+    qc.add_operation("MEASURE", targets=(0, 1), outputs=(0, 1))
+    qc.add_operation("X", targets=2, c_controls=1)
+    qc.add_operation("Z", targets=2, c_controls=0)
 
     return qc
 
 
 def entangle_gate():
     """Return a QGate that creates a Bell pair."""
-    e = qj.QGate(2, "Entangle")
+    e = qj.QGate(2, 0, "Entangle")
 
     e.add_operation("H", targets=0)
     e.add_operation("X", targets=1, controls=0)
@@ -150,6 +150,9 @@ def entangle_test(QItem, id1, id2, verbose):
 
     if any(r.get_state() != rg.get_state()):
         if verbose:
+            print(id1)
+            print(id2)
+            print(e.get_operations())
             print(r.get_state())
             print(rg.get_state())
             print(r.get_state() == rg.get_state())
@@ -529,6 +532,61 @@ def tool_test(verbose=False):
     del reg
 
 
+def measure_system_minitest(verbose=False):
+    s = qj.QSystem(2)
+    s = s.apply_gate("X", targets=0)
+    s, res = s.measure({0})
+    if res != [1, None]:
+        if verbose:
+            print(res)
+        raise AssertionError()
+    s, res = s.measure({1})
+    if res != [None, 0]:
+        if verbose:
+            print(res)
+        raise AssertionError()
+    s, res = s.measure({0, 1})
+    if res != [1, 0]:
+        if verbose:
+            print(res)
+        raise AssertionError()
+    s, res = s.measure({1, 0})
+    if res != [1, 0]:
+        if verbose:
+            print(res)
+        raise AssertionError()
+    s = s.apply_gate("X", targets=1, controls=0)
+    s, res = s.measure({1, 0})
+    if res != [1, 1]:
+        if verbose:
+            print(res)
+        raise AssertionError()
+    s, res = s.measure({0})
+    if res != [1, None]:
+        if verbose:
+            print(res)
+        raise AssertionError()
+    s, res = s.measure({1})
+    if res != [None, 1]:
+        if verbose:
+            print(res)
+        raise AssertionError()
+    s, res = s.measure({0, 1})
+    if res != [1, 1]:
+        if verbose:
+            print(res)
+        raise AssertionError()
+    s = s.apply_gate("X", targets=0)
+    s = s.apply_gate("X", targets=1)
+    s = s.apply_gate("H", targets=0)
+    s = s.apply_gate("X", targets=1, controls=0)
+    s, res = s.measure({0, 1})
+    if res[0] != res[1]:
+        if verbose:
+            print(res)
+        raise AssertionError()
+
+
 def measure_system_tests(nq, entangle=False, remove=False, verbose=False):
     """Test measurement with QSystem."""
     if verbose:
@@ -546,25 +604,26 @@ def measure_system_tests(nq, entangle=False, remove=False, verbose=False):
         del reg
         reg = reg2
         aux1, mes = reg.measure({id})
+        mes2 = None
         if nq > 1:
             aux2, mes2 = aux1.measure({i for i in range(nq) if i != id})
         del reg
         check_bad_measure = not mes[id]
         check_bad_measures = (nq > 1 and any(mes2[i]
                               for i in range(nq) if i != id))
-        check_not_classic = aux1.get_classic(id) is None
+        check_classic = aux1.get_classic(id) is not None
         check_not_classics = not all(aux1.get_classic(i) is None
                                      for i in range(nq) if i != id)
-        check_all_classic = nq > 1 and any(aux2.get_classic(i) is None
-                                           for i in range(nq))
-        if (check_bad_measure or check_bad_measures or check_not_classic
+        check_all_classic = nq > 1 and not any(aux2.get_classic(i) is None
+                                               for i in range(nq))
+        if (check_bad_measure or check_bad_measures or check_classic
                 or check_not_classics or check_all_classic):
             if verbose:
                 print("M1:", mes)
                 print("M2:", mes2)
                 print("Check1:", check_bad_measure)
                 print("Check2:", check_bad_measures)
-                print("Check3:", check_not_classic)
+                print("Check3:", check_classic)
                 print("Check4:", check_not_classics)
                 print("Check5:", check_all_classic)
                 print("    Michael Bay visited your simulator...")
@@ -583,7 +642,7 @@ def add_operation_tests(qdesign, verbose=False):
     """Test add_line method of the given qstruct object."""
     if verbose:
         print(" add_line tests with " + qdesign.__name__ + ":")
-    qdes = qdesign(5, "Test")
+    qdes = qdesign(5, 0, "Test")
     cons = {1, 3}
     acons = {2, 4}
     qdes.add_operation("X", targets=0, controls=cons, anticontrols=acons)
@@ -604,7 +663,7 @@ def add_operation_tests(qdesign, verbose=False):
 def _deutsch_aux(executor, nq, gate):
     circuit = DJAlgCircuit(nq, gate)
     mess = executor.execute(circuit)
-    mes = mess[0][0]
+    mes = mess[0]
 
     reg2 = qj.QSystem(nq)  # Qubits (x1, ..., xn, y) initialized to zero
     aux = reg2.apply_gate("X", targets=nq-1)  # Qubit y set to one
@@ -630,7 +689,7 @@ def _deutsch_aux(executor, nq, gate):
     del aux
     # If any qubit (x1, ..., xn) is 1, balanced. Otherwise constant.
 
-    return mes, mes2
+    return mes, mes2[:-1]
 
 
 def deutschTests(nq, verbose=False, useSystem=False, optimize=False):
@@ -690,8 +749,13 @@ def teleportation_tests(verbose=False, useSystem=False, optimize=False):
     aux = reg2.apply_gate(gate)
     del reg2
     reg2 = aux
+    rstate = None
+    if useSystem:
+        rstate = reg.regs[reg.qubitMap[2]][0].get_state()
+    else:
+        rstate = reg.get_state()
 
-    if not np.allclose(reg.get_state(), reg2.get_state()):
+    if not np.allclose(rstate, reg2.get_state()):
         if verbose:
             print("Ops:", circuit.get_operations())
             print(reg.get_state())

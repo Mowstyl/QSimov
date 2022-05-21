@@ -164,6 +164,8 @@ class QSystem(QStructure):
                 # mapped to the id in the QSystem
                 new_ids = {i: reg_ids[i] for i in range(len(reg_ids))
                            if reg_ids[i] in partial_ids}
+                # Not measured ids in this registry
+                new_reg_ids = [id for id in reg_ids if id not in partial_ids]
                 # We measure registries
                 aux = reg.measure(new_ids.keys(),
                                   random_generator=random_generator,
@@ -173,10 +175,23 @@ class QSystem(QStructure):
                 for local_id in new_ids:
                     result[new_ids[local_id]] = partial_result[local_id]
                 # We add the new registry to the list of regs
-                aux_id = len(new_sys.regs)
-                new_sys.regs.append((new_reg, reg_ids))
-                for id in reg_ids:
-                    new_sys.qubitMap[id] = aux_id
+                if len(new_reg_ids) > 0:
+                    aux_id = len(new_sys.regs)
+                    new_sys.regs.append((new_reg, reg_ids))
+                    for id in new_reg_ids:
+                        new_sys.qubitMap[id] = aux_id
+                else:
+                    new_reg.free()
+                # We add new registries with only the measured qubits
+                for id in partial_ids:
+                    one_reg = QRegistry(1, doki=self.doki,
+                                        verbose=self.verbose)
+                    if result[id]:
+                        one_aux = one_reg.apply_gate("X")
+                        one_reg.free()
+                        one_reg = one_aux
+                    new_sys.regs.append((one_reg, [id]))
+                    new_sys.qubitMap[id] = len(new_sys.regs) - 1
         except Exception as ex:
             exception = ex
         if exception is not None:
@@ -225,10 +240,8 @@ class QSystem(QStructure):
         return self.as_qregistry().get_state(key=key, canonical=canonical)
 
     def get_classic(self, id):
-        """Return classic bit value (if qubit has been measured)."""
-        reg, ids = self.regs[self.qubitMap[id]]
-        new_id = ids.index(id)
-        return reg.get_classic(new_id)
+        """Return classic bit value."""
+        return None
 
     def apply_gate(self, gate, targets=None, controls=None, anticontrols=None,
                    num_threads=-1, deep=False):
@@ -250,8 +263,8 @@ class QSystem(QStructure):
             raise ValueError("num_threads must be an integer")
         num_threads = int(num_threads)
         num_qubits = self.get_num_qubits()
-        op_data = _get_op_data(num_qubits, gate, targets,
-                               controls, anticontrols)
+        op_data = _get_op_data(num_qubits, 0, gate, targets, None, None,
+                               controls, anticontrols, None, None)
         gate = op_data["gate"]
         targets = op_data["targets"]
         controls = op_data["controls"]

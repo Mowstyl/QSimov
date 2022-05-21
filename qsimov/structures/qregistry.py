@@ -144,8 +144,8 @@ class QRegistry(QStructure):
             raise ValueError("num_threads must be an integer")
         num_threads = int(num_threads)
         num_qubits = self.num_qubits + self.num_bits
-        op_data = _get_op_data(num_qubits, gate, targets,
-                               controls, anticontrols)
+        op_data = _get_op_data(num_qubits, 0, gate, targets, None, None,
+                               controls, anticontrols, None, None)
         gate = op_data["gate"]
         targets = op_data["targets"]
         controls = op_data["controls"]
@@ -180,7 +180,7 @@ class QRegistry(QStructure):
             new_reg.verbose = self.verbose
         else:
             try:
-                new_reg, _ = apply_design(gate, self, targets,
+                new_reg, _ = apply_design(gate, self, {}, targets,
                                           controls, anticontrols,
                                           num_threads=num_threads)
             except Exception:
