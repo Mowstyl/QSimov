@@ -24,6 +24,10 @@ class QStructure(QBase):
         pass
 
     @abstractmethod
+    def get_state_size(self):
+        pass
+
+    @abstractmethod
     def get_state(self, key=None, canonical=False):
         pass
 

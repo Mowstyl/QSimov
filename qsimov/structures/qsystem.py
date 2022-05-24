@@ -199,7 +199,7 @@ class QSystem(QStructure):
             raise exception
         return (new_sys, result)
 
-    def as_qregistry(self, num_threads=-1, canonical=True):
+    def as_qregistry(self, num_threads=-1, canonical=False):
         """Return this system as a QRegistry."""
         aux_reg = None
         new_reg = None

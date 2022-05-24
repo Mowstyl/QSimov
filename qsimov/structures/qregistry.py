@@ -217,7 +217,7 @@ class QRegistry(QStructure):
                         for i in range(start, stop, step)])
         return res
 
-    def density_matrix(self, canonical=True):
+    def density_matrix(self, canonical=False):
         """Return functional matrix of the density matrix."""
         return Funmatrix(self.doki.registry_density(self.reg, self.verbose),
                          "Rho")

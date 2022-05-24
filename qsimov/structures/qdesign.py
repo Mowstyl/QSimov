@@ -4,8 +4,9 @@ from qsimov.structures.qbase import QBase
 
 class QDesign(QBase):
     @abstractmethod
-    def add_operation(self, gate, targets=None, outputs=None, controls=None,
-                      anticontrols=None, c_controls=None, c_anticontrols=None):
+    def add_operation(self, gate, targets=None, c_targets=None, outputs=None,
+                      controls=None, anticontrols=None,
+                      c_controls=None, c_anticontrols=None):
         pass
 
     @abstractmethod

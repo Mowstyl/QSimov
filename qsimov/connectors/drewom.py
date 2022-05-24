@@ -1,5 +1,4 @@
 """Handles design execution on target machine."""
-import numpy as np
 import qsimov.connectors.qsimovapi as qapi
 from qsimov.structures.qcircuit import QCircuit
 
@@ -8,13 +7,11 @@ class Drewom(object):
     """Handle QDesign execution on specified machine."""
 
     def __init__(self, qmachine="doki",
-                 extra={"num_threads": -1,
-                        "random_generator": np.random.rand,
-                        "use_system": True,
-                        "return_struct": False,
-                        "core": None}):
+                 extra=None):
         """Initialize Drewom structure."""
         self.qmachine = qmachine
+        if extra is None:
+            extra = {}
         self.extra = extra
 
     def execute(self, qcircuit, iterations=1):
