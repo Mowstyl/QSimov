@@ -41,6 +41,8 @@ class SimpleGate(QBase):
         self.gate = doki.gate_new(self.num_qubits, self.matrix.tolist(), False)
         self._str = name
         if args is not None:
+            if prs._gate_data[name][2]:  # has_invert_arg
+                args = args[:-1]
             self._str += "(" + ",".join([str(arg) for arg in args]) + ")"
         if invert and not self_invert:
             self._str += "-1"
