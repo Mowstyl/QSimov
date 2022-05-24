@@ -451,6 +451,7 @@ def get_gate_data(gateraw):
                             args = args + [invert]
                         else:
                             args = [invert]
+                        invert = False
                     if minargs <= nargs <= maxargs:  # Adoro Python
                         gate = (gatename, args, invert, self_inv)
                     else:
