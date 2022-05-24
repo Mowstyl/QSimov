@@ -6,7 +6,7 @@ def main():
     """Code to be executed on install."""
     setup(
         name="qsimov-Mowstyl",
-        version="5.0.2",
+        version="5.0.3",
         author="Hernán Indíbil de la Cruz Calvo",
         author_email="HernanIndibil.LaCruz@alu.uclm.es",
         license="MIT",

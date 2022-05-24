@@ -53,16 +53,12 @@ class QSystem(QStructure):
         new_sys.qubitMap = {}
         for id in self.qubitMap:
             new_sys.qubitMap[id] = self.qubitMap[id]
-        if deep:
-            new_sys.regs = [[self.regs[id][0].clone(), self.regs[id][1][:]]
-                            if isinstance(self.regs[id][0], QRegistry)
-                            else [self.regs[id][0], self.regs[id][1][:]]
-                            for id in range(new_sys.num_qubits)]
-        else:
-            new_sys.regs = [[self.regs[id][0], self.regs[id][1][:]]
-                            if isinstance(self.regs[id][0], QRegistry)
-                            else [self.regs[id][0], self.regs[id][1][:]]
-                            for id in range(new_sys.num_qubits)]
+        new_sys.regs = [[self.regs[id][0],
+                         self.regs[id][1][:]]
+                        if not deep else
+                        [self.regs[id][0].clone(),
+                         self.regs[id][1][:]]
+                        for id in range(len(self.regs))]
         return new_sys
 
     def __del__(self):
