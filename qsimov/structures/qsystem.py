@@ -357,12 +357,14 @@ class QSystem(QStructure):
         """Get the polar coordinates of all ONE qubit registries."""
         start, stop, step = _get_key_with_defaults(key, self.num_qubits,
                                                    0, self.num_qubits, 1)
-        coords = [None for id in range(start, stop, step)]
-        for id in range(start, stop, step):
+        ids = [id for id in range(start, stop, step)]
+        coords = [None for id in ids]
+        for i in range(len(ids)):
+            id = ids[i]
             try:
                 reg, ids = self.regs[self.qubitMap[id]]
                 new_id = ids.index(id)
-                coords[id] = reg.get_bloch_coords(new_id)
+                coords[i] = reg.get_bloch_coords(new_id)
             except Exception:
                 pass
         if key is not None and type(key) != slice:
