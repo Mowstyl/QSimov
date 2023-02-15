@@ -1,6 +1,7 @@
 # QSimov
 
-This is the quantum framework QSimov, written in Python.
+QSimov is a quantum computing toolkit developed in Python, initially as an End Degree Project at UCLM. It allows the user to work both at a low level using quantum gates and registers and at a higher level using the design tools. It has been created in such a way that it allows an almost immediate translation from the circuit diagram to the code necessary to execute it.
+From the moment of its creation, QSimov has been focused on being able to be used in learning and not on big computers and datacenters. For this reason, the simplicity of use and the low hardware requirements have always been what have guided its development. It is capable of running up to 29 entangled qubits on a laptop with 16 GB of RAM and several thousand non-entangled qubits under the same conditions.
 
 ## Getting Started
 
