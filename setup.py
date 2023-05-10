@@ -30,7 +30,7 @@ def main():
         install_requires=[
             "numpy>=1.21",
             "matplotlib>=3.5.1",
-            "doki-Mowstyl>=1.3.2"
+            "doki-Mowstyl>=1.4.0"
         ]
     )
 

@@ -20,7 +20,7 @@ from qsimov.connectors.qsimovapi import apply_design
 class QRegistry(QStructure):
     """Quantum Registry, base of all quantum related operations."""
 
-    def __init__(self, num_qubits, doki=None, verbose=False):
+    def __init__(self, num_qubits, data=None, doki=None, verbose=False):
         """Initialize QRegistry to state 0.
 
         num_qubits -> number of QuBits in the registry.
@@ -28,28 +28,44 @@ class QRegistry(QStructure):
         if doki is None:
             import doki
         self.doki = doki
-        if num_qubits is not None:
-            if num_qubits > 0:
-                self.reg = self.doki.registry_new(num_qubits, verbose)
-                self.qubit_map = {i: i for i in range(num_qubits)}
-                self.classic_vals = {}
-                self.num_qubits = num_qubits
-                self.num_bits = 0
-                self.size = 2**num_qubits
+        if data is None:
+            if num_qubits is not None:
+                if num_qubits > 0:
+                    self.reg = self.doki.registry_new(num_qubits, verbose)
+                    self.qubit_map = {i: i for i in range(num_qubits)}
+                    self.classic_vals = {}
+                    self.num_qubits = num_qubits
+                    self.num_bits = 0
+                    self.size = 2**num_qubits
+                else:
+                    raise ValueError("num_qubits must be greater than 0")
             else:
-                raise ValueError("num_qubits must be greater than 0")
+                self.reg = None
+                self.num_qubits = 0
+                self.num_bits = 0
+                self.size = 0
+                self.qubit_map = {}
+                self.classic_vals = {}
         else:
-            self.reg = None
-            self.num_qubits = 0
-            self.num_bits = 0
-            self.size = 0
-            self.qubit_map = {}
-            self.classic_vals = {}
+            self.reg = self.doki.registry_new_data(data["num_qubits"], data["reg"], verbose)
+            self.num_qubits = data["num_qubits"]
+            self.num_bits = data["num_bits"]
+            self.size = data["size"]
+            self.qubit_map = data["qubit_map"]
+            self.classic_vals = data["classic_vals"]
         self.verbose = verbose
 
     def __del__(self):
         """Clean after deletion."""
         self.free()
+
+    def get_data(self):
+        return {"reg": self.get_state(),
+                "num_qubits": self.num_qubits,
+                "num_bits": self.num_bits,
+                "size": self.size,
+                "qubit_map": self.qubit_map,
+                "classic_vals": self.classic_vals}
 
     def get_classic(self, id):
         """Return classic bit value (if qubit has been measured)."""
@@ -128,7 +144,7 @@ class QRegistry(QStructure):
         return (new_reg, final_mess)
 
     def apply_gate(self, gate, targets=None, controls=None, anticontrols=None,
-                   num_threads=-1):
+                   num_threads=-1, target=None, control=None, anticontrol=None):
         """Add specified gate to this QGate.
 
         Positional arguments:
@@ -142,6 +158,21 @@ class QRegistry(QStructure):
         Return:
             A new QRegistry
         """
+        if target is not None:
+            print("[WARNING] target keyworded argument is deprecated. Please use targets instead")
+            if targets is not None:
+                raise ValueError("target argument can't be set alongside targets")
+            targets = target
+        if control is not None:
+            print("[WARNING] control keyworded argument is deprecated. Please use controls instead")
+            if controls is not None:
+                raise ValueError("control argument can't be set alongside controls")
+            controls = control
+        if anticontrol is not None:
+            print("[WARNING] anticontrol keyworded argument is deprecated. Please use anticontrols instead")
+            if anticontrols is not None:
+                raise ValueError("anticontrol argument can't be set alongside anticontrols")
+            anticontrols = anticontrol
         if not np.allclose(num_threads % 1, 0):
             raise ValueError("num_threads must be an integer")
         num_threads = int(num_threads)

@@ -7,7 +7,7 @@ from qsimov.structures.simple_gate import SimpleGate
 
 class QStructure(QBase):
     @abstractmethod
-    def __init__(self, num_qubits, doki=None, verbose=False):
+    def __init__(self, num_qubits, data=None, doki=None, verbose=False):
         pass
 
     @abstractmethod
@@ -29,6 +29,10 @@ class QStructure(QBase):
 
     @abstractmethod
     def get_state(self, key=None, canonical=False):
+        pass
+
+    @abstractmethod
+    def get_data(self):
         pass
 
     @abstractmethod

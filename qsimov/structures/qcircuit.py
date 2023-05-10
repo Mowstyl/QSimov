@@ -59,7 +59,10 @@ class QCircuit(QDesign):
 
     def add_operation(self, gate, targets=None, c_targets=None, outputs=None,
                       controls=None, anticontrols=None,
-                      c_controls=None, c_anticontrols=None):
+                      c_controls=None, c_anticontrols=None,
+                      target=None, c_target=None, output=None,
+                      control=None, anticontrol=None,
+                      c_control=None, c_anticontrol=None):
         """Apply specified operation to this QCircuit.
 
         Positional arguments:
@@ -72,6 +75,36 @@ class QCircuit(QDesign):
                           anticontrols
             num_threads: number of threads to use
         """
+        if target is not None:
+            print("[WARNING] target keyworded argument is deprecated. Please use targets instead")
+            if targets is not None:
+                raise ValueError("target argument can't be set alongside targets")
+            targets = target
+        if output is not None:
+            print("[WARNING] output keyworded argument is deprecated. Please use outputs instead")
+            if outputs is not None:
+                raise ValueError("output argument can't be set alongside outputs")
+            outputs = output
+        if control is not None:
+            print("[WARNING] control keyworded argument is deprecated. Please use controls instead")
+            if controls is not None:
+                raise ValueError("control argument can't be set alongside controls")
+            controls = control
+        if anticontrol is not None:
+            print("[WARNING] anticontrol keyworded argument is deprecated. Please use anticontrols instead")
+            if anticontrols is not None:
+                raise ValueError("anticontrol argument can't be set alongside anticontrols")
+            anticontrols = anticontrol
+        if c_control is not None:
+            print("[WARNING] c_control keyworded argument is deprecated. Please use c_controls instead")
+            if c_controls is not None:
+                raise ValueError("c_control argument can't be set alongside c_controls")
+            c_controls = c_control
+        if c_anticontrol is not None:
+            print("[WARNING] c_anticontrol keyworded argument is deprecated. Please use c_anticontrols instead")
+            if c_anticontrols is not None:
+                raise ValueError("c_anticontrol argument can't be set alongside c_anticontrols")
+            c_anticontrols = c_anticontrol
         if gate is None:
             raise ValueError("Gate can't be None")
         if isinstance(gate, str) and gate.lower() == "barrier":

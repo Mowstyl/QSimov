@@ -15,7 +15,7 @@ from qsimov.structures.qregistry import QRegistry, superposition
 class QSystem(QStructure):
     """Quantum System, preferred over QRegistry (can save a lot of space)."""
 
-    def __init__(self, num_qubits, doki=None, verbose=False):
+    def __init__(self, num_qubits, data=None, doki=None, verbose=False):
         """Initialize QSystem to state 0.
 
         num_qubits -> number of QuBits in the system.
@@ -23,16 +23,29 @@ class QSystem(QStructure):
         if doki is None:
             import doki
         self.doki = doki
-        if num_qubits is None:
-            self.regs = None
-            self.qubitMap = None
-            self.num_qubits = 0
+        if data is None:
+            if num_qubits is None:
+                self.regs = None
+                self.qubitMap = None
+                self.num_qubits = 0
+            else:
+                self.regs = [[QRegistry(1, doki=self.doki), [id]]
+                             for id in range(num_qubits)]
+                self.qubitMap = {id: id for id in range(num_qubits)}
+                self.num_qubits = num_qubits
         else:
-            self.regs = [[QRegistry(1, doki=self.doki), [id]]
-                         for id in range(num_qubits)]
-            self.qubitMap = {id: id for id in range(num_qubits)}
-            self.num_qubits = num_qubits
+            self.regs = [[QRegistry(None, data=data["regs"][i][0], doki=self.doki),
+                          data["regs"][i][1]]
+                         for i in range(len(data["regs"]))]
+            self.qubitMap = data["qubit_map"]
+            self.num_qubits = data["num_qubits"]
         self.verbose = verbose
+
+    def get_data(self):
+        return {"regs": [[self.regs[i][0].get_data(), self.regs[i][1]]
+                         for i in range(len(self.regs))],
+                "qubit_map": self.qubitMap,
+                "num_qubits": self.num_qubits}
 
     def free(self, deep=False):
         """Release memory held by the QSystem."""
@@ -240,7 +253,7 @@ class QSystem(QStructure):
         return None
 
     def apply_gate(self, gate, targets=None, controls=None, anticontrols=None,
-                   num_threads=-1, deep=False):
+                   num_threads=-1, deep=False, target=None, control=None, anticontrol=None):
         """Apply specified gate to specified qubit with specified controls.
 
         Positional arguments:
@@ -255,6 +268,21 @@ class QSystem(QStructure):
             optimize: only for QGates. Whether to use optimized lines or
                       user defined lines
         """
+        if target is not None:
+            print("[WARNING] target keyworded argument is deprecated. Please use targets instead")
+            if targets is not None:
+                raise ValueError("target argument can't be set alongside targets")
+            targets = target
+        if control is not None:
+            print("[WARNING] control keyworded argument is deprecated. Please use controls instead")
+            if controls is not None:
+                raise ValueError("control argument can't be set alongside controls")
+            controls = control
+        if anticontrol is not None:
+            print("[WARNING] anticontrol keyworded argument is deprecated. Please use anticontrols instead")
+            if anticontrols is not None:
+                raise ValueError("anticontrol argument can't be set alongside anticontrols")
+            anticontrols = anticontrol
         if not np.allclose(num_threads % 1, 0):
             raise ValueError("num_threads must be an integer")
         num_threads = int(num_threads)
