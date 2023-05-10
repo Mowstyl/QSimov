@@ -5,11 +5,16 @@ import doki
 import numpy as np
 import qsimov as qj
 import random as rnd
+import sympy as sp
 import sys
 # import webbrowser as wb
 
 # from operator import add
 from qsimov.samples.djcircuit import DJAlgCircuit
+from sympy.physics.quantum import TensorProduct
+
+
+# th, ph, la = sp.symbols("θ φ λ", real=True)
 
 
 def Bal(n, controlId=0):
@@ -228,26 +233,19 @@ def one_gate_tests(nq, verbose=False, QItem=qj.QRegistry):
 
 
 def TwoU_np(angle1_1, angle1_2, angle1_3,
-            angle2_1, angle2_2, angle2_3,
-            invert):
+            angle2_1, angle2_2, angle2_3):
     """Return numpy two qubit gate that may entangle."""
     gate1str = f"U({angle1_1},{angle1_2},{angle1_3})"
     gate2str = f"U({angle2_1},{angle2_2},{angle2_3})"
-    if invert:
-        gate1str += "-1"
-        gate2str += "-1"
     gate1aux = qj.SimpleGate(gate1str)
     gate2aux = qj.SimpleGate(gate2str)
-    gate1 = np.kron(gate1aux.matrix, np.eye(2, dtype=complex))
-    gate2 = np.eye(4, dtype=complex)
+    gate1 = TensorProduct(gate1aux.matrix, sp.eye(2))
+    gate2 = sp.eye(4)
     gate2[2, 2] = gate2aux.matrix[0, 0]
     gate2[2, 3] = gate2aux.matrix[0, 1]
     gate2[3, 2] = gate2aux.matrix[1, 0]
     gate2[3, 3] = gate2aux.matrix[1, 1]
-    if not invert:
-        return gate2.dot(gate1)
-    else:
-        return gate1.dot(gate2)
+    return gate2 @ gate1
 
 
 def _add_two_U():
@@ -778,7 +776,7 @@ def get_gate(gate_name):
         return [qj.SimpleGate(gate_name), ""]
     except ValueError as ex:
         s = ex.args[0].split("and")
-        max_args = int(s[-1].strip())
+        max_args = int(s[-1].split(".")[-2].strip())
         min_args = int(s[-2].strip().split(" ")[-1])
         for num_args in range(min_args, max_args + 1):
             args = []

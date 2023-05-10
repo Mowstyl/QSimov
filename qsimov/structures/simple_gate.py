@@ -9,9 +9,12 @@ Functions:
 import doki
 import numpy as np
 import qsimov.connectors.parser as prs
-from qsimov.structures.qbase import QBase
+import sympy as sp
 
 from collections.abc import Iterable
+from qsimov.structures.qbase import QBase
+from sympy.matrices import Matrix
+from sympy.physics.quantum.dagger import Dagger
 
 
 class SimpleGate(QBase):
@@ -20,25 +23,27 @@ class SimpleGate(QBase):
     def __init__(self, gate_string):
         """Load a gate that is in the list of gates."""
         name, args, invert, self_invert = prs.get_gate_data(gate_string)
-        aux_matrix = _get_gate_matrix(name, args, invert, self_invert)
-        self.matrix = np.array(aux_matrix, dtype=complex)
+        # TODO: usar sympy en vez de numpy
+        self.matrix = _get_gate_matrix(name, args, self_invert)
         if self.matrix.shape[0] != self.matrix.shape[1]:
             raise ValueError("Not a square matrix")
         self.num_qubits = int(np.log2(self.matrix.shape[0]))
         if 2**self.num_qubits != self.matrix.shape[0]:
             raise ValueError("Shape must be 2^n x 2^n. n = number of qubits")
-        if self_invert:
+        inverse = self.matrix
+        if not self_invert:
             inverse = self.matrix
-        else:
-            inverse = self.matrix.conj().T
-        identity = np.dot(self.matrix, inverse)
-        identity = np.exp(-1j * np.angle(identity[0, 0])) * identity
-        if not np.allclose(identity,
-                           np.eye(2**self.num_qubits, dtype=complex)):
-            raise ValueError("Failed testing inverse")
+            if isinstance(self.matrix, Matrix):
+                inverse = Dagger(self.matrix)
+            else:
+                inverse = self.matrix.conj().T
+        _check_inverse(gate_string, self.matrix, inverse)
         if invert:
             self.matrix = inverse
-        self.gate = doki.gate_new(self.num_qubits, self.matrix.tolist(), False)
+        aux = self.matrix
+        if isinstance(aux, Matrix):
+            aux = np.array(aux)
+        self.gate = doki.gate_new(self.num_qubits, aux.astype(complex).tolist(), False)
         self._str = name
         if args is not None:
             if prs._gate_data[name][2]:  # has_invert_arg
@@ -81,16 +86,41 @@ class SimpleGate(QBase):
         return SimpleGate(gate_str)
 
 
-def _get_gate_matrix(name, args, invert, self_invert):
+def _check_inverse(name, matrix, inverse):
+    got = None
+    if isinstance(matrix, Matrix):
+        got = np.array(matrix @ inverse).astype(complex)
+        '''
+        if not ex.equals(got) and not ex.equals(sp.N(got)):
+            print("Expected:", ex)
+            print("Got:", got)
+            print("Got:", sp.simplify(got))
+            print(ex.equals(got))
+            print([[ex[i, j].equals(got[i, j]) for j in range(ex.shape[1])] for i in range(ex.shape[0])])
+            print(sp.N(got))
+            print(ex.equals(sp.N(got)))
+            raise ValueError("Failed testing inverse of " + name)
+        '''
+    else:
+        got = np.dot(matrix, inverse)
+    ex = np.eye(matrix.shape[0], dtype=complex)
+    if not np.allclose(got, ex):
+        raise ValueError("Failed testing inverse of " + name)
+
+
+def _get_gate_matrix(name, args, self_invert):
     """Get gate matrix from parser's get_gate_data info."""
     gate_function = prs._gate_func[name]
-    aux_matrix = None
+    matrix = None
     if type(args) != str and isinstance(args, Iterable):
-        aux_matrix = gate_function(*args)
+        matrix = gate_function(*args)
     elif args is not None:
-        aux_matrix = gate_function(args)
+        matrix = gate_function(args)
     else:
-        aux_matrix = gate_function()
+        matrix = gate_function()
+    if isinstance(matrix, list) or isinstance(matrix, tuple):
+        matrix = np.array(matrix, dtype=complex)
+    '''
     if not isinstance(aux_matrix, list):
         # numpy array to list
         if (callable(getattr(aux_matrix, "tolist", None))):
@@ -104,7 +134,8 @@ def _get_gate_matrix(name, args, invert, self_invert):
         elif isinstance(aux_matrix, Iterable) and \
                 all(isinstance(row, Iterable) for row in aux_matrix):
             aux_matrix = [[elem for elem in row] for row in aux_matrix]
-    return aux_matrix
+    '''
+    return matrix
 
 
 def add_gate(name, funct, min_args, max_args, has_invert_arg=False,
@@ -122,6 +153,6 @@ def add_gate(name, funct, min_args, max_args, has_invert_arg=False,
                              ". Either remove this alias or modify the older" +
                              " gate.")
     prs._gate_func[name] = funct
-    prs._gate_data[name] = (min_args, max_args, has_invert_arg, is_own_inverse)
+    prs._gate_data[name] = (min_args, max_args, is_own_inverse)
     for alias in aliases:
         prs._gate_alias[alias.lower()] = name

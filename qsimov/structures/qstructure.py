@@ -47,9 +47,18 @@ class QStructure(QBase):
     def get_bloch_coords(self, key=None):
         pass
 
-    @abstractmethod
     def bloch(self, key=None):
-        pass
+        """Return matplotlib bloch sphere."""
+        all_coords = self.get_bloch_coords(key=key)
+        if type(all_coords) != list:
+            all_coords = [all_coords]
+        from qsimov.utils.bloch import draw_bloch_sphere
+        figs = [draw_bloch_sphere(float(coords[0]), float(coords[1])) if coords is not None
+                else None
+                for coords in all_coords]
+        if key is not None and type(key) != slice:
+            figs = figs[0]
+        return figs
 
 
 def _get_op_data(num_qubits, num_bits, gate, targets, c_targets, outputs,

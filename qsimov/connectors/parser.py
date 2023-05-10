@@ -3,8 +3,12 @@
 This module has all name parsing stuff
 """
 
-import numpy as np
 import re
+import sympy as sp
+
+from sympy.matrices import Matrix
+from sympy.parsing.sympy_parser import parse_expr
+
 
 __rep__ = re.compile(r"^([a-zA-Z0-9]+)" +
                      r"(\((?:(?:(?:[a-zA-Z]+)|" +
@@ -24,33 +28,11 @@ def parse_groups(groups):
         g2 = len(aux)
         g3 = []
         for attr in aux:
-            attr = attr.strip()
-            if len(attr) == 0:
+            attr = parse_expr(attr)
+            if not attr.is_number:
+                print("Expression", attr, " is not a number")
                 errored = True
                 break
-            is_neg = attr[0] == '-'
-            is_pos = attr[0] == '+'
-            if is_neg or is_pos:
-                attr = attr[1:]
-            if len(attr) == 0:
-                errored = True
-                break
-            if "." in attr:
-                attr = float(attr)
-            elif attr[0] in "0123456789":
-                attr = int(attr)
-            elif attr.lower() == "pi":
-                attr = np.pi
-            elif attr.lower() == "tau":
-                attr = 2 * np.pi
-            elif attr.lower() == "e":
-                attr = np.e
-            else:
-                print(attr)
-                errored = True
-                break
-            if is_neg:
-                attr = -attr
             g3.append(attr)
     else:
         g2 = 0
@@ -69,121 +51,51 @@ def get_groups(str_gate):
 
 
 def Hadamard():
-    """Return numpy array with Hadamard gate for 1 qubit."""
-    gate = np.ones(4, dtype=complex).reshape(2, 2)
-    aux = 1/np.sqrt(2)
-    gate[1, 1] = -1
-    return gate * aux
+    """Return sympy matrix with Hadamard gate for 1 qubit."""
+    return (sp.sqrt(2) / 2) * Matrix([[1, 1], [1, -1]])
 
 
 def PauliX():
-    """Return numpy array with Pauli X gate (aka NOT)."""
-    gate = np.zeros(4, dtype=complex).reshape(2, 2)
-    gate[0, 1] = 1
-    gate[1, 0] = 1
-    return gate
+    """Return sympy matrix with Pauli X gate (aka NOT)."""
+    return Matrix([[0, 1], [1, 0]])
 
 
 def PauliY():
-    """Return numpy array with PauliY gate."""
-    gate = np.zeros(4, dtype=complex).reshape(2, 2)
-    gate[0, 1] = -1j
-    gate[1, 0] = 1j
-    return gate
+    """Return sympy matrix with PauliY gate."""
+    return Matrix([[0, -1j], [1j, 0]])
 
 
 def PauliZ():
-    """Return numpy array with PauliZ gate."""
-    gate = np.eye(2, dtype=complex)
-    gate[1, 1] = -1
-    return gate
+    """Return sympy matrix with PauliZ gate."""
+    return Matrix([[1, 0], [0, -1]])
 
 
-def SqrtX(invert):
-    """Return numpy array with sqrt(NOT) gate."""
-    gate = np.zeros(4, dtype=complex).reshape(2, 2)
-    if not invert:
-        gate[0, 0] = 0.5 + 0.5j
-        gate[0, 1] = 0.5 - 0.5j
-        gate[1, 0] = 0.5 - 0.5j
-        gate[1, 1] = 0.5 + 0.5j
-    else:
-        gate[0, 0] = 0.5 - 0.5j
-        gate[0, 1] = 0.5 + 0.5j
-        gate[1, 0] = 0.5 + 0.5j
-        gate[1, 1] = 0.5 - 0.5j
-    return gate
+def SqrtX():
+    """Return sympy matrix with sqrt(NOT) gate."""
+    return Matrix([[0.5 + 0.5j, 0.5 - 0.5j], [0.5 - 0.5j, 0.5 + 0.5j]])
 
 
-def R(angle, invert):
-    """Return numpy array with R gate."""
-    gate = np.eye(2, dtype=complex)
-    if not invert:
-        gate[1, 1] = np.cos(angle) + np.sin(angle) * 1j
-    else:
-        gate[1, 1] = np.cos(angle) - np.sin(angle) * 1j
-    return gate
+def P(angle):
+    """Return sympy matrix with PhaseChange gate."""
+    _R = sp.eye(2)
+    _R[1, 1] = sp.exp(sp.I * angle)
+    return _R
 
 
-def RX(angle, invert):
-    """Return numpy array with rotation gate around X axis."""
-    gate = np.zeros(4, dtype=complex).reshape(2, 2)
-    cosan = np.cos(angle/2)
-    sinan = np.sin(angle/2)
-    if not invert:
-        mult = -1j
-    else:
-        mult = 1j
-    gate[0, 0] = cosan
-    gate[0, 1] = mult * sinan
-    gate[1, 0] = mult * sinan
-    gate[1, 1] = cosan
-    return gate
+def R(theta, phi):
+    """Return sympy matrix with R gate."""
+    _R = sp.eye(2) * sp.cos(theta / 2)
+    _isinth2 = -sp.I * sp.sin(theta / 2)
+    _R[0, 1] = sp.exp(-sp.I * phi) * _isinth2
+    _R[1, 0] = sp.exp(sp.I * phi) * _isinth2
+    return _R
 
 
-def RY(angle, invert):
-    """Return numpy array with rotation gate around Y axis."""
-    gate = np.zeros(4, dtype=complex).reshape(2, 2)
-    cosan = np.cos(angle/2)
-    sinan = np.sin(angle/2)
-    gate[0, 0] = cosan
-    gate[1, 1] = cosan
-    if not invert:
-        gate[0, 1] = -sinan
-        gate[1, 0] = sinan
-    else:
-        gate[0, 1] = sinan
-        gate[1, 0] = -sinan
-    return gate
-
-
-def RZ(angle, invert):
-    """Return numpy array with rotation gate around Z axis."""
-    gate = np.zeros(4, dtype=complex).reshape(2, 2)
-    if not invert:
-        gate[0, 0] = np.cos(-angle/2) + np.sin(-angle/2) * 1j
-        gate[1, 1] = np.cos(angle/2) + np.sin(angle/2) * 1j
-    else:
-        gate[0, 0] = np.cos(-angle/2) - np.sin(-angle/2) * 1j
-        gate[1, 1] = np.cos(angle/2) - np.sin(angle/2) * 1j
-    return gate
-
-
-def RUnity(n, invert):
-    """Return numpy array with nth root of unity rotation gate."""
-    return R(2*np.pi/(2**n), invert)
-
-
-def HalfDeutsch(angle, invert):
-    """Return numpy array with a portion of the Deutsch gate.
-
-    This gate, when double controlled, is called Deutsch gate.
-    """
-    gate = np.zeros(4, dtype=complex).reshape(2, 2)
-    cosan = np.cos(angle) * 1j
-    sinan = np.sin(angle)
-    if invert:
-        cosan = -cosan
+def RX(angle):
+    """Return sympy matrix with rotation gate around X axis."""
+    gate = Matrix([[0, 0], [0, 0]])
+    cosan = sp.cos(angle / 2)
+    sinan = -1j * sp.sin(angle / 2)
     gate[0, 0] = cosan
     gate[0, 1] = sinan
     gate[1, 0] = sinan
@@ -191,148 +103,167 @@ def HalfDeutsch(angle, invert):
     return gate
 
 
-def U(angle1, angle2, angle3, invert):
-    """Return numpy array with U gate (IBM)."""
-    gate = np.zeros(4, dtype=complex).reshape(2, 2)
-    cosan = np.cos(angle1/2)
-    sinan = np.sin(angle1/2)
-    mult = 1
-    if invert:
-        mult = -1
+def RY(angle):
+    """Return sympy matrix with rotation gate around Y axis."""
+    gate = Matrix([[0, 0], [0, 0]])
+    cosan = sp.cos(angle / 2)
+    sinan = sp.sin(angle / 2)
     gate[0, 0] = cosan
-    if not invert:
-        gate[0, 1] = -sinan * np.cos(angle3) - sinan * np.sin(angle3) * 1j
-        gate[1, 0] = sinan * np.cos(angle2) + sinan * np.sin(angle2) * 1j
-    else:
-        gate[0, 1] = sinan * np.cos(angle2) - sinan * np.sin(angle2) * 1j
-        gate[1, 0] = -sinan * np.cos(angle3) + sinan * np.sin(angle3) * 1j
-    gate[1, 1] = cosan * np.cos(angle2+angle3) \
-        + mult * cosan * np.sin(angle2 + angle3) * 1j
+    gate[1, 1] = cosan
+    gate[0, 1] = -sinan
+    gate[1, 0] = sinan
     return gate
 
 
-def U2(angle1, angle2, invert):
-    """Return numpy array with U2 gate (IBM)."""
-    gate = np.zeros(4, dtype=complex).reshape(2, 2)
-    mult = 1
-    if invert:
-        mult = -1
-    gate[0, 0] = 1
-    if not invert:
-        gate[0, 1] = -np.cos(angle2) - np.sin(angle2) * 1j
-        gate[1, 0] = np.cos(angle1) + np.sin(angle1) * 1j
-    else:
-        gate[0, 1] = -np.cos(angle2) + np.sin(angle2) * 1j
-        gate[1, 0] = np.cos(angle1) - np.sin(angle1) * 1j
-    gate[1, 1] = np.cos(angle1+angle2) + mult * np.sin(angle1+angle2) * 1j
-    return gate * (1/np.sqrt(2))
+def RZ(angle):
+    """Return sympy matrix with rotation gate around Z axis."""
+    gate = Matrix([[0, 0], [0, 0]])
+    gate[0, 0] = sp.cos(-angle / 2) + sp.sin(-angle / 2) * 1j
+    gate[1, 1] = sp.cos(angle / 2) + sp.sin(angle / 2) * 1j
+    return gate
 
 
-def U1(angle, invert):
-    """Return numpy array with U1 gate (IBM)."""
-    return R(angle, invert)
+def RUnity(n):
+    """Return sympy matrix with nth root of unity rotation gate."""
+    return P(2*sp.pi/(2**n))
+
+
+def HalfDeutsch(angle):
+    """Return sympy matrix with a portion of the Deutsch gate.
+
+    This gate, when double controlled, is called Deutsch gate.
+    """
+    gate = Matrix([[0, 0], [0, 0]])
+    cosan = sp.cos(angle) * sp.I
+    sinan = sp.sin(angle)
+    gate[0, 0] = cosan
+    gate[0, 1] = sinan
+    gate[1, 0] = sinan
+    gate[1, 1] = cosan
+    return gate
+
+
+def U(th, ph, la):
+    """Return sympy matrix with U(θ, φ, λ) gate (IBM)."""
+    gate = Matrix([[0, 0], [0, 0]])
+    costh2 = sp.cos(th / 2)
+    sinth2 = sp.sin(th / 2)
+    gate[0, 0] = costh2
+    gate[0, 1] = -sp.exp(sp.I * la) * sinth2
+    gate[1, 0] = sp.exp(sp.I * ph) * sinth2
+    gate[1, 1] = sp.exp(sp.I * (ph + la)) * costh2
+    return gate
+
+
+def U3(th, ph, la):
+    """Return sympy matrix with U3(θ, φ, λ) gate (IBM)."""
+    print("[WARNING] This gate has been deprecated in OpenQASM standard. Use U(θ, φ, λ) instead.")
+    return U(th, ph, la)
+
+
+def U2(ph, la):
+    """Return sympy matrix with U2 gate (IBM)."""
+    print("[WARNING] This gate has been deprecated in OpenQASM standard. Use U(π/2, φ, λ) instead.")
+    return U(sp.pi / 2, ph, la)
+
+
+def U1(angle):
+    """Return sympy matrix with U1 gate (IBM)."""
+    print("[WARNING] This gate has been deprecated in OpenQASM standard. Use U(0, 0, λ) or P(λ) instead.")
+    return P(angle)
 
 
 def SWAP():
-    """Return numpy array with SWAP gate."""
-    gate = np.zeros(4 * 4, dtype=complex)
-    gate = gate.reshape(4, 4)
-
-    gate[0][0] = 1
-    gate[1][2] = 1
-    gate[2][1] = 1
-    gate[3][3] = 1
-
+    """Return sympy matrix with SWAP gate."""
+    gate = sp.zeros(4, 4)
+    gate[0, 0] = 1
+    gate[1, 2] = 1
+    gate[2, 1] = 1
+    gate[3, 3] = 1
     return gate
 
 
-def iSWAP(invert):
-    """Return numpy array with iSWAP gate."""
-    gate = np.zeros(4 * 4, dtype=complex)
-    gate = gate.reshape(4, 4)
-
-    gate[0][0] = 1
-    if not invert:
-        gate[1][2] = 1j
-        gate[2][1] = 1j
-    else:
-        gate[1][2] = -1j
-        gate[2][1] = -1j
-    gate[3][3] = 1
-
+def iSWAP():
+    """Return sympy matrix with iSWAP gate."""
+    gate = sp.zeros(4, 4)
+    gate[0, 0] = 1
+    gate[1, 2] = 1j
+    gate[2, 1] = 1j
+    gate[3, 3] = 1
     return gate
 
 
-def sqrtSWAP(invert):
-    """Return numpy array with sqrt(SWAP) gate."""
-    gate = np.zeros(4 * 4, dtype=complex)
-    gate = gate.reshape(4, 4)
-
-    gate[0][0] = 1
-    if not invert:
-        gate[1][1] = 0.5 + 0.5j
-        gate[1][2] = 0.5 - 0.5j
-        gate[2][1] = 0.5 - 0.5j
-        gate[2][2] = 0.5 + 0.5j
-    else:
-        gate[1][1] = 0.5 - 0.5j
-        gate[1][2] = 0.5 + 0.5j
-        gate[2][1] = 0.5 + 0.5j
-        gate[2][2] = 0.5 - 0.5j
-    gate[3][3] = 1
-
+def fSWAP():
+    """Return sympy matrix with fermionic swap fSWAP gate."""
+    gate = sp.zeros(4, 4)
+    gate[0, 0] = 1
+    gate[1, 2] = 1
+    gate[2, 1] = 1
+    gate[3, 3] = -1
     return gate
 
 
-def xx(angle, invert):
-    """Return numpy array with Ising Coupling XX gate."""
-    gate = np.eye(4, dtype=complex)
-    if not invert:
-        gate[0, 3] = np.sin(angle)-np.cos(angle)*1j
-        gate[1, 2] = -1j
-        gate[2, 1] = -1j
-        gate[3, 0] = np.sin(-angle)-np.cos(-angle)*1j
-    else:
-        gate[0, 3] = np.sin(-angle)+np.cos(-angle)*1j
-        gate[1, 2] = 1j
-        gate[2, 1] = 1j
-        gate[3, 0] = np.sin(angle)+np.cos(angle)*1j
-    return gate*(1/np.sqrt(2))
-
-
-def yy(angle, invert):
-    """Return numpy array with Ising Coupling YY gate."""
-    gate = np.eye(4, dtype=complex)
-    gate = gate * np.cos(angle)
-    ansin = np.sin(angle) * 1j
-    if not invert:
-        gate[0, 3] = ansin
-        gate[1, 2] = -ansin
-        gate[2, 1] = -ansin
-        gate[3, 0] = ansin
-    else:
-        gate[0, 3] = -ansin
-        gate[1, 2] = ansin
-        gate[2, 1] = ansin
-        gate[3, 0] = -ansin
+def sqrtSWAP():
+    """Return sympy matrix with sqrt(SWAP) gate."""
+    gate = sp.zeros(4, 4)
+    gate[0, 0] = 1
+    gate[1, 1] = 0.5 + 0.5j
+    gate[1, 2] = 0.5 - 0.5j
+    gate[2, 1] = 0.5 - 0.5j
+    gate[2, 2] = 0.5 + 0.5j
+    gate[3, 3] = 1
     return gate
 
 
-def zz(angle, invert):
-    """Return numpy array with Ising Coupling ZZ gate."""
-    gate = np.eye(4, dtype=complex)
-    gate = gate * np.cos(angle)
-    phi2 = angle/2
-    if not invert:
-        gate[0, 0] = np.cos(phi2) + np.sin(phi2) * 1j
-        gate[1, 1] = np.cos(-phi2) + np.sin(-phi2) * 1j
-        gate[2, 2] = gate[1, 1]
-        gate[3, 3] = gate[0, 0]
-    else:
-        gate[0, 0] = np.cos(phi2) - np.sin(phi2) * 1j
-        gate[1, 1] = np.cos(-phi2) - np.sin(-phi2) * 1j
-        gate[2, 2] = gate[1, 1]
-        gate[3, 3] = gate[0, 0]
+def xx(angle):
+    """Return sympy matrix with Ising Coupling XX gate. AKA Mølmer–Sørensen gate"""
+    gate = sp.eye(4)
+    phi2 = angle / 2
+    gate = gate * sp.cos(phi2)
+    _isinphi2 = -1j * sp.sin(phi2)
+    gate[0, 3] = _isinphi2
+    gate[1, 2] = _isinphi2
+    gate[2, 1] = _isinphi2
+    gate[3, 0] = _isinphi2
+    return gate
+
+
+def yy(angle):
+    """Return sympy matrix with Ising Coupling YY gate."""
+    gate = sp.eye(4)
+    phi2 = angle / 2
+    gate = gate * sp.cos(phi2)
+    isinphi2 = 1j * sp.sin(phi2)
+    gate[0, 3] = isinphi2
+    gate[1, 2] = -isinphi2
+    gate[2, 1] = -isinphi2
+    gate[3, 0] = isinphi2
+    return gate
+
+
+def zz(angle):
+    """Return sympy matrix with Ising Coupling ZZ gate."""
+    gate = sp.eye(4)
+    phi2 = angle / 2
+    cosphi2 = sp.cos(phi2)
+    isinphi2 = 1j * sp.sin(phi2)
+    gate[0, 0] = cosphi2 - isinphi2
+    gate[1, 1] = cosphi2 + isinphi2
+    gate[2, 2] = cosphi2 + isinphi2
+    gate[3, 3] = cosphi2 - isinphi2
+    return gate
+
+
+def xy(angle):
+    """Return sympy matrix with Ising Coupling ZZ gate."""
+    gate = sp.eye(4)
+    phi2 = angle / 2
+    cosphi2 = sp.cos(phi2)
+    _isinphi2 = -1j * sp.sin(phi2)
+    gate[1, 2] = _isinphi2
+    gate[1, 1] = cosphi2
+    gate[2, 2] = cosphi2
+    gate[2, 1] = _isinphi2
     return gate
 
 
@@ -348,12 +279,13 @@ _gate_alias["rx"] = "RX"
 _gate_alias["ry"] = "RY"
 _gate_alias["rz"] = "RZ"
 _gate_alias["r"] = "R"
-_gate_alias["phaseshift"] = "R"
-_gate_alias["phasechange"] = "R"
+_gate_alias["p"] = "P"
+_gate_alias["phaseshift"] = "P"
+_gate_alias["phasechange"] = "P"
 _gate_alias["runity"] = "RootPhase"
 _gate_alias["rootphase"] = "RootPhase"
 _gate_alias["h"] = "H"
-_gate_alias["u"] = ("U1", "U2", "U3")
+_gate_alias["u"] = "U"
 _gate_alias["u3"] = "U3"
 _gate_alias["u2"] = "U2"
 _gate_alias["u1"] = "U1"
@@ -362,60 +294,68 @@ _gate_alias["deutsch"] = "HalfDeutsch"
 _gate_alias["halfdeutsch"] = "HalfDeutsch"
 _gate_alias["partialdeutsch"] = "HalfDeutsch"
 _gate_alias["xx"] = "XX"
-_gate_alias["isingx"] = "XX"
-_gate_alias["isingxx"] = "XX"
+_gate_alias["rxx"] = "XX"
 _gate_alias["yy"] = "YY"
-_gate_alias["isingy"] = "YY"
-_gate_alias["isingyy"] = "YY"
+_gate_alias["ryy"] = "YY"
 _gate_alias["zz"] = "ZZ"
-_gate_alias["isingz"] = "ZZ"
-_gate_alias["isingzz"] = "ZZ"
+_gate_alias["rxx"] = "ZZ"
+_gate_alias["xy"] = "XY"
+_gate_alias["rxy"] = "XY"
 _gate_alias["swap"] = "SWAP"
-_gate_alias["iswap"] = "ISWAP"
+_gate_alias["iswap"] = "iSWAP"
+_gate_alias["fswap"] = "fSWAP"
 _gate_alias["sqrtswap"] = "SqrtSWAP"
 
 # min_args, max_args, has_invert_arg, is_self_invert
 _gate_data = {}
 _gate_func = {}
-_gate_data["X"] = (0, 0, False, True)
+_gate_data["X"] = (0, 0, True)
 _gate_func["X"] = PauliX
-_gate_data["Y"] = (0, 0, False, True)
+_gate_data["Y"] = (0, 0, True)
 _gate_func["Y"] = PauliY
-_gate_data["Z"] = (0, 0, False, True)
+_gate_data["Z"] = (0, 0, True)
 _gate_func["Z"] = PauliZ
-_gate_data["H"] = (0, 0, False, True)
+_gate_data["H"] = (0, 0, True)
 _gate_func["H"] = Hadamard
-_gate_data["SqrtX"] = (0, 0, True, False)
+_gate_data["SqrtX"] = (0, 0, False)
 _gate_func["SqrtX"] = SqrtX
-_gate_data["RX"] = (1, 1, True, False)
+_gate_data["RX"] = (1, 1, False)
 _gate_func["RX"] = RX
-_gate_data["RY"] = (1, 1, True, False)
+_gate_data["RY"] = (1, 1, False)
 _gate_func["RY"] = RY
-_gate_data["RZ"] = (1, 1, True, False)
+_gate_data["RZ"] = (1, 1, False)
 _gate_func["RZ"] = RZ
-_gate_data["R"] = (1, 1, True, False)
+_gate_data["R"] = (2, 2, False)
 _gate_func["R"] = R
-_gate_data["RootPhase"] = (1, 1, True, False)
+_gate_data["P"] = (1, 1, False)
+_gate_func["P"] = P
+_gate_data["RootPhase"] = (1, 1, False)
 _gate_func["RootPhase"] = RUnity
-_gate_data["U3"] = (3, 3, True, False)
-_gate_func["U3"] = U
-_gate_data["U2"] = (2, 2, True, False)
+_gate_data["U"] = (3, 3, False)
+_gate_func["U"] = U
+_gate_data["U3"] = (3, 3, False)
+_gate_func["U3"] = U3
+_gate_data["U2"] = (2, 2, False)
 _gate_func["U2"] = U2
-_gate_data["U1"] = (1, 1, True, False)
+_gate_data["U1"] = (1, 1, False)
 _gate_func["U1"] = U1
-_gate_data["HalfDeutsch"] = (1, 1, True, False)
+_gate_data["HalfDeutsch"] = (1, 1, False)
 _gate_func["HalfDeutsch"] = HalfDeutsch
-_gate_data["XX"] = (1, 1, True, False)
+_gate_data["XX"] = (1, 1, False)
 _gate_func["XX"] = xx
-_gate_data["YY"] = (1, 1, True, False)
+_gate_data["YY"] = (1, 1, False)
 _gate_func["YY"] = yy
-_gate_data["ZZ"] = (1, 1, True, False)
+_gate_data["ZZ"] = (1, 1, False)
 _gate_func["ZZ"] = zz
-_gate_data["SWAP"] = (0, 0, False, True)
+_gate_data["XY"] = (1, 1, False)
+_gate_func["XY"] = xy
+_gate_data["SWAP"] = (0, 0, True)
 _gate_func["SWAP"] = SWAP
-_gate_data["ISWAP"] = (0, 0, True, False)
-_gate_func["ISWAP"] = iSWAP
-_gate_data["SqrtSWAP"] = (0, 0, True, False)
+_gate_data["iSWAP"] = (0, 0, False)
+_gate_func["iSWAP"] = iSWAP
+_gate_data["fSWAP"] = (0, 0, False)
+_gate_func["fSWAP"] = fSWAP
+_gate_data["SqrtSWAP"] = (0, 0, False)
 _gate_func["SqrtSWAP"] = sqrtSWAP
 
 
@@ -437,27 +377,18 @@ def get_gate_data(gateraw):
             alias = alias.lower()
             if alias in _gate_alias:
                 gatename = _gate_alias[alias]
-                if alias == "u":
-                    if 1 <= nargs <= 3:
-                        gatename = gatename[nargs - 1]
-                    else:
-                        raise ValueError("U gate needs from 1 to 3 parameters")
                 if gatename in _gate_data:
-                    minargs, maxargs, has_inv, self_inv = _gate_data[gatename]
+                    minargs, maxargs, self_inv = _gate_data[gatename]
                     if self_inv:  # If gate . gate = identity
-                        invert = False
-                    if has_inv:  # If function has invert as last argument
-                        if args is not None:
-                            args = args + [invert]
-                        else:
-                            args = [invert]
                         invert = False
                     if minargs <= nargs <= maxargs:  # Adoro Python
                         gate = (gatename, args, invert, self_inv)
                     else:
-                        raise ValueError(gatename + " gate number of args" +
-                                         " must be between " + str(minargs) +
-                                         " and " + str(maxargs))
+                        if gatename == "R" and nargs == 1:
+                            print("[ERROR] The old R gate is now called P in OpenQASM standard. Thus, we did the same.")
+                        raise ValueError(f"{gatename} gate number of args" +
+                                         f" must be between {minargs} and {maxargs}." +
+                                         f" Got {nargs} from {gateraw}")
                 else:
                     raise ValueError("Couldn't find data for gate " + gatename)
             else:

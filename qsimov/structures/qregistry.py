@@ -7,7 +7,9 @@ Functions:
     superposition: join two registries into one by calculating tensor product.
 """
 import numpy as np
+import sympy as sp
 
+from sympy.functions.elementary.complexes import arg
 from qsimov.structures.funmatrix import Funmatrix
 from qsimov.structures.simple_gate import SimpleGate
 from qsimov.structures.qstructure import QStructure, _get_op_data, \
@@ -166,7 +168,10 @@ class QRegistry(QStructure):
             aux_targets = [self.qubit_map[id] for id in targets]
             aux_controls = {self.qubit_map[id] for id in controls}
             aux_anticontrols = {self.qubit_map[id] for id in anticontrols}
-            doki_reg = self.doki.registry_apply(self.reg, gate.gate,
+            auxg = gate.gate
+            if hasattr(self.doki, "BRegistry"):
+                auxg = gate.matrix
+            doki_reg = self.doki.registry_apply(self.reg, auxg,
                                                 aux_targets, aux_controls,
                                                 aux_anticontrols,
                                                 num_threads, self.verbose)
@@ -244,6 +249,16 @@ class QRegistry(QStructure):
 
     def get_bloch_coords(self, key=None):
         """Get the polar coordinates of ONE qubit in the bloch sphere."""
+        if hasattr(self.doki, "BRegistry"):
+            start, stop, step = _get_key_with_defaults(key, self.num_qubits,
+                                                       0, self.num_qubits, 1)
+            ids = [id for id in range(start, stop, step)]
+            coords = [(sp.acos(self.reg.r[id].v[2, 0]),
+                       sp.atan2(self.reg.r[id].v[1, 0], self.reg.r[id].v[0, 0]))
+                      if self.reg.r[id].v[0, 0] != 0
+                      else (sp.acos(self.reg.r[id].v[2, 0]), 0)
+                      for id in ids]
+            return coords
         if self.num_qubits != 1:
             raise NotImplementedError("Bloch sphere is only supported for " +
                                       "1 qubit registries")
@@ -254,8 +269,10 @@ class QRegistry(QStructure):
         state = self.get_state(canonical=True)
         cos_t2 = state[0].real
         sin_t2 = abs(state[1])
-        phi = np.angle(state[1])
-        theta = np.arctan2(sin_t2, cos_t2) * 2
+        phi = arg(state[1])
+        if phi == sp.nan:
+            phi = 0
+        theta = sp.atan2(sin_t2, cos_t2) * 2
         if theta < 0:
             theta += 2 * np.pi
         if phi < 0:
@@ -283,12 +300,6 @@ class QRegistry(QStructure):
             if i in self.classic_vals:
                 id -= 1
         return self.doki.registry_prob(self.reg, id, num_threads, self.verbose)
-
-    def bloch(self, key=None):
-        """Return matplotlib bloch sphere."""
-        theta, phi = self.get_bloch_coords(key=key)
-        from qsimov.utils.bloch import draw_bloch_sphere
-        return draw_bloch_sphere(theta, phi)
 
 
 def superposition(a, b, num_threads=-1, verbose=False):

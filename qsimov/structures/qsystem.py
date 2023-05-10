@@ -371,19 +371,6 @@ class QSystem(QStructure):
             coords = coords[0]
         return coords
 
-    def bloch(self, key=None):
-        """Return matplotlib bloch sphere."""
-        all_coords = self.get_bloch_coords(key=key)
-        if type(all_coords) != list:
-            all_coords = [all_coords]
-        from qsimov.utils.bloch import draw_bloch_sphere
-        figs = [draw_bloch_sphere(coords[0], coords[1]) if coords is not None
-                else None
-                for coords in all_coords]
-        if key is not None and type(key) != slice:
-            figs = figs[0]
-        return figs
-
 
 def join_systems(most, least, deep=False):
     """Return a system that contains both a and b systems."""
