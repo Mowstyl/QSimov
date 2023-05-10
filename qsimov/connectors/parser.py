@@ -10,12 +10,7 @@ from sympy.matrices import Matrix
 from sympy.parsing.sympy_parser import parse_expr
 
 
-__rep__ = re.compile(r"^([a-zA-Z0-9]+)" +
-                     r"(\((?:(?:(?:[a-zA-Z]+)|" +
-                     r"(?:[\+\-]?[0-9]+(?:\.[0-9]+)?(?:e[\+\-][0-9]+)?))" +
-                     r"\,\s*)*(?:(?:(?:[a-zA-Z]+)|" +
-                     r"(?:[\+\-]?[0-9]+(?:\.[0-9]+)?" +
-                     r"(?:e[\+\-][0-9]+)?)))\))?(\-1)?$")
+__rep__ = re.compile(r"^([a-zA-Z0-9]+)(\(.*\))?(\-1)?$")
 
 
 def parse_groups(groups):
