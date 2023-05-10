@@ -14,6 +14,7 @@ import sympy as sp
 from collections.abc import Iterable
 from qsimov.structures.qbase import QBase
 from sympy.matrices import Matrix
+from sympy.codegen.cfunctions import log2
 from sympy.physics.quantum.dagger import Dagger
 
 
@@ -23,11 +24,10 @@ class SimpleGate(QBase):
     def __init__(self, gate_string):
         """Load a gate that is in the list of gates."""
         name, args, invert, self_invert = prs.get_gate_data(gate_string)
-        # TODO: usar sympy en vez de numpy
         self.matrix = _get_gate_matrix(name, args, self_invert)
         if self.matrix.shape[0] != self.matrix.shape[1]:
             raise ValueError("Not a square matrix")
-        self.num_qubits = int(np.log2(self.matrix.shape[0]))
+        self.num_qubits = int(log2(self.matrix.shape[0]))
         if 2**self.num_qubits != self.matrix.shape[0]:
             raise ValueError("Shape must be 2^n x 2^n. n = number of qubits")
         inverse = self.matrix
@@ -40,10 +40,8 @@ class SimpleGate(QBase):
         _check_inverse(gate_string, self.matrix, inverse)
         if invert:
             self.matrix = inverse
-        aux = self.matrix
-        if isinstance(aux, Matrix):
-            aux = np.array(aux)
-        self.gate = doki.gate_new(self.num_qubits, aux.astype(complex).tolist(), False)
+        aux = np.array(self.matrix).astype(complex)
+        self.gate = doki.gate_new(self.num_qubits, aux.tolist(), False)
         self._str = name
         if args is not None:
             if prs._gate_data[name][2]:  # has_invert_arg
@@ -118,24 +116,8 @@ def _get_gate_matrix(name, args, self_invert):
         matrix = gate_function(args)
     else:
         matrix = gate_function()
-    if isinstance(matrix, list) or isinstance(matrix, tuple):
-        matrix = np.array(matrix, dtype=complex)
-    '''
-    if not isinstance(aux_matrix, list):
-        # numpy array to list
-        if (callable(getattr(aux_matrix, "tolist", None))):
-            aux_matrix = aux_matrix.tolist()
-        # scipy sparse matrix to numpy array
-        elif (callable(getattr(aux_matrix, "toarray", None))):
-            aux_matrix = aux_matrix.toarray()
-            # numpy array to list
-            if (callable(getattr(aux_matrix, "tolist", None))):
-                aux_matrix = aux_matrix.tolist()
-        elif isinstance(aux_matrix, Iterable) and \
-                all(isinstance(row, Iterable) for row in aux_matrix):
-            aux_matrix = [[elem for elem in row] for row in aux_matrix]
-    '''
-    return matrix
+
+    return Matrix(matrix)
 
 
 def add_gate(name, funct, min_args, max_args, has_invert_arg=None,
