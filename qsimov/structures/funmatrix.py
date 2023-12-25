@@ -32,7 +32,7 @@ class Funmatrix(object):
 
     def __getitem__(self, key):
         """Return the items of the matrix specified in key."""
-        rows, cols = self.shape
+        rows, cols = self._shape
 
         if (type(key) == int):
             if (key >= rows):
