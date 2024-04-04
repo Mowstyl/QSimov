@@ -1,4 +1,22 @@
 #!/usr/bin/python
+'''
+QSimov: A Quantum Computing Toolkit.
+Copyright (C) 2017  Hernán Indíbil de la Cruz Calvo
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+'''
+
 """Test module for QSimov."""
 
 import doki
@@ -250,7 +268,7 @@ def TwoU_np(angle1_1, angle1_2, angle1_3,
 
 def _add_two_U():
     """Add the TwoU gate to the list of available gates."""
-    qj.add_gate("TwoU", TwoU_np, 6, 6, has_invert_arg=True,
+    qj.add_gate("TwoU", TwoU_np, 6, 6,
                 is_own_inverse=False, overwrite=True)
 
 
