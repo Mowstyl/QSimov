@@ -1,3 +1,21 @@
+'''
+QSimov: A Quantum Computing Toolkit.
+Copyright (C) 2017  Hernán Indíbil de la Cruz Calvo
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+'''
+
 import numpy as np
 import qsimov.connectors.parser as gt
 import sympy as sp
@@ -82,10 +100,10 @@ class BRotation(object):
         self.theta = 2 * sp.acos(e_ia * sp.trace(self.O) / 2)
         _2isint2 = -2j * sp.sin(self.theta / 2)
         self.n = Matrix([[(e_ia * sp.trace(self.O @ pw)) / _2isint2 for pw in _pauli]])
-    
+
     def __str__(self):
         return f"Rotation θ = {self.theta}, axis = {self.n}"
-    
+
     def __repr__(self):
         return str(self)
 
@@ -102,13 +120,13 @@ class BRotation(object):
 class QuBit(object):
     def __init__(self):
         self.v = Matrix([0, 0, 1])
-    
+
     def __str__(self):
         return str(self.v.transpose())
-    
+
     def __repr__(self):
         return str(self)
-    
+
     def apply_gate(self, rot, verbose=False):
         m = rot.rotation_matrix()
         qb = QuBit()

@@ -1,6 +1,35 @@
-[build-system]
-requires = [
-    "setuptools>=42",
-    "wheel"
+[project]
+name = "qsimov"
+version = "5.1.2"
+description="QSimov: A Quantum Computing Toolkit"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {file = "LICENSE.md"}
+authors = [
+  {name = "Hernán Indíbil de la Cruz Calvo", email = "indikalesken@hotmail.com"},
 ]
-build-backend = "setuptools.build_meta"
+keywords=["quantum"]
+classifiers=[
+    'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
+    'Operating System :: OS Independent',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
+    'Programming Language :: Python :: 3.12',
+    'Topic :: Scientific/Engineering :: Mathematics',
+    'Topic :: Scientific/Engineering :: Physics'
+]
+dependencies = [
+    "numpy>=1.21",
+    "matplotlib>=3.5.1",
+    "doki-Mowstyl>=1.5.2"
+]
+
+[project.urls]
+Homepage = "https://forum.clanjhoo.com"
+Documentation = "https://github.com/Mowstyl/QSimov/wiki"
+Repository = "https://github.com/Mowstyl/QSimov.git"
+Issues = "https://github.com/Mowstyl/QSimov/issues"
+Changelog = "https://github.com/Mowstyl/QSimov/commits"
