@@ -9,11 +9,11 @@ By following this instructions you will have a working binary.
 
 ### Prerequisites
 
-CPython>=3.7 is needed to run QSimov. Expect lower maximum number of QuBits when on a x86 system (or when using x86 CPython)
+CPython>=3.8 x64 is needed to run QSimov with its default core, Doki.
 You also need the following python libraries in order to use QSimov:
  - numpy>=1.21
  - matplotlib>=3.5.1
- - doki-Mowstyl>=1.3.2
+ - doki-Mowstyl>=1.5.2
 
 ### Building from sources
 
@@ -24,9 +24,9 @@ Execute the following command while on the root directory of the project to gene
 ### Installing
 
 You may install QSimov with pip by downloading the latest version from PyPI with
- - pip install QSimov-Mowstyl
+ - pip install qsimov
 You can also install the generated .whl package, in case you are building it from the source, with the following command.
- - pip install dist/qsimov_Mowstyl-%QSimovVersion%-py3-none-any.whl
+ - pip install dist/qsimov-%QSimovVersion%-py3-none-any.whl
 
 ## Testing
 
