@@ -29,7 +29,7 @@ jobs:
     - name: Install
       run: |
         python -m build
-        pip install dist/qsimov_Mowstyl-*-py3-none-any.whl
+        pip install dist/qsimov-*-py3-none-any.whl
     - name: Test
       run: |
         python tests/qtest.py 1 8 False
