@@ -60,16 +60,16 @@ def get_system(nq):
 def get_projector(nq, qubit, value):
     proj = None
     if not bool(value):
-        proj = get_system(nq)
+        proj = doki.funmatrix_create([[1, 0], [0, 0]], False)
     else:
         proj = doki.funmatrix_create([[0, 0], [0, 1]], False)
+    _everything.append(proj)
+    if qubit > 0:
+        proj = doki.funmatrix_kron(proj, get_identity(qubit, False), False)
         _everything.append(proj)
-        if qubit > 0:
-            proj = doki.funmatrix_kron(get_identity(qubit, False), proj, False)
-            _everything.append(proj)
-        if qubit < nq-1:
-            proj = doki.funmatrix_kron(proj, get_identity(nq-qubit-1), False)
-            _everything.append(proj)
+    if qubit < nq-1:
+        proj = doki.funmatrix_kron(get_identity(nq-qubit-1), proj, False)
+        _everything.append(proj)
     return proj
 
 
