@@ -106,6 +106,8 @@ def apply_design(qdesign: QDesign, qstruct: QStructure, classical_reg, targets=N
             if not _check_classical(classical_reg,
                                     curr_c_controls, curr_c_acontrols):
                 continue
+            if gate_data == "END":
+                break
             aux = new_struct
             curr_targets = [targets[i] for i in gate_data["targets"]]
             curr_controls = {targets[i] for i in gate_data["controls"]}

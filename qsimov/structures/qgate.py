@@ -28,6 +28,24 @@ from qsimov.structures.qstructure import _get_op_data
 
 class QGate(QDesign):
     """Quantum Gate, built from elemental gates or other QGates."""
+    def add_operation(self, gate, targets=None, c_targets=None, outputs=None,
+                      controls=None, anticontrols=None,
+                      c_controls=None, c_anticontrols=None,
+                      target=None, c_target=None, output=None,
+                      control=None, anticontrol=None,
+                      c_control=None, c_anticontrol=None):
+        if isinstance(gate, str):
+            lowgate = gate.lower()
+            if lowgate == "measure" or lowgate == "end":
+                raise ValueError("MEASURE and END cannot be used in a QGate")
+        super().add_operation(gate, targets=targets, c_targets=c_targets,
+                              outputs=outputs,
+                              controls=controls, anticontrols=anticontrols,
+                              c_controls=c_controls, c_anticontrols=c_anticontrols,
+                              target=target, c_target=c_target, output=output,
+                              control=control, anticontrol=anticontrol,
+                              c_control=c_control, c_anticontrol=c_anticontrol)
+
     def draw(self):
         raise NotImplementedError("Draw has not been implemented yet")
 

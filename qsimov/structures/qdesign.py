@@ -67,11 +67,12 @@ class QDesign(QBase):
             raise ValueError("Gate can't be None")
         aux = gate
         if isinstance(gate, str):
-            if gate.lower() == "barrier":
-                self.raw_ops.append("BARRIER")
-                self.flat_ops.append("BARRIER")
+            upgate = gate.upper()
+            if upgate == "BARRIER" or upgate == "END":
+                self.raw_ops.append(upgate)
+                self.flat_ops.append(upgate)
                 return
-            elif gate.lower() == "measure":
+            elif upgate == "MEASURE":
                 aux = None
         op_data = _get_op_data(self.num_qubits, self.num_bits, aux, targets,
                                c_targets, outputs,
