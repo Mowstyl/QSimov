@@ -40,7 +40,11 @@ def _check_classical(classical_reg, c_controls, c_anticontrols):
             not any(classical_reg[k] for k in c_anticontrols))
 
 
-def apply_design(qdesign, qstruct, classical_reg, targets=None,
+def to_lines(qdesign):
+    pass
+
+
+def apply_design(qdesign: QDesign, qstruct: QStructure, classical_reg, targets=None,
                  c_targets=None, controls=None, anticontrols=None,
                  c_controls=None, c_anticontrols=None,
                  random_generator=np.random.rand, num_threads=-1):
@@ -93,7 +97,7 @@ def apply_design(qdesign, qstruct, classical_reg, targets=None,
     aux = None
     exception = None
     try:
-        for gate_data in qdesign.get_operations():
+        for gate_data in qdesign.get_operations(flatten=True):
             if gate_data == "BARRIER":
                 continue
             curr_c_controls = {c_targets[i] for i in gate_data["c_controls"]}
@@ -104,7 +108,6 @@ def apply_design(qdesign, qstruct, classical_reg, targets=None,
                 continue
             aux = new_struct
             curr_targets = [targets[i] for i in gate_data["targets"]]
-            curr_c_targets = [c_targets[i] for i in gate_data["c_targets"]]
             curr_controls = {targets[i] for i in gate_data["controls"]}
             curr_controls = curr_controls.union(controls)
             curr_anticontrols = {targets[i]
@@ -114,15 +117,7 @@ def apply_design(qdesign, qstruct, classical_reg, targets=None,
             # print(c_targets)
             curr_outputs = [c_targets[i] for i in gate_data["outputs"]]
             gate = gate_data["gate"]
-            if isinstance(gate, QDesign):
-                new_struct, _ = apply_design(gate, aux, classical_reg,
-                                             targets=curr_targets,
-                                             c_targets=curr_c_targets,
-                                             controls=curr_controls,
-                                             anticontrols=curr_anticontrols,
-                                             random_generator=random_generator,
-                                             num_threads=num_threads)
-            elif gate == "MEASURE":
+            if gate == "MEASURE":
                 new_struct, m = aux.measure(curr_targets,
                                             random_generator=random_generator)
                 for i in range(len(curr_outputs)):

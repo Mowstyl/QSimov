@@ -74,7 +74,9 @@ def TeleportationCircuit(gate):
     qc.add_operation("H", targets=[0])
 
     qc.add_operation("MEASURE", targets=(0, 1), outputs=(0, 1))
-    qc.add_operation("X", targets=2, c_controls=1)
+    qg = qj.QGate(1, 1, "CX")
+    qg.add_operation("X", targets=0, c_controls=0)
+    qc.add_operation(qg, targets=2, c_targets=1)
     qc.add_operation("Z", targets=2, c_controls=0)
 
     return qc
