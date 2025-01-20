@@ -234,9 +234,11 @@ class QRegistry(QStructure):
             new_reg.verbose = self.verbose
         else:
             try:
-                new_reg, _ = apply_design(gate, self, {}, targets,
-                                          controls, anticontrols,
-                                          num_threads=num_threads)
+                res = apply_design(gate, self, [], targets,
+                                   controls, anticontrols,
+                                   num_threads=num_threads, shots=1,
+                                   return_struct=True)
+                new_reg, _ = res[0]
             except Exception:
                 raise ValueError("Gate must be a valid string or a QGate")
         return new_reg

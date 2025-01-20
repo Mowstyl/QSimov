@@ -32,11 +32,14 @@ class Drewom(object):
             extra = {}
         self.extra = extra
 
-    def execute(self, qcircuit, iterations=1):
-        """Execute given design in a machine iterations times."""
+    def execute(self, qcircuit, shots=1, iterations=None):
+        """Execute given design in a machine shots times."""
+        if iterations is not None:
+            print("[WARNING] iterations argument is deprecated. Please use shots instead")
+            shots = iterations
         if not isinstance(qcircuit, QCircuit):
             raise ValueError("qcircuit must be a QCircuit")
         if self.qmachine == "doki":
-            return qapi.execute(qcircuit, iterations=iterations, **self.extra)
+            return qapi.execute(qcircuit, shots=shots, **self.extra)
         else:
             raise NotImplementedError("Drewom does not support that machine")

@@ -743,7 +743,7 @@ def deutschTests(nq, verbose=False, useSystem=False, optimize=False):
         print("    Noice")
 
 
-def teleportation_tests(verbose=False, useSystem=False, optimize=False):
+def teleportation_tests(verbose=False, useSystem=False, num_shots=16, optimize=False):
     """Execute teleportation algorithm related tests."""
     rands = np.random.rand(3) * 2 * np.pi - np.pi
     gate = "U(" + ",".join([str(angle)
@@ -760,35 +760,36 @@ def teleportation_tests(verbose=False, useSystem=False, optimize=False):
                                 "use_system": useSystem,
                                 "return_struct": True})
     circuit = TeleportationCircuit(gate)
-    mess = executor.execute(circuit)
-    reg, mes = mess[0]
+    mess = executor.execute(circuit, shots=num_shots)
+    for i in range(num_shots):
+        reg, mes = mess[i]
 
-    reg2 = qj.QRegistry(1)
-    aux = reg2.apply_gate(gate)
-    del reg2
-    reg2 = aux
-    rstate = None
-    if useSystem:
-        rstate = reg.regs[reg.qubitMap[2]][0].get_state()
-    else:
-        rstate = reg.get_state()
+        reg2 = qj.QRegistry(1)
+        aux = reg2.apply_gate(gate)
+        del reg2
+        reg2 = aux
+        rstate = None
+        if useSystem:
+            rstate = reg.regs[reg.qubitMap[2]][0].get_state()
+        else:
+            rstate = reg.get_state()
 
-    if not np.allclose(rstate, reg2.get_state()):
-        if verbose:
-            print("Ops:", circuit.get_operations())
-            print(reg.get_state())
-            print(reg2.get_state())
-            print(reg.get_state() == reg2.get_state())
-            print(mes)
-            print("    Michael Bay visited your simulator...")
+        if not np.allclose(rstate, reg2.get_state()):
+            if verbose:
+                print("Ops:", circuit.get_operations())
+                print(reg.get_state())
+                print(reg2.get_state())
+                print(reg.get_state() == reg2.get_state())
+                print(mes)
+                print("    Michael Bay visited your simulator...")
+            del reg
+            del reg2
+            raise AssertionError("Error checking teleportation result!")
+        else:
+            if verbose:
+                print("    Noice")
         del reg
         del reg2
-        raise AssertionError("Error checking teleportation result!")
-    else:
-        if verbose:
-            print("    Noice")
-    del reg
-    del reg2
 
 
 def get_gate(gate_name):

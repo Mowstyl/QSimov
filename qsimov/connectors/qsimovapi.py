@@ -47,7 +47,8 @@ def to_lines(qdesign):
 def apply_design(qdesign: QDesign, qstruct: QStructure, classical_reg, targets=None,
                  c_targets=None, controls=None, anticontrols=None,
                  c_controls=None, c_anticontrols=None,
-                 random_generator=np.random.rand, num_threads=-1):
+                 random_generator=np.random.rand, num_threads=-1,
+                 shots=1, return_struct=False):
     """Apply specified gate to specified qubit with specified controls.
 
     Positional arguments:
@@ -59,10 +60,6 @@ def apply_design(qdesign: QDesign, qstruct: QStructure, classical_reg, targets=N
                      anticontrols
         num_threads: number of threads to use
     """
-    if not isinstance(qdesign, QDesign):
-        raise ValueError("qdesign must be a QGate or a QCircuit")
-    if not isinstance(qstruct, QStructure):
-        raise ValueError("qstruct must be a QRegistry or a QSystem")
     num_qubits = qstruct.get_num_qubits()
     num_bits = qdesign.get_num_bits()
     op_data = _get_op_data(num_qubits, num_bits, None,
@@ -78,8 +75,12 @@ def apply_design(qdesign: QDesign, qstruct: QStructure, classical_reg, targets=N
     num_targets = qdesign.get_num_qubits()
     if len(targets) == 0:  # By default we use the least significant qubits
         targets = [i for i in range(num_targets)]
+    elif len(targets) == 1:  # If only one id specified, we take the next ids
+        targets = [i for i in range(targets[0], targets[0] + num_targets)]
     if len(c_targets) == 0:  # By default we use the least significant qubits
         c_targets = [i for i in range(num_bits)]
+    elif len(c_targets) == 1:  # If only one id specified, we take the next ids
+        c_targets = [i for i in range(c_targets[0], c_targets[0] + num_bits)]
     if len(targets) != num_targets:
         raise ValueError(f"Specified gate is for {num_targets} qubits." +
                          f" {len(targets)} qubit ids given")
@@ -92,64 +93,85 @@ def apply_design(qdesign: QDesign, qstruct: QStructure, classical_reg, targets=N
             raise ValueError("Undefined value for classic " +
                              f"anticontrol bit {k}.")
     if not _check_classical(classical_reg, c_controls, c_anticontrols):
-        return (qstruct, classical_reg)
-    new_struct = qstruct.clone()
+        if return_struct:
+            return [(qstruct, classical_reg)]
+        return [classical_reg]
     aux = None
     exception = None
-    try:
-        for gate_data in qdesign.get_operations(flatten=True):
-            if gate_data == "BARRIER":
-                continue
-            curr_c_controls = {c_targets[i] for i in gate_data["c_controls"]}
-            curr_c_acontrols = {c_targets[i]
-                                for i in gate_data["c_anticontrols"]}
-            if not _check_classical(classical_reg,
-                                    curr_c_controls, curr_c_acontrols):
-                continue
-            if gate_data == "END":
-                break
-            aux = new_struct
-            curr_targets = [targets[i] for i in gate_data["targets"]]
-            curr_controls = {targets[i] for i in gate_data["controls"]}
-            curr_controls = curr_controls.union(controls)
-            curr_anticontrols = {targets[i]
-                                 for i in gate_data["anticontrols"]}
-            curr_anticontrols = curr_anticontrols.union(anticontrols)
-            # print(gate_data)
-            # print(c_targets)
-            curr_outputs = [c_targets[i] for i in gate_data["outputs"]]
-            gate = gate_data["gate"]
-            if gate == "MEASURE":
-                new_struct, m = aux.measure(curr_targets,
-                                            random_generator=random_generator)
-                for i in range(len(curr_outputs)):
-                    classical_reg[curr_outputs[i]] = m[curr_targets[i]]
-            else:
-                new_struct = aux.apply_gate(gate,
-                                            targets=curr_targets,
-                                            controls=curr_controls,
-                                            anticontrols=curr_anticontrols,
-                                            num_threads=num_threads)
-            if aux is not qstruct:
+    first_measure = 0
+    pre_measure_sys = qstruct.clone()
+    has_measured = False
+    results = []
+    ops = qdesign.get_operations(flatten=True)
+    for i in range(shots):
+        new_struct = pre_measure_sys
+        new_classical = classical_reg[:]
+        try:
+            for i in range(first_measure, len(ops)):
+                gate_data = ops[i]
+                if gate_data == "BARRIER":
+                    continue
+                curr_c_controls = {c_targets[i] for i in gate_data["c_controls"]}
+                curr_c_acontrols = {c_targets[i]
+                                    for i in gate_data["c_anticontrols"]}
+                if not _check_classical(new_classical,
+                                        curr_c_controls, curr_c_acontrols):
+                    continue
+                if gate_data == "END":
+                    break
+                aux = new_struct
+                curr_targets = [targets[i] for i in gate_data["targets"]]
+                curr_controls = {targets[i] for i in gate_data["controls"]}
+                curr_controls = curr_controls.union(controls)
+                curr_anticontrols = {targets[i]
+                                     for i in gate_data["anticontrols"]}
+                curr_anticontrols = curr_anticontrols.union(anticontrols)
+                # print(gate_data)
+                # print(c_targets)
+                curr_outputs = [c_targets[i] for i in gate_data["outputs"]]
+                gate = gate_data["gate"]
+                if gate == "MEASURE":
+                    if not has_measured:
+                        first_measure = i
+                        del pre_measure_sys
+                        pre_measure_sys = aux
+                        has_measured = True
+                    new_struct, m = aux.measure(curr_targets,
+                                                random_generator=random_generator)
+                    for i in range(len(curr_outputs)):
+                        new_classical[curr_outputs[i]] = m[curr_targets[i]]
+                else:
+                    new_struct = aux.apply_gate(gate,
+                                                targets=curr_targets,
+                                                controls=curr_controls,
+                                                anticontrols=curr_anticontrols,
+                                                num_threads=num_threads)
+                if aux is not qstruct:
+                    del aux
+                    aux = None
+        except Exception as ex:
+            exception = ex
+            if aux is not None and aux is not qstruct:
                 del aux
-                aux = None
-    except Exception as ex:
-        exception = ex
-        if aux is not None and aux is not qstruct:
-            del aux
-        if new_struct is not None:
-            del new_struct
-    if exception is not None:
-        raise exception
-    return (new_struct, classical_reg)
+            if new_struct is not None:
+                del new_struct
+        if exception is not None:
+            raise exception
+        if return_struct:
+            results.append([new_struct, new_classical])
+        else:
+            results.append(new_classical)
+    del pre_measure_sys
+    return results
 
 
 def execute(qcircuit, random_generator=np.random.rand, num_threads=-1,
-            use_system=True, return_struct=False, core=None, iterations=1):
+            use_system=True, return_struct=False, core=None,
+            shots=1):
     """Execute the gates in lines on a qsystem.
 
-    Gets repeated the specified number of iterations.
-    Returns the result of each iteration.
+    Gets repeated the specified number of shots.
+    Returns the result of each shot.
     """
     from qsimov.structures.qsystem import QSystem
     from qsimov.structures.qregistry import QRegistry
@@ -175,18 +197,12 @@ def execute(qcircuit, random_generator=np.random.rand, num_threads=-1,
             aux = old_sys.apply_gate("X", targets=num_qubits-num_ancilla+i)
             del old_sys
             old_sys = aux
-    results = []
-    for i in range(iterations):
-        classical_reg = [None for i in range(num_bits)]
-        new_sys, _ = apply_design(qcircuit, old_sys, classical_reg,
-                                  targets=[i for i in range(num_qubits)],
-                                  c_targets=[i for i in range(num_bits)],
-                                  random_generator=random_generator,
-                                  num_threads=num_threads)
-        if return_struct:
-            results.append([new_sys, classical_reg])
-        else:
-            results.append(classical_reg)
-            del new_sys
+    classical_reg = [False for i in range(num_bits)]
+    results = apply_design(qcircuit, old_sys, classical_reg,
+                           targets=[i for i in range(num_qubits)],
+                           c_targets=[i for i in range(num_bits)],
+                           random_generator=random_generator,
+                           num_threads=num_threads, shots=shots,
+                           return_struct=return_struct)
     del old_sys
     return results
