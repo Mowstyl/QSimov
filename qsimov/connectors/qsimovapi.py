@@ -27,6 +27,11 @@ from qsimov.structures.qstructure import QStructure, _get_op_data
 from qsimov.structures.qdesign import QDesign
 
 
+classical_ops = {"SET": (1, 0), "RESET": (1, 0), "NOT": (1, 0),
+                 "AND": (2, 1), "OR": (2, 1), "XOR": (2, 1),
+                 "NAND": (2, 1), "NOR": (2, 1), "NXOR": (2, 1)}
+
+
 def _check_classical(classical_reg, c_controls, c_anticontrols):
     for k in c_controls:
         if classical_reg[k] is None:
@@ -119,6 +124,32 @@ def apply_design(qdesign: QDesign, qstruct: QStructure, classical_reg, targets=N
                     continue
                 if gate_data == "END":
                     break
+                gate = gate_data["gate"]
+                if isinstance(gate, str) and gate in classical_ops and not (gate == "NOT" and len(targets) == 1):
+                    num_targets, num_outputs = classical_ops[gate_data]
+                    if num_targets != len(c_targets):
+                        raise ValueError(f"Gate {gate} needs {num_targets} classic targets")
+                    if num_outputs != len(outputs):
+                        raise ValueError(f"Gate {gate} needs {num_outputs} outputs")
+                    if gate == "SET":
+                        new_classical[c_targets[0]] = True
+                    if gate == "RESET":
+                        new_classical[c_targets[0]] = False
+                    if gate == "NOT":
+                        new_classical[c_targets[0]] = not new_classical[c_targets[0]]
+                    if gate == "AND":
+                        new_classical[outputs[0]] = new_classical[c_targets[0]] and new_classical[c_targets[1]]
+                    if gate == "OR":
+                        new_classical[outputs[0]] = new_classical[c_targets[0]] or new_classical[c_targets[1]]
+                    if gate == "XOR":
+                        new_classical[outputs[0]] = new_classical[c_targets[0]] != new_classical[c_targets[1]]
+                    if gate == "NAND":
+                        new_classical[outputs[0]] = not (new_classical[c_targets[0]] and new_classical[c_targets[1]])
+                    if gate == "NOR":
+                        new_classical[outputs[0]] = not (new_classical[c_targets[0]] or new_classical[c_targets[1]])
+                    if gate == "NXOR":
+                        new_classical[outputs[0]] = new_classical[c_targets[0]] == new_classical[c_targets[1]]
+                    continue
                 aux = new_struct
                 curr_targets = [targets[i] for i in gate_data["targets"]]
                 curr_controls = {targets[i] for i in gate_data["controls"]}
@@ -129,7 +160,6 @@ def apply_design(qdesign: QDesign, qstruct: QStructure, classical_reg, targets=N
                 # print(gate_data)
                 # print(c_targets)
                 curr_outputs = [c_targets[i] for i in gate_data["outputs"]]
-                gate = gate_data["gate"]
                 if gate == "MEASURE":
                     if not has_measured:
                         first_measure = i
