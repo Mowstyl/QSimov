@@ -66,6 +66,7 @@ class QDesign(QBase):
         if gate is None:
             raise ValueError("Gate can't be None")
         aux = gate
+        is_classic = False
         if isinstance(gate, str):
             upgate = gate.upper()
             if upgate == "BARRIER" or upgate == "END":

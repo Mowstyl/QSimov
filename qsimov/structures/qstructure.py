@@ -89,10 +89,20 @@ def _get_op_data(num_qubits, num_bits, gate, targets, c_targets, outputs,
     """Do basic error checking for arguments and return them."""
     targets = _get_qubit_set(num_qubits, targets, True, "targets")
     c_targets = _get_qubit_set(num_bits, c_targets, True, "classic targets")
+    num_outputs = 0
+    is_classic = False
     if gate is not None:
         num_c_targets = 0
         if type(gate) == str:
-            gate = SimpleGate(gate)
+            aux = gate.upper()
+            from qsimov.connectors.qsimovapi import classical_ops
+            is_classic = aux in classical_ops and (aux != "NOT" or targets is None or len(targets) == 0)
+            if is_classic:
+                num_c_targets, num_outputs = classical_ops[aux]
+                if num_c_targets is None:
+                    num_c_targets = len(c_targets)
+            else:
+                gate = SimpleGate(gate)
         elif type(gate) != SimpleGate:
             num_c_targets = gate.num_bits
         num_targets = gate.num_qubits
@@ -106,6 +116,9 @@ def _get_op_data(num_qubits, num_bits, gate, targets, c_targets, outputs,
         if len(c_targets) != num_c_targets:
             raise ValueError(f"Specified gate is for {num_c_targets} bits." +
                              f" {len(c_targets)} bit ids given")
+    elif is_classic:
+        if len(targets) > 0:
+            raise ValueError("Received qubits for classical gate")
     controls = _get_qubit_set(num_qubits, controls, False, "controls")
     c_controls = _get_qubit_set(num_bits, c_controls,
                                 False, "classic controls")
@@ -123,13 +136,17 @@ def _get_op_data(num_qubits, num_bits, gate, targets, c_targets, outputs,
                                  f" {len(outputs)} ids given")
             if len(controls) + len(anticontrols) > 0:
                 raise ValueError("Measures can only be controlled by bits")
-    elif len(outputs) != 0:
-        raise ValueError("Gate applications can't have classical outputs")
+    elif len(outputs) != num_outputs:
+        if not is_classic:
+            raise ValueError("Quantum ate applications can't have classical outputs")
+        else:
+            raise ValueError(f"Expected {num_outputs} output bits.")
 
     return {"gate": gate,
             "targets": targets, "c_targets": c_targets, "outputs": outputs,
             "controls": controls, "anticontrols": anticontrols,
-            "c_controls": c_controls, "c_anticontrols": c_anticontrols}
+            "c_controls": c_controls, "c_anticontrols": c_anticontrols,
+            "is_classic": is_classic}
 
 
 def _check_no_intersection(targets, controls, anticontrols, classic=False):

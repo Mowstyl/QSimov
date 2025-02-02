@@ -29,7 +29,9 @@ from qsimov.structures.qdesign import QDesign
 
 classical_ops = {"SET": (1, 0), "RESET": (1, 0), "NOT": (1, 0),
                  "AND": (2, 1), "OR": (2, 1), "XOR": (2, 1),
-                 "NAND": (2, 1), "NOR": (2, 1), "NXOR": (2, 1)}
+                 "NAND": (2, 1), "NOR": (2, 1), "NXOR": (2, 1),
+                 "LEFT_SHIFT": (None, 0), "RIGHT_SHIFT": (None, 0),
+                 "LEFT_ROTATE": (None, 0), "RIGHT_ROTATE": (None, 0)}
 
 
 def _check_classical(classical_reg, c_controls, c_anticontrols):
@@ -125,30 +127,49 @@ def apply_design(qdesign: QDesign, qstruct: QStructure, classical_reg, targets=N
                 if gate_data == "END":
                     break
                 gate = gate_data["gate"]
-                if isinstance(gate, str) and gate in classical_ops and not (gate == "NOT" and len(targets) == 1):
+                if op_data["is_classic"]:
                     num_targets, num_outputs = classical_ops[gate_data]
-                    if num_targets != len(c_targets):
+                    outputs = op_data["outputs"]
+                    if num_targets is not None and num_targets != len(c_targets):
                         raise ValueError(f"Gate {gate} needs {num_targets} classic targets")
                     if num_outputs != len(outputs):
                         raise ValueError(f"Gate {gate} needs {num_outputs} outputs")
                     if gate == "SET":
                         new_classical[c_targets[0]] = True
-                    if gate == "RESET":
+                    elif gate == "RESET":
                         new_classical[c_targets[0]] = False
-                    if gate == "NOT":
+                    elif gate == "NOT":
                         new_classical[c_targets[0]] = not new_classical[c_targets[0]]
-                    if gate == "AND":
+                    elif gate == "AND":
                         new_classical[outputs[0]] = new_classical[c_targets[0]] and new_classical[c_targets[1]]
-                    if gate == "OR":
+                    elif gate == "OR":
                         new_classical[outputs[0]] = new_classical[c_targets[0]] or new_classical[c_targets[1]]
-                    if gate == "XOR":
+                    elif gate == "XOR":
                         new_classical[outputs[0]] = new_classical[c_targets[0]] != new_classical[c_targets[1]]
-                    if gate == "NAND":
+                    elif gate == "NAND":
                         new_classical[outputs[0]] = not (new_classical[c_targets[0]] and new_classical[c_targets[1]])
-                    if gate == "NOR":
+                    elif gate == "NOR":
                         new_classical[outputs[0]] = not (new_classical[c_targets[0]] or new_classical[c_targets[1]])
-                    if gate == "NXOR":
+                    elif gate == "NXOR":
                         new_classical[outputs[0]] = new_classical[c_targets[0]] == new_classical[c_targets[1]]
+                    elif gate == "LEFT_SHIFT" or gate == "LEFT_ROTATE":
+                        overflow = new_classical[c_targets[-1]]
+                        tot = len(c_targets)
+                        for i in range(1, len(c_targets)):
+                            new_classical[c_targets[tot - i]] = new_classical[c_targets[tot - i - 1]]
+                        if gate == "LEFT_SHIFT":
+                            new_classical[c_targets[0]] = False
+                        else:
+                            new_classical[c_targets[0]] = overflow
+                    elif gate == "RIGHT_SHIFT" or gate == "RIGHT_ROTATE":
+                        overflow = new_classical[c_targets[0]]
+                        tot = len(c_targets)
+                        for i in range(0, len(c_targets) - 1):
+                            new_classical[c_targets[i]] = new_classical[c_targets[i + 1]]
+                        if gate == "RIGHT_SHIFT":
+                            new_classical[c_targets[-1]] = False
+                        else:
+                            new_classical[c_targets[-1]] = overflow
                     continue
                 aux = new_struct
                 curr_targets = [targets[i] for i in gate_data["targets"]]

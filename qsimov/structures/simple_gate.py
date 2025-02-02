@@ -139,15 +139,18 @@ def _get_gate_matrix(name, args, self_invert):
 
 
 def add_gate(name, funct, min_args, max_args, has_invert_arg=None,
-             is_own_inverse=False, aliases=[], overwrite=False):
+             is_own_inverse=False, aliases=None, overwrite=False):
     """Add specified gate to the list of available gates."""
     if has_invert_arg is not None:
         print("[WARNING] has_invert_arg keyworded argument has been deprecated, and will be removed. Currently it does nothing.")
     if name in prs._gate_func and not overwrite:
         raise ValueError(name + " gate has already been defined. " +
                          "Set overwrite=True if you want to overwrite it.")
-    aliases.append(name)
-    aliases = {alias.lower() for alias in aliases}
+    if aliases is None:
+        aliases = {name.lower()}
+    else:
+        aliases = {alias.lower() for alias in aliases}
+        aliases.add(name)
     for alias in aliases:
         if alias in prs._gate_alias and prs._gate_alias[alias] != name:
             raise ValueError("Alias " + alias + " for gate " + name +
