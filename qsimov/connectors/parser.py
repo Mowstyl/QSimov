@@ -28,7 +28,8 @@ from sympy.matrices import Matrix
 from sympy.parsing.sympy_parser import parse_expr
 
 
-__rep__ = re.compile(r"^([a-zA-Z0-9]+)(\(.*\))?(\-1)?$")
+_gate_name_re = r"[a-zA-Z0-9_]+"
+__rep__ = re.compile(r"^(" + _gate_name_re + r")(\(.*\))?(\-1)?$")
 
 
 def parse_groups(groups):

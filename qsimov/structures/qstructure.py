@@ -92,6 +92,7 @@ def _get_op_data(num_qubits, num_bits, gate, targets, c_targets, outputs,
     num_outputs = 0
     is_classic = False
     if gate is not None:
+        num_targets = 0
         num_c_targets = 0
         if type(gate) == str:
             aux = gate.upper()
@@ -103,9 +104,11 @@ def _get_op_data(num_qubits, num_bits, gate, targets, c_targets, outputs,
                     num_c_targets = len(c_targets)
             else:
                 gate = SimpleGate(gate)
+                num_targets = gate.num_qubits
         elif type(gate) != SimpleGate:
             num_c_targets = gate.num_bits
-        num_targets = gate.num_qubits
+        if not is_classic:
+            num_targets = gate.num_qubits
         if len(targets) == 0:  # By default we use the least significant qubits
             targets = [i for i in range(num_targets)]
         if len(c_targets) == 0:  # By default we use the least significant bits
@@ -137,10 +140,12 @@ def _get_op_data(num_qubits, num_bits, gate, targets, c_targets, outputs,
             if len(controls) + len(anticontrols) > 0:
                 raise ValueError("Measures can only be controlled by bits")
     elif len(outputs) != num_outputs:
+        print(outputs)
+        print(num_outputs)
         if not is_classic:
-            raise ValueError("Quantum ate applications can't have classical outputs")
+            raise ValueError(f"Quantum gate {gate} applications can't have classical outputs")
         else:
-            raise ValueError(f"Expected {num_outputs} output bits.")
+            raise ValueError(f"Expected {num_outputs} output bits for gate {gate}.")
 
     return {"gate": gate,
             "targets": targets, "c_targets": c_targets, "outputs": outputs,

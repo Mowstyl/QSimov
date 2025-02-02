@@ -28,6 +28,7 @@ import doki
 import numpy as np
 import qsimov.connectors.parser as prs
 import sympy as sp
+import re
 
 from collections.abc import Iterable
 from qsimov.structures.qbase import QBase
@@ -35,6 +36,8 @@ from sympy.matrices import Matrix
 from sympy.codegen.cfunctions import log2
 from sympy.physics.quantum.dagger import Dagger
 
+
+__rep__ = re.compile(r"^" + prs._gate_name_re + "+$")
 
 class SimpleGate(QBase):
     """Quantum gate with its associated matrix."""
@@ -143,6 +146,8 @@ def add_gate(name, funct, min_args, max_args, has_invert_arg=None,
     """Add specified gate to the list of available gates."""
     if has_invert_arg is not None:
         print("[WARNING] has_invert_arg keyworded argument has been deprecated, and will be removed. Currently it does nothing.")
+    if __rep__.match(name) is None:
+        raise ValueError("Gate names may only contain letters, numbers and underscores, matching [a-zA-Z0-9_]+ regex.")
     if name in prs._gate_func and not overwrite:
         raise ValueError(name + " gate has already been defined. " +
                          "Set overwrite=True if you want to overwrite it.")

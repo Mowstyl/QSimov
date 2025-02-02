@@ -27,7 +27,7 @@ from qsimov.structures.qstructure import QStructure, _get_op_data
 from qsimov.structures.qdesign import QDesign
 
 
-classical_ops = {"SET": (1, 0), "RESET": (1, 0), "NOT": (1, 0),
+classical_ops = {"SET": (1, 0), "RESET": (1, 0), "NOT": (1, 1),
                  "AND": (2, 1), "OR": (2, 1), "XOR": (2, 1),
                  "NAND": (2, 1), "NOR": (2, 1), "NXOR": (2, 1),
                  "LEFT_SHIFT": (None, 0), "RIGHT_SHIFT": (None, 0),
@@ -127,49 +127,50 @@ def apply_design(qdesign: QDesign, qstruct: QStructure, classical_reg, targets=N
                 if gate_data == "END":
                     break
                 gate = gate_data["gate"]
-                if op_data["is_classic"]:
-                    num_targets, num_outputs = classical_ops[gate_data]
-                    outputs = op_data["outputs"]
-                    if num_targets is not None and num_targets != len(c_targets):
+                curr_outputs = [c_targets[i] for i in gate_data["outputs"]]
+                curr_c_targets = [c_targets[i] for i in gate_data["c_targets"]]
+                if gate_data["is_classic"]:
+                    num_targets, num_outputs = classical_ops[gate]
+                    if num_targets is not None and num_targets != len(curr_c_targets):
                         raise ValueError(f"Gate {gate} needs {num_targets} classic targets")
-                    if num_outputs != len(outputs):
+                    if num_outputs != len(curr_outputs):
                         raise ValueError(f"Gate {gate} needs {num_outputs} outputs")
                     if gate == "SET":
-                        new_classical[c_targets[0]] = True
+                        new_classical[curr_c_targets[0]] = True
                     elif gate == "RESET":
-                        new_classical[c_targets[0]] = False
+                        new_classical[curr_c_targets[0]] = False
                     elif gate == "NOT":
-                        new_classical[c_targets[0]] = not new_classical[c_targets[0]]
+                        new_classical[curr_outputs[0]] = not new_classical[curr_c_targets[0]]
                     elif gate == "AND":
-                        new_classical[outputs[0]] = new_classical[c_targets[0]] and new_classical[c_targets[1]]
+                        new_classical[curr_outputs[0]] = new_classical[curr_c_targets[0]] and new_classical[curr_c_targets[1]]
                     elif gate == "OR":
-                        new_classical[outputs[0]] = new_classical[c_targets[0]] or new_classical[c_targets[1]]
+                        new_classical[curr_outputs[0]] = new_classical[curr_c_targets[0]] or new_classical[curr_c_targets[1]]
                     elif gate == "XOR":
-                        new_classical[outputs[0]] = new_classical[c_targets[0]] != new_classical[c_targets[1]]
+                        new_classical[curr_outputs[0]] = new_classical[curr_c_targets[0]] != new_classical[curr_c_targets[1]]
                     elif gate == "NAND":
-                        new_classical[outputs[0]] = not (new_classical[c_targets[0]] and new_classical[c_targets[1]])
+                        new_classical[curr_outputs[0]] = not (new_classical[curr_c_targets[0]] and new_classical[curr_c_targets[1]])
                     elif gate == "NOR":
-                        new_classical[outputs[0]] = not (new_classical[c_targets[0]] or new_classical[c_targets[1]])
+                        new_classical[curr_outputs[0]] = not (new_classical[curr_c_targets[0]] or new_classical[curr_c_targets[1]])
                     elif gate == "NXOR":
-                        new_classical[outputs[0]] = new_classical[c_targets[0]] == new_classical[c_targets[1]]
+                        new_classical[curr_outputs[0]] = new_classical[curr_c_targets[0]] == new_classical[curr_c_targets[1]]
                     elif gate == "LEFT_SHIFT" or gate == "LEFT_ROTATE":
-                        overflow = new_classical[c_targets[-1]]
+                        overflow = new_classical[curr_c_targets[-1]]
                         tot = len(c_targets)
-                        for i in range(1, len(c_targets)):
-                            new_classical[c_targets[tot - i]] = new_classical[c_targets[tot - i - 1]]
+                        for i in range(1, len(curr_c_targets)):
+                            new_classical[curr_c_targets[tot - i]] = new_classical[curr_c_targets[tot - i - 1]]
                         if gate == "LEFT_SHIFT":
-                            new_classical[c_targets[0]] = False
+                            new_classical[curr_c_targets[0]] = False
                         else:
-                            new_classical[c_targets[0]] = overflow
+                            new_classical[curr_c_targets[0]] = overflow
                     elif gate == "RIGHT_SHIFT" or gate == "RIGHT_ROTATE":
-                        overflow = new_classical[c_targets[0]]
+                        overflow = new_classical[curr_c_targets[0]]
                         tot = len(c_targets)
-                        for i in range(0, len(c_targets) - 1):
-                            new_classical[c_targets[i]] = new_classical[c_targets[i + 1]]
+                        for i in range(0, len(curr_c_targets) - 1):
+                            new_classical[curr_c_targets[i]] = new_classical[curr_c_targets[i + 1]]
                         if gate == "RIGHT_SHIFT":
-                            new_classical[c_targets[-1]] = False
+                            new_classical[curr_c_targets[-1]] = False
                         else:
-                            new_classical[c_targets[-1]] = overflow
+                            new_classical[curr_c_targets[-1]] = overflow
                     continue
                 aux = new_struct
                 curr_targets = [targets[i] for i in gate_data["targets"]]
@@ -180,7 +181,6 @@ def apply_design(qdesign: QDesign, qstruct: QStructure, classical_reg, targets=N
                 curr_anticontrols = curr_anticontrols.union(anticontrols)
                 # print(gate_data)
                 # print(c_targets)
-                curr_outputs = [c_targets[i] for i in gate_data["outputs"]]
                 if gate == "MEASURE":
                     if not has_measured:
                         first_measure = i

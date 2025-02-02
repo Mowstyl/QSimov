@@ -85,12 +85,12 @@ class QDesign(QBase):
 
         if not isinstance(aux, QDesign):
             noct = op_data.copy()
-            del noct["c_targets"]
             self.flat_ops.append(noct)
         else:
             subops = aux.get_operations(flatten=True)
             for sub_data in subops:
                 sub_data["targets"] = [targets[i] for i in sub_data["targets"]]
+                sub_data["c_targets"] = [c_targets[i] for i in sub_data["c_targets"]]
                 sub_data["outputs"] = [c_targets[i] for i in sub_data["outputs"]]
                 sub_data["controls"] = {targets[i] for i in sub_data["controls"]} | op_data["controls"]
                 sub_data["c_controls"] = {c_targets[i] for i in sub_data["c_controls"]} | op_data["c_controls"]
