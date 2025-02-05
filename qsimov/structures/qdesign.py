@@ -102,7 +102,7 @@ class QDesign(QBase):
         ops = self.raw_ops
         if flatten:
             ops = self.flat_ops
-        return [op.copy() for op in ops]
+        return [op.copy() if not isinstance(op, str) else op for op in ops]
 
     @abstractmethod
     def draw(self):
