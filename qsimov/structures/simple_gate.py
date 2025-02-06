@@ -37,7 +37,7 @@ from sympy.codegen.cfunctions import log2
 from sympy.physics.quantum.dagger import Dagger
 
 
-__rep__ = re.compile(r"^" + prs._gate_name_re + "+$")
+__rep__ = re.compile(r"^" + prs._gate_name_re + "$")
 
 class SimpleGate(QBase):
     """Quantum gate with its associated matrix."""
